@@ -1,0 +1,19 @@
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: flex-start; /* Alinea el contenido a la izquierda */
+    align-items: flex-start; /* Alinea el contenido en la parte superior */
+    background-color: #f0f0f0;
+}
+
+#map {
+    height: 50%;
+    width: 30%;
+    position: absolute; /* Cambia a posición absoluta */
+    top: 2%; /* Ajusta la posición vertical */
+    left: 20%; /* Ajusta la posición horizontal */
+    border: 2px solid #333;
+    border-radius: 8px;
+}
