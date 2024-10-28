@@ -1,4 +1,4 @@
-"No","year","month","day","hour","PM2.5","PM10","SO2","NO2","CO","O3","TEMP","PRES","DEWP","RAIN","wd","WSPM","station"
+No,year,month,day,hour,PM2_5,PM10,SO2,NO2,CO,O3,TEMP,PRES,DEWP,RAIN,wd,WSPM,station
 1,2013,3,1,0,7,7,3,2,100,91,-2.3,1020.3,-20.7,0,"WNW",3.1,"Huairou"
 2,2013,3,1,1,4,4,3,NA,100,92,-2.7,1020.8,-20.5,0,"NNW",1.5,"Huairou"
 3,2013,3,1,2,4,4,NA,NA,100,91,-3.2,1020.6,-21.4,0,"NW",1.8,"Huairou"

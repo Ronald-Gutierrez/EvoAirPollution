@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contaminantes del Aire - Visualización Radial</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        svg {
+            margin: 20px 0;
+            border: 1px solid #ccc;
+        }
+        .checkbox-container {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Contaminantes del Aire - Visualización Radial</h1>
+    <div class="checkbox-container">
+        <label><input type="checkbox" value="PM2.5" checked> PM2.5</label>
+        <label><input type="checkbox" value="PM10" checked> PM10</label>
+        <label><input type="checkbox" value="CO2" checked> CO2</label>
+        <label><input type="checkbox" value="NO2" checked> NO2</label>
+    </div>
+    <svg id="radial-chart" width="500" height="500"></svg>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        // Función para generar un valor aleatorio en un rango específico
+        const getRandomInRange = (min, max) => Math.random() * (max - min) + min;
+
+        // Generar datos ficticios
+        const contaminants = ["PM2.5", "PM10", "CO2", "NO2"];
+        const days = Array.from({ length: 100 }, (_, i) => i + 1);
+        const data = contaminants.map(contaminant => {
+            let min, max;
+            switch (contaminant) {
+                case "PM2.5":
+                    min = 10; max = 20;
+                    break;
+                case "PM10":
+                    min = 20; max = 30;
+                    break;
+                case "CO2":
+                    min = 0; max = 5;
+                    break;
+                case "NO2":
+                    min = 5; max = 10;
+                    break;
+            }
+            return {
+                name: contaminant,
+                values: days.map(() => getRandomInRange(min, max).toFixed(2)) // Valores aleatorios en el rango específico
+            };
+        });
+
+        const svg = d3.select("#radial-chart");
+        const width = +svg.attr("width");
+        const height = +svg.attr("height");
+        const radius = Math.min(width, height) / 2 - 40;
+
+        const color = d3.scaleOrdinal(d3.schemeCategory10);
+        
+        const g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
+
+        const xScale = d3.scaleBand()
+            .domain(days)
+            .range([0, 2 * Math.PI])
+            .padding(0.1); // Agregar un padding para evitar solapamientos
+
+        const yScale = d3.scaleLinear()
+            .domain([0, 30]) // Ajusta el rango máximo para que se acomode a PM10
+            .range([0, radius]);
+
+        // Dibuja las líneas guía radiales
+        const drawGuideLines = () => {
+            const ticks = yScale.ticks(5); // Crea 5 ticks para la escala y
+            ticks.forEach(tick => {
+                const lineAngle = (2 * Math.PI) / 30; // Distribuye la línea en cada día
+                for (let i = 0; i < 30; i++) {
+                    const angle = i * lineAngle;
+                    const x1 = Math.cos(angle) * yScale(tick);
+                    const y1 = Math.sin(angle) * yScale(tick);
+                    const x2 = Math.cos(angle) * radius;
+                    const y2 = Math.sin(angle) * radius;
+
+                    g.append("line")
+                        .attr("x1", x1)
+                        .attr("y1", y1)
+                        .attr("x2", x2)
+                        .attr("y2", y2)
+                        .attr("stroke", "#ccc")
+                        .attr("stroke-width", 1);
+                }
+            });
+        };
+
+        // Dibuja líneas circulares
+        const drawCircularLines = () => {
+            const ticks = yScale.ticks(5);
+            ticks.forEach(tick => {
+                g.append("circle")
+                    .attr("r", yScale(tick))
+                    .attr("fill", "none")
+                    .attr("stroke", "#ccc")
+                    .attr("stroke-width", 1);
+            });
+        };
+
+        const drawRadialChart = () => {
+            g.selectAll("*").remove(); // Limpiar el gráfico antes de dibujar
+            drawCircularLines(); // Dibuja líneas circulares
+            drawGuideLines(); // Dibuja las líneas guía radiales
+
+            const checkedContaminants = Array.from(document.querySelectorAll(".checkbox-container input:checked"))
+                .map(input => input.value);
+
+            checkedContaminants.forEach((contaminant, i) => {
+                const values = data.find(d => d.name === contaminant).values;
+
+                const lineGenerator = d3.lineRadial()
+                    .angle((d, index) => xScale(index + 1)) // Usar index + 1 para alinear con el día
+                    .radius(d => yScale(d));
+
+                g.append("path")
+                    .datum(values)
+                    .attr("fill", "none")
+                    .attr("stroke", color(i))
+                    .attr("stroke-width", 2)
+                    .attr("d", lineGenerator);
+            });
+        };
+
+        drawRadialChart();
+
+        document.querySelectorAll(".checkbox-container input").forEach(input => {
+            input.addEventListener("change", drawRadialChart);
+        });
+    </script>
+</body>
+</html>

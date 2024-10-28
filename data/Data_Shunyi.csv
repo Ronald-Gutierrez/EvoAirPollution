@@ -1,4 +1,4 @@
-"No","year","month","day","hour","PM2.5","PM10","SO2","NO2","CO","O3","TEMP","PRES","DEWP","RAIN","wd","WSPM","station"
+No,year,month,day,hour,PM2_5,PM10,SO2,NO2,CO,O3,TEMP,PRES,DEWP,RAIN,wd,WSPM,station
 1,2013,3,1,0,3,6,3,8,300,44,-0.9,1025.8,-20.5,0,"NW",9.3,"Shunyi"
 2,2013,3,1,1,12,12,3,7,300,47,-1.1,1026.1,-21.3,0,"NW",9.4,"Shunyi"
 3,2013,3,1,2,14,14,NA,7,200,22,-1.7,1026.2,-23,0,"NW",8.6,"Shunyi"
