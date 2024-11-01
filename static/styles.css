@@ -15,18 +15,33 @@ body {
     width: 30%;
     position: absolute; /* Cambia a posición absoluta */
     top: 2%; /* Ajusta la posición vertical */
-    left: 50%; /* Ajusta la posición horizontal */
+    left: 11%; /* Ajusta la posición horizontal */
     border: 1px solid #333;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
 }
+#dashboard
+{
+    height: 48%;
+    width: 8%;
+    position: absolute; /* Cambia a posición absoluta */
+    top: 2%; /* Ajusta la posición vertical */
+    left: 1%; /* Ajusta la posición horizontal */
+    border: 1px solid #333;
+    border-radius: 8px;
+    background-color: #fff; /* Fondo blanco para la sección de visualización */
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+}
 
-.view-radial {
-    height: 46.4%;
+#view-radial {
+    height: 47%;
     width: 35%;
     position: absolute; /* Cambia a posición absoluta */
     top: 2%; /* Ajusta la posición vertical */
-    left: 10%; /* Ajusta la posición horizontal */
+    left: 42%; /* Ajusta la posición horizontal */
     background-color: #fff; /* Fondo blanco para la sección de visualización */
     border: 1px solid #333;
     border-radius: 8px;
@@ -73,7 +88,33 @@ label {
     position: absolute; /* Cambia a posición absoluta */
     font-size: 0.9em; /* Cambia el tamaño de la fuente a más pequeño */
     color: #777; /* Color más suave para los checkboxes */
-    margin-right: 5px; /* Espacio entre checkbox y label */
+    margin-right: 1px; /* Espacio entre checkbox y label */
     margin-top: 10px;
     /* transform: scale(1.2); Aumenta el tamaño del checkbox */
 }
+/* Estilos para el contenedor principal del panel de selección */
+
+/* Estilos para el título del panel */
+#dashboard h3 {
+    font-size: 1em;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+/* Estilos para los checkboxes de las ciudades */
+.city-checkboxes {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+}
+
+/* Estilos para cada etiqueta de checkbox */
+.city-checkboxes label {
+    display: flex;
+    align-items: center;
+    font-size: 0.95em;
+    color: #555;
+}
+
+

@@ -8,56 +8,60 @@
 </head>
 <body>
     <div id="map"></div>
-
-        
-        <div class="view-radial">
-            <div class="city-selector">
-                <label for="city">Selecciona una ciudad:</label>
-                <select id="city">
-                    <option value="Data_Aotizhongxin.csv">Aotizhongxin</option>
-                    <option value="Data_Changping.csv">Changping</option>
-                    <option value="Data_Dingling.csv">Dingling</option>
-                    <option value="Data_Dongsi.csv">Dongsi</option>
-                    <option value="Data_Guanyuan.csv">Guanyuan</option>
-                    <option value="Data_Gucheng.csv">Gucheng</option>
-                    <option value="Data_Huairou.csv">Huairou</option>
-                    <option value="Data_Nongzhanguan.csv">Nongzhanguan</option>
-                    <option value="Data_Shunyi.csv">Shunyi</option>
-                    <option value="Data_Tiantan.csv">Tiantan</option>
-                    <option value="Data_Wanliu.csv">Wanliu</option>
-                    <option value="Data_Wanshouxigong.csv">Wanshouxigong</option>
-                </select>
-            </div>
-            <!-- <h3>Selecciona los atributos a mostrar:</h3> -->
-             <div class="options-chek">
-                <label><input type="checkbox" value="PM2_5"> PM2.5</label>
-                <label><input type="checkbox" value="PM10"> PM10</label>
-                <label><input type="checkbox" value="SO2"> SO2</label>
-                <label><input type="checkbox" value="NO2"> NO2</label>
-                <label><input type="checkbox" value="CO"> CO</label>
-                <label><input type="checkbox" value="O3"> O3</label>
-                <label><input type="checkbox" value="TEMP"> Temperatura</label>
-                <label><input type="checkbox" value="PRES"> Presion Atm.</label>
-                <label><input type="checkbox" value="DEWP"> Humedad</label>
-                <label><input type="checkbox" value="RAIN"> Precipitacion</label>
-            </div>
-            <!-- <button id="load-data">Cargar Datos</button> -->
-            <div id="chart-view-radial"></div>
-            <div class="fechas-rad">
-                <label for="fecha-inicio">Fecha de Inicio:</label>
-                <input type="date" id="fecha-inicio" min="2013-03-01" max="2017-02-28">
-                
-                <label for="fecha-fin">Fecha de Fin:</label>
-                <input type="date" id="fecha-fin" min="2013-03-01" max="2017-02-28">
-                
-                <label>
-                    <input type="checkbox" id="visualizar-todo"> Todas las fechas
-                </label>
-                
-                <!-- <div id="fecha-rango"></div> Aquí se mostrará el rango de fechas elegido -->
-            </div>
-            
+    <div id="dashboard" class="city-selection-panel">
+        <h3>Selecciona una ciudad:</h3>
+        <div id="city-checkboxes" class="city-checkboxes">
+            <label><input type="radio" name="city" value="Data_Aotizhongxin.csv" data-lat="39.9829" data-lng="116.3974"> Aotizhongxin</label>
+            <label><input type="radio" name="city" value="Data_Changping.csv" data-lat="40.21965" data-lng="116.2255"> Changping</label>
+            <label><input type="radio" name="city" value="Data_Dingling.csv" data-lat="40.2925" data-lng="116.2204"> Dingling</label>
+            <label><input type="radio" name="city" value="Data_Dongsi.csv" data-lat="39.9296" data-lng="116.4170"> Dongsi</label>
+            <label><input type="radio" name="city" value="Data_Guanyuan.csv" data-lat="39.9293" data-lng="116.3399"> Guanyuan</label>
+            <label><input type="radio" name="city" value="Data_Gucheng.csv" data-lat="39.9144" data-lng="116.1841"> Gucheng</label>
+            <label><input type="radio" name="city" value="Data_Huairou.csv" data-lat="40.3288" data-lng="116.6280"> Huairou</label>
+            <label><input type="radio" name="city" value="Data_Nongzhanguan.csv" data-lat="39.8040" data-lng="116.4612"> Nongzhanguan</label>
+            <label><input type="radio" name="city" value="Data_Shunyi.csv" data-lat="40.1270" data-lng="116.6552"> Shunyi</label>
+            <label><input type="radio" name="city" value="Data_Tiantan.csv" data-lat="39.8865" data-lng="116.4074"> Tiantan</label>
+            <label><input type="radio" name="city" value="Data_Wanliu.csv" data-lat="39.9875" data-lng="116.2873"> Wanliu</label>
+            <label><input type="radio" name="city" value="Data_Wanshouxigong.csv" data-lat="39.8785" data-lng="116.3526"> Wanshouxigong</label>
         </div>
+    </div>
+    
+    
+    
+    <div id="view-radial">
+        <!-- <h3>Selecciona los atributos a mostrar:</h3> -->
+            <div class="options-chek">
+            <label><input type="checkbox" value="PM2_5"> PM2.5</label>
+            <label><input type="checkbox" value="PM10"> PM10</label>
+            <label><input type="checkbox" value="SO2"> SO2</label>
+            <label><input type="checkbox" value="NO2"> NO2</label>
+            <label><input type="checkbox" value="CO"> CO</label>
+            <label><input type="checkbox" value="O3"> O3</label>
+            <label><input type="checkbox" value="TEMP"> Temperatura</label>
+            <label><input type="checkbox" value="PRES"> Presion Atm.</label>
+            <label><input type="checkbox" value="DEWP"> Humedad</label>
+            <label><input type="checkbox" value="RAIN"> Precipitacion</label>
+        </div>
+        <!-- <button id="load-data">Cargar Datos</button> -->
+        <div id="chart-view-radial"></div>
+
+        <div class="fechas-rad">
+            <h4 for="city">Selecciona una Fecha:</h4>
+
+            <label for="fecha-inicio">Fecha de Inicio:</label>
+            <input type="date" id="fecha-inicio" min="2013-03-01" max="2017-02-28">
+            
+            <label for="fecha-fin">Fecha de Fin:</label>
+            <input type="date" id="fecha-fin" min="2013-03-01" max="2017-02-28">
+            
+            <label>
+                <input type="checkbox" id="visualizar-todo"> Todas las fechas
+            </label>
+            
+            <!-- <div id="fecha-rango"></div> Aquí se mostrará el rango de fechas elegido -->
+        </div>
+        
+    </div>
         
 
         

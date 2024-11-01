@@ -1,6 +1,3 @@
-// Variable para almacenar la última InfoWindow abierta
-let lastInfoWindow = null;
-
 // Función para inicializar el mapa de Beijing con Google Maps
 function initMap() {
     const beijing = { lat: 40.3, lng: 116.4074 }; // Coordenadas de Beijing
@@ -9,10 +6,6 @@ function initMap() {
         center: beijing,
     });
 
-    // Crear un objeto para almacenar las estaciones por ciudad
-    const stationsByCity = {};
-
-    // Cargar y procesar el GeoJSON para los distritos
     fetch('map/beijing.json')
         .then(response => response.json())
         .then(data => {
@@ -21,9 +14,9 @@ function initMap() {
                     paths: feature.geometry.coordinates[0].map(coord => ({ lat: coord[1], lng: coord[0] })),
                     strokeColor: "#000000",
                     strokeOpacity: 0.5,
-                    strokeWeight: 1.5,
+                    strokeWeight: 1,
                     fillColor: "#000000",
-                    fillOpacity: 0.05,
+                    fillOpacity: 0.1,
                 });
                 district.setMap(map);
             });
@@ -31,113 +24,8 @@ function initMap() {
         .catch(error => {
             console.error("Error al cargar el GeoJSON:", error);
         });
-
-    // Cargar el archivo CSV y agregar marcadores
-    fetch('data/position_station.csv')
-        .then(response => response.text())
-        .then(csvData => {
-            const stations = parseCSV(csvData);
-            stations.forEach(station => {
-                const position = { lat: parseFloat(station.latitude), lng: parseFloat(station.longitude) };
-                const marker = new google.maps.Marker({
-                    position: position,
-                    map: map,
-                    title: station.stationId, // Título del marcador
-                    icon: {
-                        url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png", // Icono de banderita
-                        scaledSize: new google.maps.Size(20, 20) // Ajusta el tamaño de la banderita aquí
-                    }
-                });
-
-                // Crear un InfoWindow para mostrar información
-                const infoWindow = new google.maps.InfoWindow({
-                    content: `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; padding: 10px; max-width: 200px; line-height: 1.5; border-radius: 5px;">
-                                <strong style="font-size: 16px; color: #1a73e8;">${station.stationId}</strong><br>
-                                <p style="margin-top: 5px;">${station.Notes}</p>
-                            </div>`
-                });
-
-
-                // Agregar un evento de clic al marcador
-                marker.addListener("click", () => {
-                    openInfoWindow(map, marker, infoWindow); // Abrir InfoWindow
-                });
-
-                // Asignar la estación al objeto de estaciones por ciudad
-                if (!stationsByCity[station.city]) {
-                    stationsByCity[station.city] = [];
-                }
-                stationsByCity[station.city].push({ marker, infoWindow });
-            });
-
-            // Guardar el objeto para uso posterior
-            map.stationsByCity = stationsByCity;
-        })
-        .catch(error => {
-            console.error("Error al cargar el archivo CSV:", error);
-        });
-
-    // Agregar evento de cambio para los radio buttons de selección de ciudad
-    const cityCheckboxes = document.querySelectorAll('input[name="city"]');
-    cityCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', () => {
-            // Cerrar la última InfoWindow si está abierta
-            if (lastInfoWindow) {
-                lastInfoWindow.close();
-            }
-
-            const selectedCity = checkbox.value; // Obtener el valor de la ciudad seleccionada
-            const stations = map.stationsByCity[selectedCity];
-
-            if (stations) {
-                // Abrir la InfoWindow de la primera estación de la ciudad seleccionada
-                const { marker, infoWindow } = stations[0];
-                openInfoWindow(map, marker, infoWindow); // Abrir InfoWindow
-            }
-
-            const lat = parseFloat(checkbox.getAttribute('data-lat'));
-            const lng = parseFloat(checkbox.getAttribute('data-lng'));
-            const cityPosition = { lat: lat, lng: lng };
-            map.setCenter(cityPosition); // Centrar el mapa en la ciudad seleccionada
-            map.setZoom(12); // Establecer el nivel de zoom deseado para la ciudad
-        });
-    });
 }
 
-// Función para abrir InfoWindow y manejar el cierre de la anterior
-function openInfoWindow(map, marker, infoWindow) {
-    // Cerrar la última InfoWindow si está abierta
-    if (lastInfoWindow) {
-        lastInfoWindow.close();
-    }
-
-    infoWindow.open(map, marker); // Abrir InfoWindow
-    lastInfoWindow = infoWindow; // Guardar la referencia de la InfoWindow abierta
-    map.setZoom(12); // Establecer el nivel de zoom deseado
-    map.setCenter(marker.getPosition()); // Centrar el mapa en la estación
-}
-
-// Función para parsear CSV a objetos
-function parseCSV(data) {
-    const lines = data.split('\n');
-    const result = [];
-    const headers = lines[0].split(','); // Asumimos que la primera línea contiene los encabezados
-
-    for (let i = 1; i < lines.length; i++) {
-        const obj = {};
-        const currentline = lines[i].split(',');
-        if (currentline.length === headers.length) {
-            headers.forEach((header, index) => {
-                obj[header.trim()] = currentline[index].trim();
-            });
-            result.push(obj);
-        }
-    }
-    return result;
-}
-
-
-/////PARA MI GRAFICA RADIA/////////////////
 // Escuchar cambios en los checkboxes de ciudad
 document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(checkbox => {
     checkbox.addEventListener('change', updateChart);
@@ -200,7 +88,6 @@ function updateChart() {
         });
     });
 }
-
 function drawRadialChart(data, attributes) {
     d3.select('#chart-view-radial').html("");
     const width = 450;
@@ -214,13 +101,14 @@ function drawRadialChart(data, attributes) {
                   .attr('transform', `translate(${width / 2}, ${height / 2})`);
 
     const angleScale = d3.scaleLinear().domain([0, data.length]).range([0, 2 * Math.PI]);
-    const maxValues = attributes.map(attr => d3.max(data, d => d[attr]));
+    const maxValues = attributes.map(attr => d3.max(data, d => Math.abs(d[attr]))); // Usar valor absoluto
     const centralHoleRadius = 30;
     const ringWidth = (radius - centralHoleRadius) / attributes.length;
 
     attributes.forEach((attr, index) => {
-        const radialScale = d3.scaleLinear().domain([0, maxValues[index]])
-                              .range([centralHoleRadius + index * ringWidth, centralHoleRadius + (index + 1) * ringWidth]);
+        const radialScale = d3.scaleLinear()
+            .domain([-d3.max(data, d => Math.abs(d[attr])), d3.max(data, d => Math.abs(d[attr]))]) // Dominar con valores negativos
+            .range([centralHoleRadius + index * ringWidth, centralHoleRadius + (index + 1) * ringWidth]);
 
         svg.append("circle").attr("cx", 0).attr("cy", 0)
            .attr("r", radialScale(maxValues[index])).attr("fill", "none")
@@ -228,8 +116,8 @@ function drawRadialChart(data, attributes) {
            .attr("stroke-dasharray", "3,3");
 
         const line = d3.lineRadial()
-                      .angle((d, j) => angleScale(j))
-                      .radius(d => radialScale(d[attr]) || 0);
+            .angle((d, j) => angleScale(j))
+            .radius(d => radialScale(Math.abs(d[attr]))); // Usar valor absoluto
 
         svg.append('path').datum(data)
            .attr('fill', 'none')
