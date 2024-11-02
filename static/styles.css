@@ -109,12 +109,10 @@ label {
     gap: 7px;
 }
 
-/* Estilos para cada etiqueta de checkbox */
-.city-checkboxes label {
-    display: flex;
-    align-items: center;
-    font-size: 0.95em;
-    color: #555;
+/* Ocultar el contenedor de atribución que incluye el logo */
+.gm-style .gm-style-cc {
+    display: none !important; /* Forzar ocultación */
 }
+
 
 

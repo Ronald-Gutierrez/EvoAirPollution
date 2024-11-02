@@ -4,9 +4,23 @@ let lastInfoWindow = null;
 // Función para inicializar el mapa de Beijing con Google Maps
 function initMap() {
     const beijing = { lat: 40.3, lng: 116.4074 }; // Coordenadas de Beijing
+    
+    // Definir estilos personalizados para ocultar carreteras y otros elementos
+    const mapStyles = [
+        { featureType: "road", elementType: "geometry", stylers: [{ visibility: "on" }] },
+        { featureType: "road", elementType: "labels", stylers: [{ visibility: "off" }] }, // Ocultar etiquetas de carreteras
+        { featureType: "transit", elementType: "geometry", stylers: [{ visibility: "on" }] },
+        { featureType: "poi", elementType: "all", stylers: [{ visibility: "on" }] },
+        { featureType: "landscape", elementType: "labels", stylers: [{ visibility: "on" }] },
+        { featureType: "administrative", elementType: "labels", stylers: [{ visibility: "on" }] },
+        { featureType: "water", elementType: "labels", stylers: [{ visibility: "on" }] }
+    ];
+
     const map = new google.maps.Map(document.getElementById("map"), {
         zoom: 8,
         center: beijing,
+        styles: mapStyles, // Aplicar los estilos personalizados
+        disableDefaultUI: false // Deshabilitar controles del mapa
     });
 
     // Crear un objeto para almacenar las estaciones por ciudad
@@ -56,7 +70,6 @@ function initMap() {
                                 <p style="margin-top: 5px;">${station.Notes}</p>
                             </div>`
                 });
-
 
                 // Agregar un evento de clic al marcador
                 marker.addListener("click", () => {
