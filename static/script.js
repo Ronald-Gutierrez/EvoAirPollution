@@ -3,7 +3,7 @@ let lastInfoWindow = null;
 
 // Función para inicializar el mapa de Beijing con Google Maps
 function initMap() {
-    const beijing = { lat: 40.3, lng: 116.4074 }; // Coordenadas de Beijing
+    const beijing = { lat: 40.3, lng: 116.5074 }; // Coordenadas de Beijing
     
     // Definir estilos personalizados para ocultar carreteras y otros elementos
     const mapStyles = [

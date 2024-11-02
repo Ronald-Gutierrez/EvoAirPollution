@@ -12,7 +12,7 @@ body {
 
 #map {
     height: 50%;
-    width: 30%;
+    width: 26%;
     position: absolute; /* Cambia a posición absoluta */
     top: 2%; /* Ajusta la posición vertical */
     left: 11%; /* Ajusta la posición horizontal */
@@ -20,6 +20,7 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
 }
+
 #dashboard
 {
     height: 48%;
@@ -38,10 +39,10 @@ body {
 
 #view-radial {
     height: 47%;
-    width: 35%;
+    width: 33%;
     position: absolute; /* Cambia a posición absoluta */
     top: 2%; /* Ajusta la posición vertical */
-    left: 42%; /* Ajusta la posición horizontal */
+    left: 37.9%; /* Ajusta la posición horizontal */
     background-color: #fff; /* Fondo blanco para la sección de visualización */
     border: 1px solid #333;
     border-radius: 8px;
@@ -49,6 +50,43 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
 }
 
+#correlation {
+    height: 47%;
+    width: 24%;
+    position: absolute; /* Cambia a posición absoluta */
+    top: 2%; /* Ajusta la posición vertical */
+    left: 73.3%; /* Ajusta la posición horizontal */
+    background-color: #fff; /* Fondo blanco para la sección de visualización */
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 15px; /* Espaciado interno */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
+}
+#evolution {
+    height: 40.5%;
+    width: 41%;
+    position: absolute; /* Cambia a posición absoluta */
+    top: 54%; /* Ajusta la posición vertical */
+    left: 56.5%; /* Ajusta la posición horizontal */
+    background-color: #fff; /* Fondo blanco para la sección de visualización */
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 15px; /* Espaciado interno */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
+}
+
+#serie-temporal {
+    height: 40.5%;
+    width: 53%;
+    position: absolute; /* Cambia a posición absoluta */
+    top: 54%; /* Ajusta la posición vertical */
+    left: 1%; /* Ajusta la posición horizontal */
+    background-color: #fff; /* Fondo blanco para la sección de visualización */
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 15px; /* Espaciado interno */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
+}
 .city-selector,
 .view-radial h3 {
     font-weight: bold; /* Texto en negrita */
