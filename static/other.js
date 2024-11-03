@@ -1,32 +1,8 @@
-// Función para inicializar el mapa de Beijing con Google Maps
-function initMap() {
-    const beijing = { lat: 40.3, lng: 116.4074 }; // Coordenadas de Beijing
-    const map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 8,
-        center: beijing,
-    });
+// Desactivar selección de texto
+document.addEventListener('selectstart', function (e) {
+    e.preventDefault();
+});
 
-    fetch('map/beijing.json')
-        .then(response => response.json())
-        .then(data => {
-            data.features.forEach(feature => {
-                const district = new google.maps.Polygon({
-                    paths: feature.geometry.coordinates[0].map(coord => ({ lat: coord[1], lng: coord[0] })),
-                    strokeColor: "#000000",
-                    strokeOpacity: 0.5,
-                    strokeWeight: 1,
-                    fillColor: "#000000",
-                    fillOpacity: 0.1,
-                });
-                district.setMap(map);
-            });
-        })
-        .catch(error => {
-            console.error("Error al cargar el GeoJSON:", error);
-        });
-}
-
-// Escuchar cambios en los checkboxes de ciudad
 document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(checkbox => {
     checkbox.addEventListener('change', updateChart);
 });
@@ -76,6 +52,8 @@ function updateChart() {
                 });
                 avg.date = date;
                 avg.year = entries[0].year;
+                avg.stationId = entries[0].stationId;
+                avg.cityName = selectedCity;
                 return avg;
             });
 
@@ -88,11 +66,14 @@ function updateChart() {
         });
     });
 }
+
 function drawRadialChart(data, attributes) {
     d3.select('#chart-view-radial').html("");
     const width = 450;
     const height = 450;
     const radius = Math.min(width, height) / 2 - 40;
+    const startOffsetAngle = -40 * (Math.PI / 180);
+
     const svg = d3.select('#chart-view-radial')
                   .append('svg')
                   .attr('width', width)
@@ -100,39 +81,46 @@ function drawRadialChart(data, attributes) {
                   .append('g')
                   .attr('transform', `translate(${width / 2}, ${height / 2})`);
 
-    const angleScale = d3.scaleLinear().domain([0, data.length]).range([0, 2 * Math.PI]);
-    const maxValues = attributes.map(attr => d3.max(data, d => Math.abs(d[attr]))); // Usar valor absoluto
+    const angleScale = d3.scaleLinear()
+                         .domain([0, data.length])
+                         .range([startOffsetAngle, 2 * Math.PI + startOffsetAngle]);
+
+    const maxValues = attributes.map(attr => d3.max(data, d => d[attr]));
     const centralHoleRadius = 30;
     const ringWidth = (radius - centralHoleRadius) / attributes.length;
 
     attributes.forEach((attr, index) => {
         const radialScale = d3.scaleLinear()
-            .domain([-d3.max(data, d => Math.abs(d[attr])), d3.max(data, d => Math.abs(d[attr]))]) // Dominar con valores negativos
-            .range([centralHoleRadius + index * ringWidth, centralHoleRadius + (index + 1) * ringWidth]);
+                              .domain([0, maxValues[index]])
+                              .range([centralHoleRadius + index * ringWidth, centralHoleRadius + (index + 1) * ringWidth]);
 
-        svg.append("circle").attr("cx", 0).attr("cy", 0)
-           .attr("r", radialScale(maxValues[index])).attr("fill", "none")
-           .attr("stroke", "#000").attr("stroke-width", 1)
+        svg.append("circle")
+           .attr("cx", 0)
+           .attr("cy", 0)
+           .attr("r", radialScale(maxValues[index]))
+           .attr("fill", "none")
+           .attr("stroke", "#000")
+           .attr("stroke-width", 1)
            .attr("stroke-dasharray", "3,3");
 
         const line = d3.lineRadial()
-            .angle((d, j) => angleScale(j))
-            .radius(d => radialScale(Math.abs(d[attr]))); // Usar valor absoluto
+                      .angle((d, j) => angleScale(j))
+                      .radius(d => radialScale(d[attr]) || 0);
 
-        svg.append('path').datum(data)
+        svg.append('path')
+           .datum(data)
            .attr('fill', 'none')
            .attr('stroke', d3.schemeCategory10[index % 10])
            .attr('stroke-width', 1.5)
            .attr('d', line);
 
-        // Agregar etiqueta del atributo sobre el anillo
         svg.append('text')
            .attr('x', 0)
-           .attr('y', -radialScale(maxValues[index]) - 10)  // Mover la etiqueta un poco más arriba del anillo
+           .attr('y', -radialScale(maxValues[index]) - 10)
            .attr('dy', '-0.5em')
            .attr('text-anchor', 'middle')
-           .attr('font-size', '14px')  // Tamaño de fuente más grande
-           .attr('font-weight', 'bold')  // Texto en negrita
+           .attr('font-size', '14px')
+           .attr('font-weight', 'bold')
            .text(attr);
     });
 
@@ -149,7 +137,80 @@ function drawRadialChart(data, attributes) {
            .attr('font-size', '12px')
            .text(year);
     });
-}
 
+    let startAngle, endAngle;
+    let selectionActive = false;
+    let selectionPath;
+
+    svg.on('mousedown', function(event) {
+        event.preventDefault();
+        const [mouseX, mouseY] = d3.pointer(event);
+        startAngle = Math.atan2(-mouseY, mouseX) - startOffsetAngle;
+        if (startAngle < 0) startAngle += 2 * Math.PI;
+        selectionActive = true;
+
+        if (selectionPath) {
+            selectionPath.remove();
+        }
+
+        selectionPath = svg.append('path')
+            .datum({})
+            .attr('fill', 'rgba(128, 128, 128, 0.5)')
+            .attr('d', d3.arc()
+                .innerRadius(0)
+                .outerRadius(radius)
+                .startAngle(startAngle)
+                .endAngle(startAngle));
+    })
+    .on('mousemove', function(event) {
+        if (selectionActive) {
+            const [mouseX, mouseY] = d3.pointer(event);
+            endAngle = Math.atan2(-mouseY, mouseX) - startOffsetAngle;
+            if (endAngle < 0) endAngle += 2 * Math.PI;
+
+            if (endAngle >= startAngle) {
+                selectionPath.attr('d', d3.arc()
+                    .innerRadius(0)
+                    .outerRadius(radius)
+                    .startAngle(startAngle)
+                    .endAngle(endAngle));
+            } else {
+                selectionPath.attr('d', d3.arc()
+                    .innerRadius(0)
+                    .outerRadius(radius)
+                    .startAngle(endAngle)
+                    .endAngle(startAngle));
+            }
+        }
+    })
+    .on('mouseup', function(event) {
+        if (selectionActive) {
+            selectionActive = false;
+
+            const selectedRange = calculateDateRange(startAngle, endAngle, data);
+            console.log(`Rango seleccionado: Desde ${selectedRange.firstDate} hasta ${selectedRange.lastDate}`);
+            console.log(`Estación ID: ${selectedRange.stationId} - Nombre de la ciudad: ${selectedRange.cityName}`);
+        }
+    });
+
+    function calculateDateRange(startAngle, endAngle, data) {
+        const totalAngles = 2 * Math.PI;
+        const totalSegments = data.length;
+
+        const selectedStartSegment = Math.floor((startAngle / totalAngles) * totalSegments);
+        const selectedEndSegment = Math.floor((endAngle / totalAngles) * totalSegments);
+
+        const selectedData = data.slice(
+            Math.min(selectedStartSegment, selectedEndSegment),
+            Math.max(selectedStartSegment, selectedEndSegment) + 1
+        );
+        const firstDate = selectedData.length > 0 ? selectedData[0].date : null;
+        const lastDate = selectedData.length > 0 ? selectedData[selectedData.length - 1].date : null;
+        const stationId = selectedData.length > 0 ? selectedData[0].stationId : null;
+        const cityName = selectedData.length > 0 ? selectedData[0].cityName : null;
+
+        return { firstDate, lastDate, stationId, cityName };
+    }
+}
 
 updateChart();

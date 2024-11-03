@@ -152,5 +152,26 @@ label {
     display: none !important; /* Forzar ocultación */
 }
 
+#legend {
+    display: flex; /* Usar flexbox para alinear los elementos en fila */
+    margin-top: 180px; /* Espacio superior para separar de otros elementos */
+    margin-left: 250px;
+    font-family: Arial, sans-serif; /* Fuente de la leyenda */
+    color: #777; /* Color más suave para los checkboxes */
+    font-size: 0.8em; /* Aumenta el tamaño de la letra */
 
+}
 
+.legend-item {
+    display: flex; /* Usar flexbox para alinear el cuadro de color y el texto */
+    align-items: center; /* Centrar verticalmente el contenido */
+    margin-right: 20px; /* Espacio a la derecha de cada elemento */
+}
+
+.color-box {
+    width: 21px; /* Ancho del cuadrado de color */
+    height: 15px; /* Alto del cuadrado de color */
+    margin-right: 5px; /* Espacio entre el cuadrado y el texto */
+    border-radius: 20%;
+    opacity: 0.3; /* Opacidad del cuadrado de color */
+}

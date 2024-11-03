@@ -201,6 +201,8 @@ function updateChart() {
                 });
                 avg.date = date;
                 avg.year = entries[0].year;
+                avg.month = entries[0].month;
+                avg.day = entries[0].day;
                 return avg;
             });
 
@@ -231,6 +233,29 @@ function drawRadialChart(data, attributes) {
     const centralHoleRadius = 30;
     const ringWidth = (radius - centralHoleRadius) / attributes.length;
 
+    // Define colors for each season
+    const seasonColors = {
+        'Spring': '#2ca25f',  // Verde fuerte
+        'Summer': '#d95f0e',  // Naranja intenso
+        'Autumn': '#7570b3',  // Púrpura
+        'Winter': '#1f78b4',  // Azul
+        'YearRound': '#6a3d9a' // Violeta oscuro
+    };
+    
+
+    // Function to get season based on date
+    function getSeason(month, day) {
+        if ((month === 3 && day >= 20) || (month > 3 && month < 6) || (month === 6 && day <= 21)) {
+            return 'Spring';
+        } else if ((month === 6 && day >= 21) || (month > 6 && month < 9) || (month === 9 && day <= 22)) {
+            return 'Summer';
+        } else if ((month === 9 && day >= 22) || (month > 9 && month < 12) || (month === 12 && day <= 21)) {
+            return 'Autumn';
+        } else {
+            return 'Winter';
+        }
+    }
+
     attributes.forEach((attr, index) => {
         const radialScale = d3.scaleLinear().domain([0, maxValues[index]])
                               .range([centralHoleRadius + index * ringWidth, centralHoleRadius + (index + 1) * ringWidth]);
@@ -244,21 +269,40 @@ function drawRadialChart(data, attributes) {
                       .angle((d, j) => angleScale(j))
                       .radius(d => radialScale(d[attr]) || 0);
 
+        // Append path for each attribute
         svg.append('path').datum(data)
            .attr('fill', 'none')
            .attr('stroke', d3.schemeCategory10[index % 10])
            .attr('stroke-width', 1.5)
            .attr('d', line);
 
-        // Agregar etiqueta del atributo sobre el anillo
+        // Add attribute label on the ring
         svg.append('text')
            .attr('x', 0)
-           .attr('y', -radialScale(maxValues[index]) - 10)  // Mover la etiqueta un poco más arriba del anillo
+           .attr('y', -radialScale(maxValues[index]) - 10)
            .attr('dy', '-0.5em')
            .attr('text-anchor', 'middle')
-           .attr('font-size', '14px')  // Tamaño de fuente más grande
-           .attr('font-weight', 'bold')  // Texto en negrita
+           .attr('font-size', '14px')
+           .attr('font-weight', 'bold')
            .text(attr);
+
+        // Highlight seasons
+        data.forEach((d, i) => {
+            const season = getSeason(+d.month, +d.day);
+            const seasonColor = seasonColors[season];
+            const startAngle = angleScale(i);
+            const endAngle = angleScale(i + 1);
+            const pathArc = d3.arc()
+                              .innerRadius(centralHoleRadius + index * ringWidth)
+                              .outerRadius(radialScale(maxValues[index]))
+                              .startAngle(startAngle)
+                              .endAngle(endAngle);
+
+            svg.append('path')
+               .attr('d', pathArc)
+               .attr('fill', seasonColor)
+               .attr('opacity', 0.2);
+        });
     });
 
     const years = Array.from(new Set(data.map(d => d.year)));
@@ -275,6 +319,5 @@ function drawRadialChart(data, attributes) {
            .text(year);
     });
 }
-
 
 updateChart();
