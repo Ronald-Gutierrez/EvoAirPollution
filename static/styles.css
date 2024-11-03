@@ -34,8 +34,22 @@ body {
     background-color: #fff;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-size: 0.9em; /* Cambia el tamaño de la fuente a más pequeño */
     padding: 10px;
+    color: #777; /* Color más suave para los checkboxes */
+
 }
+h4{
+    margin-left: 15px;
+    margin-top: 10px;
+}
+.city-checkboxes label {
+    display: block; /* Asegura que cada etiqueta esté en una nueva línea */
+    margin-bottom: -5px; /* Reduce el espacio entre las etiquetas */
+    margin-left: 5px;
+}
+
+
 
 #view-radial {
     height: 47%;
@@ -122,14 +136,34 @@ label {
     
 
 }
-.fechas-rad{
-    position: absolute; /* Cambia a posición absoluta */
-    font-size: 0.9em; /* Cambia el tamaño de la fuente a más pequeño */
-    color: #777; /* Color más suave para los checkboxes */
-    margin-right: 1px; /* Espacio entre checkbox y label */
-    margin-top: 10px;
-    /* transform: scale(1.2); Aumenta el tamaño del checkbox */
+.fechas-rad {
+    margin-top: 15px; /* Ajusta el valor según cuánto espacio quieras agregar */
+    margin-left: 10px;
 }
+
+label[for="fecha-inicio"],
+label[for="fecha-fin"],
+#fecha-inicio,
+#fecha-fin {
+    display: block; /* Mantén estos en líneas separadas */
+    margin-top: 8px;
+    margin-left: 10px;
+
+}
+
+label input[type="checkbox"] {
+    display: inline; /* Asegura que el checkbox esté en línea */
+    margin-top: 8px;
+    margin-left: 10px;
+
+}
+
+label#checkbox-container {
+    display: inline-flex; /* Coloca el contenedor en una línea */
+    align-items: center; /* Alinea el checkbox y el texto verticalmente */
+    margin-top: 10px; /* Espacio superior opcional */
+}
+
 /* Estilos para el contenedor principal del panel de selección */
 
 /* Estilos para el título del panel */
@@ -154,8 +188,8 @@ label {
 
 #legend {
     display: flex; /* Usar flexbox para alinear los elementos en fila */
-    margin-top: 180px; /* Espacio superior para separar de otros elementos */
-    margin-left: 250px;
+    margin-top: 130px; /* Espacio superior para separar de otros elementos */
+    margin-left: 210px;
     font-family: Arial, sans-serif; /* Fuente de la leyenda */
     color: #777; /* Color más suave para los checkboxes */
     font-size: 0.8em; /* Aumenta el tamaño de la letra */
@@ -173,5 +207,5 @@ label {
     height: 15px; /* Alto del cuadrado de color */
     margin-right: 5px; /* Espacio entre el cuadrado y el texto */
     border-radius: 20%;
-    opacity: 0.3; /* Opacidad del cuadrado de color */
+    opacity: 0.2; /* Opacidad del cuadrado de color */
 }

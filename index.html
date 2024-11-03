@@ -9,7 +9,7 @@
 <body>
     <div id="map"></div>
     <div id="dashboard" class="city-selection-panel">
-        <h3>Selecciona una ciudad:</h3>
+        <h4 class="h4-let">Selecciona una ciudad:</h4>
         <div id="city-checkboxes" class="city-checkboxes">
             <label><input type="radio" name="city" value="Data_Aotizhongxin.csv" data-lat="39.9829" data-lng="116.3974"> Aotizhongxin</label>
             <label><input type="radio" name="city" value="Data_Changping.csv" data-lat="40.21965" data-lng="116.2255"> Changping</label>
@@ -24,6 +24,22 @@
             <label><input type="radio" name="city" value="Data_Wanliu.csv" data-lat="39.9875" data-lng="116.2873"> Wanliu</label>
             <label><input type="radio" name="city" value="Data_Wanshouxigong.csv" data-lat="39.8785" data-lng="116.3526"> Wanshouxigong</label>
         </div>
+        <div class="fechas-rad"></div>
+            <!-- <h4 for="city">Selecciona una Fecha:</h4> -->
+
+            <label for="fecha-inicio">Fecha de Inicio:</label>
+            <input type="date" id="fecha-inicio" min="2013-03-01" max="2017-02-28">
+            
+            <label for="fecha-fin">Fecha de Fin:</label>
+            <input type="date" id="fecha-fin" min="2013-03-01" max="2017-02-28">
+            
+            <label>
+                <input type="checkbox" id="visualizar-todo"> Todas las fechas
+            </label>
+            
+            <!-- <div id="fecha-rango"></div> Aquí se mostrará el rango de fechas elegido -->
+        </div>
+
     </div>
     <div id="view-radial">
         <!-- <h3>Selecciona los atributos a mostrar:</h3> -->
@@ -42,21 +58,7 @@
         <!-- <button id="load-data">Cargar Datos</button> -->
         <div id="chart-view-radial"></div>
 
-        <div class="fechas-rad">
-            <h4 for="city">Selecciona una Fecha:</h4>
 
-            <label for="fecha-inicio">Fecha de Inicio:</label>
-            <input type="date" id="fecha-inicio" min="2013-03-01" max="2017-02-28">
-            
-            <label for="fecha-fin">Fecha de Fin:</label>
-            <input type="date" id="fecha-fin" min="2013-03-01" max="2017-02-28">
-            
-            <label>
-                <input type="checkbox" id="visualizar-todo"> Todas las fechas
-            </label>
-            
-            <!-- <div id="fecha-rango"></div> Aquí se mostrará el rango de fechas elegido -->
-        </div>
         <div id="legend">
             <div class="legend-item">
                 <div class="color-box" style="background-color: #2ca25f;"></div>
