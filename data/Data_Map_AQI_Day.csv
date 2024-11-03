@@ -1,4 +1,4 @@
-station,latitude,longitude,year,month,day,wd,WSPM,AQI,Notes
+stationId,latitude,longitude,year,month,day,wd,WSPM,AQI,Notes
 aotizhongxin,39.9829,116.3974,2013,3,1,150.0,3.25,1.0,Urban
 aotizhongxin,39.9829,116.3974,2013,3,2,135.0,1.48,2.0,Urban
 aotizhongxin,39.9829,116.3974,2013,3,3,129.38,1.66,3.0,Urban

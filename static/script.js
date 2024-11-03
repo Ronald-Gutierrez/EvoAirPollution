@@ -8,7 +8,7 @@ function initMap() {
     // Definir estilos personalizados para ocultar carreteras y otros elementos
     const mapStyles = [
         { featureType: "road", elementType: "geometry", stylers: [{ visibility: "on" }] },
-        { featureType: "road", elementType: "labels", stylers: [{ visibility: "off" }] }, // Ocultar etiquetas de carreteras
+        { featureType: "road", elementType: "labels", stylers: [{ visibility: "off" }] },
         { featureType: "transit", elementType: "geometry", stylers: [{ visibility: "on" }] },
         { featureType: "poi", elementType: "all", stylers: [{ visibility: "on" }] },
         { featureType: "landscape", elementType: "labels", stylers: [{ visibility: "on" }] },
@@ -19,11 +19,10 @@ function initMap() {
     const map = new google.maps.Map(document.getElementById("map"), {
         zoom: 8,
         center: beijing,
-        styles: mapStyles, // Aplicar los estilos personalizados
-        disableDefaultUI: false // Deshabilitar controles del mapa
+        styles: mapStyles,
+        disableDefaultUI: false
     });
 
-    // Crear un objeto para almacenar las estaciones por ciudad
     const stationsByCity = {};
 
     // Cargar y procesar el GeoJSON para los distritos
@@ -47,7 +46,7 @@ function initMap() {
         });
 
     // Cargar el archivo CSV y agregar marcadores
-    fetch('data/position_station.csv')
+    fetch('data/Data_Map_AQI_Day.csv')
         .then(response => response.text())
         .then(csvData => {
             const stations = parseCSV(csvData);
@@ -56,24 +55,19 @@ function initMap() {
                 const marker = new google.maps.Marker({
                     position: position,
                     map: map,
-                    title: station.stationId, // Título del marcador
+                    title: station.stationId,
                     icon: {
-                        url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png", // Icono de banderita
-                        scaledSize: new google.maps.Size(20, 20) // Ajusta el tamaño de la banderita aquí
+                        url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                        scaledSize: new google.maps.Size(20, 20)
                     }
                 });
 
                 // Crear un InfoWindow para mostrar información
-                const infoWindow = new google.maps.InfoWindow({
-                    content: `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; padding: 10px; max-width: 200px; line-height: 1.5; border-radius: 5px;">
-                                <strong style="font-size: 16px; color: #1a73e8;">${station.stationId}</strong><br>
-                                <p style="margin-top: 5px;">${station.Notes}</p>
-                            </div>`
-                });
+                const infoWindow = new google.maps.InfoWindow();
 
                 // Agregar un evento de clic al marcador
                 marker.addListener("click", () => {
-                    openInfoWindow(map, marker, infoWindow); // Abrir InfoWindow
+                    updateInfoWindowContent(infoWindow, station, map, marker);
                 });
 
                 // Asignar la estación al objeto de estaciones por ciudad
@@ -83,7 +77,6 @@ function initMap() {
                 stationsByCity[station.city].push({ marker, infoWindow });
             });
 
-            // Guardar el objeto para uso posterior
             map.stationsByCity = stationsByCity;
         })
         .catch(error => {
@@ -94,60 +87,136 @@ function initMap() {
     const cityCheckboxes = document.querySelectorAll('input[name="city"]');
     cityCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', () => {
-            // Cerrar la última InfoWindow si está abierta
             if (lastInfoWindow) {
                 lastInfoWindow.close();
             }
 
-            const selectedCity = checkbox.value; // Obtener el valor de la ciudad seleccionada
+            const selectedCity = checkbox.value;
             const stations = map.stationsByCity[selectedCity];
 
             if (stations) {
-                // Abrir la InfoWindow de la primera estación de la ciudad seleccionada
                 const { marker, infoWindow } = stations[0];
-                openInfoWindow(map, marker, infoWindow); // Abrir InfoWindow
+                updateInfoWindowContent(infoWindow, stations[0], map, marker);
             }
 
             const lat = parseFloat(checkbox.getAttribute('data-lat'));
             const lng = parseFloat(checkbox.getAttribute('data-lng'));
-            const cityPosition = { lat: lat, lng: lng };
-            map.setCenter(cityPosition); // Centrar el mapa en la ciudad seleccionada
-            map.setZoom(12); // Establecer el nivel de zoom deseado para la ciudad
+            map.setCenter({ lat, lng });
+            map.setZoom(12);
         });
     });
 }
 
+// Función para actualizar el contenido del InfoWindow
+function updateInfoWindowContent(infoWindow, station, map, marker) {
+    const fechaInicio = document.getElementById('fecha-inicio').value;
+    const fechaFin = document.getElementById('fecha-fin').value;
+    const { averageAQI, averageWSPM, averageWD } = calculateAverages(station, fechaInicio, fechaFin);
+
+    const content = `
+    <div style="font-family: Arial, sans-serif; font-size: 12px; color: #333; padding: 8px 10px; max-width:180px; margin-top:-10px; max-height: 180px; line-height: 1.4; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
+        <strong style="font-size: 14px; color: #1a73e8; display: block; margin-bottom: 5px;">${station.stationId.charAt(0).toUpperCase() + station.stationId.slice(1)}</strong>
+        <p style="margin: 3px 0;"><strong>AQI:</strong> ${Math.round(averageAQI)}</p>
+        <p style="margin: 3px 0;"><strong>Velocidad del viento:</strong> ${averageWSPM.toFixed(2)} m/s</p>
+        <p style="margin: 3px 0;"><strong>Dirección del viento:</strong> ${averageWD}</p>
+        <p style="margin: 3px 0;"><strong>Zona:</strong> ${station.Notes}</p>
+        <p style="margin: 3px 0;"><strong>Fecha:</strong> ${fechaInicio} - ${fechaFin}</p>
+    </div>`;
+
+
+    infoWindow.setContent(content);
+    openInfoWindow(map, marker, infoWindow);
+}
+
+// Función para calcular los promedios de AQI, WSPM y WD en un rango de fechas
+function calculateAverages(station, fechaInicio, fechaFin) {
+    if (!station.data) return { averageAQI: 0, averageWSPM: 0, averageWD: 0 };
+
+    const startDate = new Date(fechaInicio);
+    const endDate = new Date(fechaFin);
+    let totalAQI = 0;
+    let totalWSPM = 0;
+    let totalWD = 0;
+    let count = 0;
+
+    station.data.forEach(entry => {
+        const entryDate = new Date(entry.year, entry.month - 1, entry.day);
+        if (entryDate >= startDate && entryDate <= endDate) {
+            const aqi = parseFloat(entry.AQI);
+            const wspm = parseFloat(entry.WSPM);
+            const wd = entry.wd;
+
+            if (!isNaN(aqi)) totalAQI += aqi;
+            if (!isNaN(wspm)) totalWSPM += wspm;
+            if (wd) totalWD = wd; // Assuming `wd` is categorical
+
+            count++;
+        }
+    });
+
+    return {
+        averageAQI: count ? totalAQI / count : 0,
+        averageWSPM: count ? totalWSPM / count : 0,
+        averageWD: totalWD || "N/A"
+    };
+}
+
+// Escuchar cambios en el rango de fechas
+document.getElementById('fecha-inicio').addEventListener('change', updateStationInfoWindows);
+document.getElementById('fecha-fin').addEventListener('change', updateStationInfoWindows);
+
+function updateStationInfoWindows() {
+    if (lastInfoWindow && lastInfoWindow.marker) {
+        const marker = lastInfoWindow.marker;
+        const station = marker.stationData;
+        updateInfoWindowContent(lastInfoWindow, station, marker.map, marker);
+    }
+}
+
 // Función para abrir InfoWindow y manejar el cierre de la anterior
 function openInfoWindow(map, marker, infoWindow) {
-    // Cerrar la última InfoWindow si está abierta
     if (lastInfoWindow) {
         lastInfoWindow.close();
     }
 
-    infoWindow.open(map, marker); // Abrir InfoWindow
-    lastInfoWindow = infoWindow; // Guardar la referencia de la InfoWindow abierta
-    map.setZoom(12); // Establecer el nivel de zoom deseado
-    map.setCenter(marker.getPosition()); // Centrar el mapa en la estación
+    infoWindow.open(map, marker);
+    lastInfoWindow = infoWindow;
+    lastInfoWindow.marker = marker;
+    map.setZoom(12);
+    map.setCenter(marker.getPosition());
 }
 
-// Función para parsear CSV a objetos
+// Función para parsear CSV a objetos organizados por estación
 function parseCSV(data) {
     const lines = data.split('\n');
-    const result = [];
-    const headers = lines[0].split(','); // Asumimos que la primera línea contiene los encabezados
+    const headers = lines[0].split(',');
+    const stations = {};
 
     for (let i = 1; i < lines.length; i++) {
-        const obj = {};
         const currentline = lines[i].split(',');
         if (currentline.length === headers.length) {
+            const entry = {};
             headers.forEach((header, index) => {
-                obj[header.trim()] = currentline[index].trim();
+                entry[header.trim()] = currentline[index].trim();
             });
-            result.push(obj);
+
+            const stationId = entry.stationId;
+            if (!stations[stationId]) {
+                stations[stationId] = {
+                    stationId: stationId,
+                    latitude: parseFloat(entry.latitude),
+                    longitude: parseFloat(entry.longitude),
+                    Notes: entry.Notes,
+                    data: []
+                };
+            }
+            stations[stationId].data.push(entry);
         }
     }
-    return result;
+
+    return Object.values(stations);
 }
+
 
 
 /////PARA MI GRAFICA RADIA/////////////////
