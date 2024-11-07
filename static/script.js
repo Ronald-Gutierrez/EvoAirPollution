@@ -7,20 +7,24 @@ function initMap() {
     
     // Definir estilos personalizados para ocultar carreteras y otros elementos
     const mapStyles = [
-        { featureType: "road", elementType: "geometry", stylers: [{ visibility: "on" }] },
-        { featureType: "road", elementType: "labels", stylers: [{ visibility: "off" }] },
-        { featureType: "transit", elementType: "geometry", stylers: [{ visibility: "on" }] },
-        { featureType: "poi", elementType: "all", stylers: [{ visibility: "on" }] },
-        { featureType: "landscape", elementType: "labels", stylers: [{ visibility: "on" }] },
-        { featureType: "administrative", elementType: "labels", stylers: [{ visibility: "on" }] },
-        { featureType: "water", elementType: "labels", stylers: [{ visibility: "on" }] }
+        { featureType: "road", elementType: "geometry", stylers: [{ visibility: "on" }] }, // Muestra la geometría de las carreteras (trazado de las mismas)
+        { featureType: "road", elementType: "labels", stylers: [{ visibility: "off" }] }, // Oculta las etiquetas (nombres) de las carreteras
+        { featureType: "transit", elementType: "geometry", stylers: [{ visibility: "on" }] }, // Muestra la geometría del transporte público (e.g., líneas de metro o tren)
+        { featureType: "poi", elementType: "all", stylers: [{ visibility: "on" }] }, // Muestra los puntos de interés (POI), como parques, museos, tiendas
+        { featureType: "landscape", elementType: "labels", stylers: [{ visibility: "on" }] }, // Muestra las etiquetas del paisaje, que incluyen nombres de parques, áreas naturales
+        { featureType: "administrative", elementType: "labels", stylers: [{ visibility: "on" }] }, // Muestra las etiquetas administrativas (nombres de ciudades, distritos, regiones)
+        { featureType: "water", elementType: "labels", stylers: [{ visibility: "on" }] } // Muestra las etiquetas de cuerpos de agua, como ríos, lagos, mares
     ];
+    
 
     const map = new google.maps.Map(document.getElementById("map"), {
         zoom: 8,
         center: beijing,
         styles: mapStyles,
-        disableDefaultUI: false
+        disableDefaultUI: false,
+        zoomControl: false, // Desactiva el control de zoom (+ y -)
+        mapTypeControl: true, // Desactiva el control para cambiar a vista de satélite
+        streetViewControl: true // Desactiva el muñequito de Street View
     });
 
     const stationsByCity = {};
@@ -109,9 +113,11 @@ function initMap() {
 
 // Función para actualizar el contenido del InfoWindow
 function updateInfoWindowContent(infoWindow, station, map, marker) {
-    const fechaInicio = document.getElementById('fecha-inicio').value;
-    const fechaFin = document.getElementById('fecha-fin').value;
-    const { averageAQI, averageWSPM, averageWD } = calculateAverages(station, fechaInicio, fechaFin);
+    const fechaInicio = new Date(document.getElementById('fecha-inicio').value);
+    fechaInicio.setDate(fechaInicio.getDate() +1);
+    const fechaFin = new Date(document.getElementById('fecha-fin').value);
+    fechaFin.setDate(fechaFin.getDate() );
+    const { averageAQI, averageWSPM, averageWD } = calculateAverages(station, fechaInicio.toISOString().split('T')[0], fechaFin.toISOString().split('T')[0]);
 
     const content = `
     <div style="font-family: Arial, sans-serif; font-size: 12px; color: #333; padding: 8px 10px; max-width:180px; margin-top:-10px; max-height: 180px; line-height: 1.4; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
@@ -120,7 +126,7 @@ function updateInfoWindowContent(infoWindow, station, map, marker) {
         <p style="margin: 3px 0;"><strong>Velocidad del viento:</strong> ${averageWSPM.toFixed(2)} m/s</p>
         <p style="margin: 3px 0;"><strong>Dirección del viento:</strong> ${averageWD}</p>
         <p style="margin: 3px 0;"><strong>Zona:</strong> ${station.Notes}</p>
-        <p style="margin: 3px 0;"><strong>Fecha Inicio:</strong> ${new Date(fechaInicio).getDate()} de ${new Date(fechaInicio).getMonth() + 1 === 1 ? 'Enero' : new Date(fechaInicio).getMonth() + 1 === 2 ? 'Febrero' : new Date(fechaInicio).getMonth() + 1 === 3 ? 'Marzo' : new Date(fechaInicio).getMonth() + 1 === 4 ? 'Abril' : new Date(fechaInicio).getMonth() + 1 === 5 ? 'Mayo' : new Date(fechaInicio).getMonth() + 1 === 6 ? 'Junio' : new Date(fechaInicio).getMonth() + 1 === 7 ? 'Julio' : new Date(fechaInicio).getMonth() + 1 === 8 ? 'Agosto' : new Date(fechaInicio).getMonth() + 1 === 9 ? 'Septiembre' : new Date(fechaInicio).getMonth() + 1 === 10 ? 'Octubre' : new Date(fechaInicio).getMonth() + 1 === 11 ? 'Noviembre' : 'Diciembre'} de ${new Date(fechaInicio).getFullYear()}</p>
+        <p style="margin: 3px 0;"><strong>Fecha Inicio:</strong> ${new Date(fechaInicio).getDate()+1} de ${new Date(fechaInicio).getMonth() + 1 === 1 ? 'Enero' : new Date(fechaInicio).getMonth() + 1 === 2 ? 'Febrero' : new Date(fechaInicio).getMonth() + 1 === 3 ? 'Marzo' : new Date(fechaInicio).getMonth() + 1 === 4 ? 'Abril' : new Date(fechaInicio).getMonth() + 1 === 5 ? 'Mayo' : new Date(fechaInicio).getMonth() + 1 === 6 ? 'Junio' : new Date(fechaInicio).getMonth() + 1 === 7 ? 'Julio' : new Date(fechaInicio).getMonth() + 1 === 8 ? 'Agosto' : new Date(fechaInicio).getMonth() + 1 === 9 ? 'Septiembre' : new Date(fechaInicio).getMonth() + 1 === 10 ? 'Octubre' : new Date(fechaInicio).getMonth() + 1 === 11 ? 'Noviembre' : 'Diciembre'} de ${new Date(fechaInicio).getFullYear()}</p>
         <p style="margin: 3px 0;"><strong>Fecha Fin:</strong> ${new Date(fechaFin).getDate()} de ${new Date(fechaFin).getMonth() + 1 === 1 ? 'Enero' : new Date(fechaFin).getMonth() + 1 === 2 ? 'Febrero' : new Date(fechaFin).getMonth() + 1 === 3 ? 'Marzo' : new Date(fechaFin).getMonth() + 1 === 4 ? 'Abril' : new Date(fechaFin).getMonth() + 1 === 5 ? 'Mayo' : new Date(fechaFin).getMonth() + 1 === 6 ? 'Junio' : new Date(fechaFin).getMonth() + 1 === 7 ? 'Julio' : new Date(fechaFin).getMonth() + 1 === 8 ? 'Agosto' : new Date(fechaFin).getMonth() + 1 === 9 ? 'Septiembre' : new Date(fechaFin).getMonth() + 1 === 10 ? 'Octubre' : new Date(fechaFin).getMonth() + 1 === 11 ? 'Noviembre' : 'Diciembre'} de ${new Date(fechaFin).getFullYear()}</p>
     </div>`;
 
@@ -390,4 +396,27 @@ function drawRadialChart(data, attributes) {
     });
 }
 
-updateChart();
+
+
+
+//////////////GRAFICA PARA LA CORRELACION DEL ARBOL JERARQUICO
+
+// Variable global para almacenar el valor seleccionado
+// Variable global para almacenar el valor seleccionado
+let selectedValue = "";
+
+// Añadir el event listener a todos los radio buttons
+document.querySelectorAll('.options-chek-correlation input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        // Guardar el valor del radio button seleccionado
+        selectedValue = this.value;
+
+
+        // Mostrar el valor seleccionado en la consola
+        console.log("Valor seleccionado: ", selectedValue);
+    });
+});
+
+
+//////GRAFICA DE LA SERIE TEMPORAL POR AQI.
+
