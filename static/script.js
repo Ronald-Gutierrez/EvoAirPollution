@@ -666,11 +666,13 @@ function createRadialDendrogram(hierarchyData, selectedAttributes, distanceMatri
         });
 
     // Añadir los textos dinámicos según los atributos seleccionados
-    node.append('text')
+// Añadir los textos dinámicos según los atributos seleccionados
+node.append('text')
     .style('font-size', '14px')
     .style('font-weight', 'bold')
     .attr('dy', '.60em')
     .attr('text-anchor', d => d.x < Math.PI === !d.children ? 'start' : 'end')
+    .attr('dx', d => d.x < Math.PI ? '10' : '-10') // Ajustar la posición horizontal
     .attr('transform', d => d.x >= Math.PI ? 'rotate(180)' : null)
     .text(d => {
         const attributeIndex = d.data.index;
