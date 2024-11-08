@@ -785,8 +785,8 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                update => update.transition().duration(750).call(yAxis)
            );
 
-        svg.select('.y-label')
-           .text(`Nivel promedio diario de ${contaminant}`);
+        // svg.select('.y-label')
+        //    .text(`Nivel promedio diario de ${contaminant}`);
 
         // Seleccionar y actualizar los puntos con transición
         const points = svg.selectAll('.point')
