@@ -254,7 +254,7 @@ function updateChart() {
                                 .map(cb => cb.value);
     const selectedAttributes = Array.from(document.querySelectorAll('.options-chek input[type="checkbox"]:checked'))
                                    .map(cb => cb.value);
-                                   
+
     const startDate = document.getElementById('fecha-inicio').value;
     const endDate = document.getElementById('fecha-fin').value;
 
@@ -283,7 +283,6 @@ function updateChart() {
                 return avg;
             });
 
-            // Llamar a la función para generar la gráfica radial
             drawRadialChart(parsedData, selectedAttributes);
         });
     });
@@ -674,6 +673,8 @@ function createRadialDendrogram(hierarchyData, selectedAttributes, distanceMatri
             console.log(`Ciudad: ${selectedCity}`);
             console.log(`Contaminante: ${contaminant}`);
             console.log(`Rango de fechas: ${startDate} a ${endDate}`);
+            updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate);
+            
         });
 
     // Añadir los textos dinámicos según los atributos seleccionados
@@ -703,3 +704,152 @@ function isMeteorologicalAttribute(attribute) {
     const meteorologicalAttributes = ['TEMP', 'PRES', 'DEWP', 'RAIN']; // Asegúrate de que estos sean los atributos correctos
     return meteorologicalAttributes.includes(attribute);
 }
+
+function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
+    currentContaminant = contaminant; // Asignar el contaminante actual
+
+    const container = d3.select('#serie-temporal');
+
+    const margin = { top: 20, right: 30, bottom: 60, left: 60 };
+    const width = 1050 - margin.left - margin.right;
+    const height = 380 - margin.top - margin.bottom;
+
+    let svg = container.select("svg g");
+    if (svg.empty()) {
+        // Crear el SVG solo si aún no existe
+        svg = container.append('svg')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+        // Añadir etiquetas para los ejes solo una vez
+        svg.append('text')
+            .attr('class', 'y-label')
+            .attr('x', -height / 2)
+            .attr('y', -margin.left + 10)
+            .attr('transform', 'rotate(-90)')
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '12px');
+    }
+
+    d3.csv(`data/${selectedCity}`).then(data => {
+        const filteredData = data
+            .filter(d => {
+                const date = new Date(`${d.year}-${d.month}-${d.day}`);
+                return date >= new Date(startDate) && date <= new Date(endDate);
+            })
+            .map(d => ({
+                date: new Date(`${d.year}-${d.month}-${d.day}`),
+                value: +d[contaminant.replace('.', '_')]
+            }))
+            .filter(d => !isNaN(d.value)); // Filtra solo valores numéricos
+
+        const averagedData = d3.groups(filteredData, d => d.date)
+            .map(([date, values]) => ({
+                date: date,
+                value: d3.mean(values, d => d.value)
+            }));
+
+        const xScale = d3.scaleTime()
+                         .domain(d3.extent(averagedData, d => d.date))
+                         .range([0, width]);
+
+        const yExtent = d3.extent(averagedData, d => d.value);
+        const yScale = d3.scaleLinear()
+                         .domain([Math.min(0, yExtent[0]), yExtent[1]]) // Permitir valores negativos en el eje y
+                         .range([height, 0]);
+
+        // Actualizar los ejes con transición
+        const xAxis = d3.axisBottom(xScale).tickFormat(d3.timeFormat("%Y-%m-%d"));
+        const yAxis = d3.axisLeft(yScale);
+
+        svg.selectAll('.x-axis')
+           .data([null])
+           .join(
+               enter => enter.append('g').attr('class', 'x-axis')
+                              .attr('transform', `translate(0, ${height})`)
+                              .call(xAxis)
+                              .selectAll("text")
+                              .style("text-anchor", "end")
+                              .attr("dx", "-0.8em")
+                              .attr("dy", "-0.2em")
+                              .attr("transform", "rotate(-45)"),
+               update => update.transition().duration(750).call(xAxis)
+           );
+
+        svg.selectAll('.y-axis')
+           .data([null])
+           .join(
+               enter => enter.append('g').attr('class', 'y-axis').call(yAxis),
+               update => update.transition().duration(750).call(yAxis)
+           );
+
+        svg.select('.y-label')
+           .text(`Nivel promedio diario de ${contaminant}`);
+
+        // Seleccionar y actualizar los puntos con transición
+        const points = svg.selectAll('.point')
+                          .data(averagedData, d => d.date);
+
+        points.enter()
+              .append('circle')
+              .attr('class', 'point')
+              .attr('cx', d => xScale(d.date))
+              .attr('cy', yScale(0)) // Empieza desde el eje x para la animación
+              .attr('r', 4)
+              .attr('fill', 'steelblue')
+              .transition()
+              .duration(750)
+              .attr('cy', d => yScale(d.value)); // Transición al valor final
+
+        points.transition()
+              .duration(750)
+              .attr('cx', d => xScale(d.date))
+              .attr('cy', d => yScale(d.value));
+
+        points.exit()
+              .transition()
+              .duration(750)
+              .attr('cy', yScale(0)) // Transición a la línea del eje x antes de salir
+              .remove();
+    });
+}
+
+// Variable global para almacenar el contaminante seleccionado actualmente
+let currentContaminant = null;
+
+// Escuchar cambios en los checkboxes de ciudad para la gráfica radial
+document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(checkbox => {
+    checkbox.addEventListener('change', () => {
+        updateChart();
+        // Si ya hay un contaminante seleccionado, actualizamos la serie temporal
+        if (currentContaminant) {
+            const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
+            const startDate = document.getElementById('fecha-inicio').value;
+            const endDate = document.getElementById('fecha-fin').value;
+            updateTimeSeriesChart(selectedCity, currentContaminant, startDate, endDate);
+        }
+    });
+});
+
+// Escuchar cambios en el rango de fechas para la gráfica radial
+document.getElementById('fecha-inicio').addEventListener('change', () => {
+    updateChart();
+    if (currentContaminant) {
+        const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
+        const startDate = document.getElementById('fecha-inicio').value;
+        const endDate = document.getElementById('fecha-fin').value;
+        updateTimeSeriesChart(selectedCity, currentContaminant, startDate, endDate);
+    }
+});
+
+document.getElementById('fecha-fin').addEventListener('change', () => {
+    updateChart();
+    if (currentContaminant) {
+        const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
+        const startDate = document.getElementById('fecha-inicio').value;
+        const endDate = document.getElementById('fecha-fin').value;
+        updateTimeSeriesChart(selectedCity, currentContaminant, startDate, endDate);
+    }
+});
