@@ -563,7 +563,6 @@ function buildHierarchy(attributes, distanceMatrix) {
     return clusters[0];  // Devolver la jerarquía final
 }
 
-
 function createRadialDendrogram(hierarchyData, selectedAttributes, distanceMatrix, selectedCity, dateRange) {
     // Verificar que los datos de entrada no sean undefined
     if (!hierarchyData || !selectedAttributes || !distanceMatrix || !selectedCity || !dateRange) {
@@ -575,8 +574,7 @@ function createRadialDendrogram(hierarchyData, selectedAttributes, distanceMatri
     const height = 400;
     const clusterRadius = 140;
 
-    const clusterLayout = d3.cluster()
-                            .size([2 * Math.PI, clusterRadius]);
+    const clusterLayout = d3.cluster().size([2 * Math.PI, clusterRadius]);
 
     const root = d3.hierarchy(hierarchyData);
     clusterLayout(root);
@@ -607,25 +605,25 @@ function createRadialDendrogram(hierarchyData, selectedAttributes, distanceMatri
 
     // Dibujar los enlaces como líneas, sin áreas
     svg.selectAll('.link')
-       .data(root.links())
-       .enter().append('path')
-       .attr('class', 'link')
-       .attr('d', d3.linkRadial()
-           .angle(d => d.x)
-           .radius(d => d.y))
-       .style('fill', 'none')  // Eliminar área
-       .style('stroke', d => {
-           const attribute = d.target.data.attribute; // Asegúrate de que el atributo esté en los datos
-           return attribute && isMeteorologicalAttribute(attribute) ? 'blue' : '#ccc'; // Color azul para meteorología
-       })
-       .style('stroke-width', d => {
-           const attribute = d.target.data.attribute; // Asegúrate de que el atributo esté en los datos
-           return attribute && isMeteorologicalAttribute(attribute) ? 2 : 1; // Grosor de línea
-       })
-       .style('stroke-dasharray', d => {
-           const attribute = d.target.data.attribute; // Asegúrate de que el atributo esté en los datos
-           return attribute && isMeteorologicalAttribute(attribute) ? '5,5' : '0'; // Líneas discontinuas para meteorología
-       });
+        .data(root.links())
+        .enter().append('path')
+        .attr('class', 'link')
+        .attr('d', d3.linkRadial()
+            .angle(d => d.x)
+            .radius(d => d.y))
+        .style('fill', 'none') // Eliminar área
+        .style('stroke', d => {
+            const attribute = d.target.data.name;
+            return attribute && isMeteorologicalAttribute(attribute) ? 'blue' : '#ccc'; // Color azul para meteorología
+        })
+        .style('stroke-width', d => {
+            const attribute = d.target.data.name;
+            return attribute && isMeteorologicalAttribute(attribute) ? 2 : 1; // Grosor de línea
+        })
+        .style('stroke-dasharray', d => {
+            const attribute = d.target.data.name;
+            return attribute && isMeteorologicalAttribute(attribute) ? '5,5' : '0'; // Líneas discontinuas para meteorología
+        });
 
     // Dibujar los nodos
     const node = svg.selectAll('.node')
@@ -638,26 +636,39 @@ function createRadialDendrogram(hierarchyData, selectedAttributes, distanceMatri
     node.append('circle')
         .attr('r', 5)
         .style('fill', d => {
-            const distance = d.data.distance || 0; // Asegúrate de que la distancia esté en los datos
+            const distance = d.data.distance || 0;
             return colorScale(distance); // Aplicar el color basado en la distancia
         })
         .on('mouseover', (event, d) => {
-            const distance = d.data.distance || 0; // Asegúrate de que la distancia esté en los datos
-            tooltip.style('visibility', 'visible')
-                   .html(`Distancia: ${distance.toFixed(2)}`); // Mostrar la distancia en el tooltip
+            d3.select(event.currentTarget) // Seleccionar el círculo actual
+                .transition() // Agregar una transición
+                .duration(200) // Duración de la transición
+                .attr('r', 8) // Aumentar el radio
+                .style('stroke', 'yellow') // Cambiar el borde a amarillo
+                .style('stroke-width', 2); // Grosor del borde
+        
+            // Mostrar el tooltip con la distancia del nodo, redondeada a dos decimales
+            tooltip.html(`Distancia: ${(d.data.distance || 0).toFixed(2)}`)
+                   .style('visibility', 'visible')
+                   .style('left', `${event.pageX + 10}px`)
+                   .style('top', `${event.pageY - 20}px`);
         })
-        .on('mousemove', (event) => {
-            tooltip.style('top', (event.pageY + 5) + 'px')
-                   .style('left', (event.pageX + 5) + 'px');
-        })
-        .on('mouseout', () => {
+        
+        .on('mouseout', (event) => {
+            d3.select(event.currentTarget) // Seleccionar el círculo actual
+                .transition() // Agregar una transición
+                .duration(200) // Duración de la transición
+                .attr('r', 5) // Volver al radio original
+                .style('stroke', 'none'); // Quitar el borde
+
+            // Ocultar el tooltip
             tooltip.style('visibility', 'hidden');
         })
         .on('click', (event, d) => {
             // Obtén la ciudad y el contaminante de los datos
-            const contaminant = d.data.name; // El nombre del nodo puede representar el contaminante
-            const startDate = dateRange.split(' a ')[0]; // Rango de fechas, ajustar según tu lógica
-            const endDate = dateRange.split(' a ')[1];  // Rango de fechas, ajustar según tu lógica
+            const contaminant = d.data.name;
+            const startDate = dateRange.split(' a ')[0];
+            const endDate = dateRange.split(' a ')[1];
 
             // Mostrar los datos en consola
             console.log(`Ciudad: ${selectedCity}`);
@@ -666,30 +677,29 @@ function createRadialDendrogram(hierarchyData, selectedAttributes, distanceMatri
         });
 
     // Añadir los textos dinámicos según los atributos seleccionados
-// Añadir los textos dinámicos según los atributos seleccionados
-node.append('text')
-    .style('font-size', '14px')
-    .style('font-weight', 'bold')
-    .attr('dy', '.60em')
-    .attr('text-anchor', d => d.x < Math.PI === !d.children ? 'start' : 'end')
-    .attr('dx', d => d.x < Math.PI ? '10' : '-10') // Ajustar la posición horizontal
-    .attr('transform', d => d.x >= Math.PI ? 'rotate(180)' : null)
-    .text(d => {
-        const attributeIndex = d.data.index;
-        return selectedAttributes.length > 0 ? selectedAttributes[attributeIndex] : d.data.name;
-    });
+    node.append('text')
+        .style('font-size', '14px')
+        .style('font-weight', 'bold')
+        .attr('dy', '.60em')
+        .attr('text-anchor', d => d.x < Math.PI === !d.children ? 'start' : 'end')
+        .attr('dx', d => d.x < Math.PI ? '10' : '-10')
+        .attr('transform', d => d.x >= Math.PI ? 'rotate(180)' : null)
+        .text(d => {
+            const attributeIndex = d.data.index;
+            return selectedAttributes.length > 0 ? selectedAttributes[attributeIndex] : d.data.name;
+        });
 
     // Dibujar el triángulo rojo en el nodo raíz
     svg.append('polygon')
-        .attr('points', `${-5},${-15} ${5},${-15} ${0},${-25}`) // Definir los puntos del triángulo
-        .attr('transform', `translate(0, -33) rotate(180)`) // Rotar el triángulo 180 grados y posicionarlo sobre el nodo raíz
+        .attr('points', `${-5},${-15} ${5},${-15} ${0},${-25}`)
+        .attr('transform', `translate(0, -33) rotate(180)`)
         .style('fill', 'blue')
-        .style('visibility', root.children ? 'visible' : 'hidden'); // Solo visible si es el nodo raíz
+        .style('visibility', root.children ? 'visible' : 'hidden');
 }
 
 
 // Función para determinar si un atributo es meteorológico
 function isMeteorologicalAttribute(attribute) {
-    const meteorologicalAttributes = ['TEMP', 'PRES', 'DEWP', 'RAIN']; // Agrega aquí tus atributos meteorológicos
+    const meteorologicalAttributes = ['TEMP', 'PRES', 'DEWP', 'RAIN']; // Asegúrate de que estos sean los atributos correctos
     return meteorologicalAttributes.includes(attribute);
 }
