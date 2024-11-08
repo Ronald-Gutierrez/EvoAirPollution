@@ -733,6 +733,52 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
             .attr('font-size', '12px');
     }
 
+    // Definir los límites y colores del AQI
+    const pollutantLimits = {
+        'PM2_5': [[0, 35], [35, 75], [75, 115], [115, 150], [150, 250], [250, 350], [350, 500]],
+        'PM10': [[0, 50], [50, 150], [150, 250], [250, 350], [350, 420], [420, 500], [500, 600]],
+        'SO2': [[0, 50], [50, 150], [150, 475], [475, 800], [800, 1600], [1600, 2100], [2100, 2620]],
+        'NO2': [[0, 40], [40, 80], [80, 180], [180, 280], [280, 565], [565, 750], [750, 940]],
+        'CO': [[0, 2], [2, 4], [4, 14], [14, 24], [24, 36], [36, 48], [48, 60]],  // Rango en mg/m³ para CO
+        'O3': [[0, 160], [160, 200], [200, 300], [300, 400], [400, 800], [800, 1000], [1000, 1200]]
+    };
+    const aqiRanges = [[0, 50], [50, 100], [100, 150], [150, 200], [200, 300], [300, 400], [400, 500]];
+    const aqiColors = ['#00e400', '#ff0', '#ff7e00', '#f00', '#99004c', '#7e0023'];
+    const meteorologicalColor = 'blue';
+
+    function calculateIndividualAQI(pollutant, concentration) {
+        if (concentration == null || !(pollutant in pollutantLimits)) return null;
+
+        const limits = pollutantLimits[pollutant];
+        for (let i = 0; i < limits.length; i++) {
+            const [bl, bh] = limits[i];
+            if (concentration >= bl && concentration <= bh) {
+                const [il, ih] = aqiRanges[i];
+                return ((ih - il) / (bh - bl)) * (concentration - bl) + il;
+            }
+        }
+        return null;
+    }
+
+    function getAQICategory(aqi) {
+        if (aqi <= 50) return 1;
+        if (aqi <= 100) return 2;
+        if (aqi <= 150) return 3;
+        if (aqi <= 200) return 4;
+        if (aqi <= 300) return 5;
+        return 6;
+    }
+
+    // Crear el tooltip (información que aparecerá al pasar el mouse sobre un punto)
+    const tooltip = container.append('div')
+        .attr('class', 'tooltip')
+        .style('position', 'absolute')
+        .style('background-color', '#fff')
+        .style('border', '1px solid #ccc')
+        .style('padding', '8px')
+        .style('border-radius', '4px')
+        .style('opacity', 0); // Empezamos con la opacidad a 0 (invisible)
+
     d3.csv(`data/${selectedCity}`).then(data => {
         const filteredData = data
             .filter(d => {
@@ -741,15 +787,27 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
             })
             .map(d => ({
                 date: new Date(`${d.year}-${d.month}-${d.day}`),
-                value: +d[contaminant.replace('.', '_')]
+                value: +d[contaminant.replace('.', '_')]  // Reemplazamos el punto por guion bajo para acceder a las propiedades
             }))
-            .filter(d => !isNaN(d.value)); // Filtra solo valores numéricos
+            .filter(d => !isNaN(d.value));
 
-        const averagedData = d3.groups(filteredData, d => d.date)
+        // Convertir los valores de CO a mg/m³ si están en µg/m³
+        const convertedData = filteredData.map(d => ({
+            ...d,
+            value: contaminant === 'CO' ? d.value / 1000 : d.value  // Convertir de µg/m³ a mg/m³ (si es CO)
+        }));
+
+        const averagedData = d3.groups(convertedData, d => d.date)
             .map(([date, values]) => ({
                 date: date,
                 value: d3.mean(values, d => d.value)
-            }));
+            }))
+            .map(d => {
+                const aqi = calculateIndividualAQI(contaminant, d.value);
+                const category = aqi !== null ? getAQICategory(aqi) : null;
+                const color = category ? aqiColors[category - 1] : meteorologicalColor; // Azul para meteorológicos
+                return { ...d, aqi, category, color };
+            });
 
         const xScale = d3.scaleTime()
                          .domain(d3.extent(averagedData, d => d.date))
@@ -757,10 +815,9 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
 
         const yExtent = d3.extent(averagedData, d => d.value);
         const yScale = d3.scaleLinear()
-                         .domain([Math.min(0, yExtent[0]), yExtent[1]]) // Permitir valores negativos en el eje y
+                         .domain([Math.min(0, yExtent[0]), yExtent[1]])
                          .range([height, 0]);
 
-        // Actualizar los ejes con transición
         const xAxis = d3.axisBottom(xScale).tickFormat(d3.timeFormat("%Y-%m-%d"));
         const yAxis = d3.axisLeft(yScale);
 
@@ -785,10 +842,9 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                update => update.transition().duration(750).call(yAxis)
            );
 
-        // svg.select('.y-label')
-        //    .text(`Nivel promedio diario de ${contaminant}`);
+        svg.select('.y-label')
+           .text(`Nivel promedio diario de ${contaminant}`);
 
-        // Seleccionar y actualizar los puntos con transición
         const points = svg.selectAll('.point')
                           .data(averagedData, d => d.date);
 
@@ -796,25 +852,51 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
               .append('circle')
               .attr('class', 'point')
               .attr('cx', d => xScale(d.date))
-              .attr('cy', yScale(0)) // Empieza desde el eje x para la animación
+              .attr('cy', yScale(0))
               .attr('r', 4)
-              .attr('fill', 'steelblue')
+              .attr('fill', d => d.color)
+              .on('mouseover', function(event, d) {
+                // Obtener las coordenadas del punto donde se activa el tooltip
+                const [mouseX, mouseY] = d3.pointer(event, svg.node());
+            
+                tooltip.transition()
+                       .duration(200)
+                       .style('opacity', 1); // Hacer visible el tooltip
+            
+                tooltip.html(`<strong>Ciudad:</strong> ${selectedCity}<br>
+                              <strong>Contaminante:</strong> ${contaminant}<br>
+                              <strong>Fecha:</strong> ${d3.timeFormat("%Y-%m-%d")(d.date)}<br>
+                              <strong>Concentración:</strong> ${d.value}<br>
+                              <strong>AQI:</strong> ${d.aqi}`)
+                       .style('left', (mouseX + margin.left) + 'px') // Centrado en la posición del mouse
+                       .style('top', (mouseY + margin.top - tooltip.node().offsetHeight - 10) + 'px') // Encima del punto
+                       .style('color', 'black'); // Color de texto en negro
+            })
+            
+            
+              .on('mouseout', function() {
+                  tooltip.transition()
+                         .duration(200)
+                         .style('opacity', 0); // Hacer invisible el tooltip
+              })
               .transition()
               .duration(750)
-              .attr('cy', d => yScale(d.value)); // Transición al valor final
+              .attr('cy', d => yScale(d.value));
 
         points.transition()
               .duration(750)
               .attr('cx', d => xScale(d.date))
-              .attr('cy', d => yScale(d.value));
+              .attr('cy', d => yScale(d.value))
+              .attr('fill', d => d.color);
 
         points.exit()
               .transition()
               .duration(750)
-              .attr('cy', yScale(0)) // Transición a la línea del eje x antes de salir
+              .attr('cy', yScale(0))
               .remove();
     });
 }
+
 
 // Variable global para almacenar el contaminante seleccionado actualmente
 let currentContaminant = null;
