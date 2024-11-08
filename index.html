@@ -81,26 +81,37 @@
     </div>
         
     <div id="correlation">
-        <!-- <div class="options-chek-correlation">
+        <div class="options-chek-correlation">
             <!-- Contaminantes -->
-            <!-- <div class="contaminants">
-                <label><input type="radio" name="values" value="PM2_5"> PM2.5</label>
-                <label><input type="radio" name="values" value="PM10"> PM10</label>
-                <label><input type="radio" name="values" value="SO2"> SO2</label>
-                <label><input type="radio" name="values" value="NO2"> NO2</label>
-                <label><input type="radio" name="values" value="CO"> CO</label>
-                <label><input type="radio" name="values" value="O3"> O3</label>
-            </div> -->
+            <div class="contaminants">
+                <label><input type="checkbox" name="values" value="PM2_5"> PM2.5</label>
+                <label><input type="checkbox" name="values" value="PM10"> PM10</label>
+                <label><input type="checkbox" name="values" value="SO2"> SO2</label>
+                <label><input type="checkbox" name="values" value="NO2"> NO2</label>
+                <label><input type="checkbox" name="values" value="CO"> CO</label>
+                <label><input type="checkbox" name="values" value="O3"> O3</label>
+            </div>
             
             <!-- Meteorológicos -->
-            <!-- <div class="meteorological">
-                <label><input type="radio" name="values" value="TEMP"> Temperatura</label>
-                <label><input type="radio" name="values" value="PRES"> Presion Atm.</label>
-                <label><input type="radio" name="values" value="DEWP"> Humedad</label>
-                <label><input type="radio" name="values" value="RAIN"> Precipitacion</label> -->
-            <!-- </div> -->
-        <!-- </div> --> 
+            <div class="meteorological">
+                <label><input type="checkbox" name="values" value="TEMP"> Temperatura</label>
+                <label><input type="checkbox" name="values" value="PRES"> Presión Atm.</label>
+                <label><input type="checkbox" name="values" value="DEWP"> Humedad</label>
+                <label><input type="checkbox" name="values" value="RAIN"> Precipitación</label>
+            </div>
+        </div>
+            <!-- Barra de Correlación -->
+        <div id="correlation-bar-container">
+            <div id="correlation-bar">
+                <div id="negative-label">-</div>
+                <div id="correlation-gradient"></div>
+                <div id="positive-label">+</div>
+            </div>
+        </div>
+        <div id="chart-view-dendrogram"></div>
+
     </div>
+    <!-- <div id="chart-view-dendrogram"></div> -->
     
     <div id="evolution"></div>
     <div id="serie-temporal"></div>
@@ -115,6 +126,8 @@
     <!-- Incluye Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
 
 
 

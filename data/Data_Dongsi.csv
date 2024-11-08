@@ -1,4 +1,4 @@
-No,year,month,day,hour,PM25,PM10,SO2,NO2,CO,O3,TEMP,PRES,DEWP,RAIN,wd,WSPM,station
+No,year,month,day,hour,PM2_5,PM10,SO2,NO2,CO,O3,TEMP,PRES,DEWP,RAIN,wd,WSPM,station
 1,2013,3,1,0,9,9,3,17,300,89,-0.5,1024.5,-21.4,0,"NNW",5.7,"Dongsi"
 2,2013,3,1,1,4,4,3,16,300,88,-0.7,1025.1,-22.1,0,"NW",3.9,"Dongsi"
 3,2013,3,1,2,7,7,NA,17,300,60,-1.2,1025.3,-24.6,0,"NNW",5.3,"Dongsi"

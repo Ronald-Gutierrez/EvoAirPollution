@@ -226,18 +226,17 @@ function parseCSV(data) {
 
 
 
-/////PARA MI GRAFICA RADIA/////////////////
-// Escuchar cambios en los checkboxes de ciudad
+// Escuchar cambios en los checkboxes de ciudad para la gráfica radial
 document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(checkbox => {
     checkbox.addEventListener('change', updateChart);
 });
 
-// Escuchar cambios en los checkboxes de atributos
+// Escuchar cambios en los checkboxes de atributos para la gráfica radial
 document.querySelectorAll('.options-chek input[type="checkbox"]').forEach(checkbox => {
     checkbox.addEventListener('change', updateChart);
 });
 
-// Escuchar cambios en el rango de fechas
+// Escuchar cambios en el rango de fechas para la gráfica radial
 document.getElementById('fecha-inicio').addEventListener('change', updateChart);
 document.getElementById('fecha-fin').addEventListener('change', updateChart);
 
@@ -249,11 +248,13 @@ document.getElementById('visualizar-todo').addEventListener('change', function (
     document.getElementById('fecha-rango').innerText = isChecked ? "Visualizando todos los datos." : "";
 });
 
+// Modificar la función updateChart para la gráfica radial
 function updateChart() {
     const selectedCities = Array.from(document.querySelectorAll('#city-checkboxes input[type="radio"]:checked'))
                                 .map(cb => cb.value);
     const selectedAttributes = Array.from(document.querySelectorAll('.options-chek input[type="checkbox"]:checked'))
                                    .map(cb => cb.value);
+                                   
     const startDate = document.getElementById('fecha-inicio').value;
     const endDate = document.getElementById('fecha-fin').value;
 
@@ -282,16 +283,13 @@ function updateChart() {
                 return avg;
             });
 
+            // Llamar a la función para generar la gráfica radial
             drawRadialChart(parsedData, selectedAttributes);
-            if (startDate && endDate) {
-                document.getElementById('fecha-rango').innerText = `Rango de fechas: ${startDate} a ${endDate}`;
-            } else if (visualizarTodo) {
-                document.getElementById('fecha-rango').innerText = "Visualizando todos los datos.";
-            }
         });
     });
 }
 
+// Función para generar la gráfica radial
 function drawRadialChart(data, attributes) {
     d3.select('#chart-view-radial').html("");
     const width = 450;
@@ -318,7 +316,6 @@ function drawRadialChart(data, attributes) {
         'YearRound': '#6a3d9a' // Violeta oscuro
     };
     
-
     // Function to get season based on date
     function getSeason(month, day) {
         if ((month === 3 && day >= 20) || (month > 3 && month < 6) || (month === 6 && day <= 21)) {
@@ -333,8 +330,7 @@ function drawRadialChart(data, attributes) {
     }
 
     attributes.forEach((attr, index) => {
-        const radialScale = d3.scaleLinear().domain([0, maxValues[index]])
-                              .range([centralHoleRadius + index * ringWidth, centralHoleRadius + (index + 1) * ringWidth]);
+        const radialScale = d3.scaleLinear().domain([0, maxValues[index]]).range([centralHoleRadius + index * ringWidth, centralHoleRadius + (index + 1) * ringWidth]);
 
         svg.append("circle").attr("cx", 0).attr("cy", 0)
            .attr("r", radialScale(maxValues[index])).attr("fill", "none")
@@ -345,14 +341,12 @@ function drawRadialChart(data, attributes) {
                       .angle((d, j) => angleScale(j))
                       .radius(d => radialScale(d[attr]) || 0);
 
-        // Append path for each attribute
         svg.append('path').datum(data)
            .attr('fill', 'none')
            .attr('stroke', d3.schemeCategory10[index % 10])
            .attr('stroke-width', 1.5)
            .attr('d', line);
 
-        // Add attribute label on the ring
         svg.append('text')
            .attr('x', 0)
            .attr('y', -radialScale(maxValues[index]) - 10)
@@ -362,7 +356,6 @@ function drawRadialChart(data, attributes) {
            .attr('font-weight', 'bold')
            .text(attr);
 
-        // Highlight seasons
         data.forEach((d, i) => {
             const season = getSeason(+d.month, +d.day);
             const seasonColor = seasonColors[season];
@@ -396,27 +389,305 @@ function drawRadialChart(data, attributes) {
     });
 }
 
+///////////////////////////////////////////////
+// Funciones para la matriz de correlación
 
-
-
-//////////////GRAFICA PARA LA CORRELACION DEL ARBOL JERARQUICO
-
-// Variable global para almacenar el valor seleccionado
-// Variable global para almacenar el valor seleccionado
-let selectedValue = "";
-
-// Añadir el event listener a todos los radio buttons
-document.querySelectorAll('.options-chek-correlation input[type="radio"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        // Guardar el valor del radio button seleccionado
-        selectedValue = this.value;
-
-
-        // Mostrar el valor seleccionado en la consola
-        console.log("Valor seleccionado: ", selectedValue);
-    });
+// Escuchar cambios en los radio buttons de ciudades
+document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', updateCorrelationMatrix);
 });
 
+// Escuchar cambios en los checkboxes de atributos dentro de .options-chek-correlation
+document.querySelectorAll('.options-chek-correlation input[type="checkbox"]').forEach(checkbox => {
+    checkbox.addEventListener('change', updateCorrelationMatrix);
+});
 
-//////GRAFICA DE LA SERIE TEMPORAL POR AQI.
+// Escuchar cambios en el rango de fechas
+document.getElementById('fecha-inicio').addEventListener('change', updateCorrelationMatrix);
+document.getElementById('fecha-fin').addEventListener('change', updateCorrelationMatrix);
 
+// Función para calcular la matriz de correlación
+function calculateCorrelationMatrix(data, selectedAttributes) {
+    const matrix = [];
+
+    // Iterar sobre cada par de atributos seleccionados
+    for (let i = 0; i < selectedAttributes.length; i++) {
+        const row = [];
+        for (let j = 0; j < selectedAttributes.length; j++) {
+            if (i === j) {
+                row.push(1); // Correlación perfecta de un atributo consigo mismo
+            } else {
+                row.push(calculateCorrelation(data, selectedAttributes[i], selectedAttributes[j]));
+            }
+        }
+        matrix.push(row);
+    }
+
+    return matrix;
+}
+
+// Función para calcular la correlación entre dos atributos
+function calculateCorrelation(data, attr1, attr2) {
+    const n = data.length;
+    const mean1 = d3.mean(data, d => +d[attr1]);
+    const mean2 = d3.mean(data, d => +d[attr2]);
+    let numerator = 0;
+    let denominator1 = 0;
+    let denominator2 = 0;
+
+    data.forEach(d => {
+        const x = +d[attr1] - mean1;
+        const y = +d[attr2] - mean2;
+        numerator += x * y;
+        denominator1 += x * x;
+        denominator2 += y * y;
+    });
+
+    return numerator / Math.sqrt(denominator1 * denominator2);
+}
+
+function calculateDistanceMatrix(correlationMatrix) {
+    const numAttributes = correlationMatrix.length;
+    const distanceMatrix = Array.from({ length: numAttributes }, () => Array(numAttributes).fill(0));
+
+    for (let i = 0; i < numAttributes; i++) {
+        for (let j = 0; j < numAttributes; j++) {
+            distanceMatrix[i][j] = Math.sqrt(2 * (1 - correlationMatrix[i][j]));
+        }
+    }
+
+    return distanceMatrix;
+}
+
+// Función que se ejecuta al cambiar los checkboxes de correlación
+function updateCorrelationMatrix() {
+    const selectedAttributes = Array.from(document.querySelectorAll('.options-chek-correlation input[type="checkbox"]:checked'))
+                                   .map(cb => cb.value);
+
+    if (selectedAttributes.length === 0) return;
+
+    // Obtener las ciudades seleccionadas
+    const selectedCities = Array.from(document.querySelectorAll('#city-checkboxes input[type="radio"]:checked'))
+                                .map(cb => cb.value);
+
+    // Obtener el rango de fechas si no es "visualizar todo"
+    const startDate = document.getElementById('fecha-inicio').value;
+    const endDate = document.getElementById('fecha-fin').value;
+    const visualizarTodo = document.getElementById('visualizar-todo').checked;
+
+    selectedCities.forEach(selectedCity => {
+        console.log(`Generando la matriz de correlación para la ciudad: ${selectedCity}`);
+        console.log(`Rango de fechas: ${visualizarTodo ? 'Todos los datos' : `${startDate} a ${endDate}`}`);
+
+        d3.csv(`data/${selectedCity}`).then(data => {
+            // Filtrar los datos por fechas estrictamente dentro del rango
+            if (!visualizarTodo && startDate && endDate) {
+                data = data.filter(d => {
+                    const date = new Date(`${d.year}-${d.month}-${d.day}`);
+                    return date > new Date(startDate) && date < new Date(endDate); // Filtrar fechas dentro del rango
+                });
+            }
+
+            const parsedData = d3.groups(data, d => `${d.year}-${d.month}-${d.day}`).map(([date, entries]) => {
+                const avg = {};
+                selectedAttributes.forEach(attr => {
+                    const values = entries.map(d => +d[attr.replace('.', '_')]).filter(v => !isNaN(v));
+                    avg[attr] = values.length > 0 ? d3.mean(values) : 0;
+                });
+                return avg;
+            });
+
+            const correlationMatrix = calculateCorrelationMatrix(parsedData, selectedAttributes);
+            const matrizdistancia = calculateDistanceMatrix(correlationMatrix);
+            const hierarchyData = buildHierarchy(selectedAttributes, matrizdistancia);
+
+            // Crear o actualizar el dendrograma radial con los rangos de fecha y la ciudad
+            createRadialDendrogram(hierarchyData, selectedAttributes, matrizdistancia, selectedCity, visualizarTodo ? 'Todos los datos' : `${startDate} a ${endDate}`);
+        });
+    });
+}
+
+// Función para construir la jerarquía (usando la matriz de distancia)
+function buildHierarchy(attributes, distanceMatrix) {
+    let clusters = attributes.map((attr, i) => ({
+        name: attr,
+        index: i,
+        points: [i],  // Cada clúster empieza con un solo punto
+        children: []
+    }));
+
+    let n = clusters.length;
+
+    while (n > 1) {
+        let minAverageDistance = Infinity;
+        let a, b;
+
+        // Encontrar el par de clústeres con la menor distancia promedio
+        for (let i = 0; i < n; i++) {
+            for (let j = i + 1; j < n; j++) {
+                let sumDistance = 0;
+                let count = 0;
+
+                // Calcular la distancia promedio entre todos los pares de puntos en los clústeres i y j
+                for (let pointI of clusters[i].points) {
+                    for (let pointJ of clusters[j].points) {
+                        sumDistance += distanceMatrix[pointI][pointJ];
+                        count++;
+                    }
+                }
+
+                const averageDistance = sumDistance / count;
+
+                if (averageDistance < minAverageDistance) {
+                    minAverageDistance = averageDistance;
+                    a = i;
+                    b = j;
+                }
+            }
+        }
+
+        // Crear un nuevo clúster combinando los clústeres a y b
+        const newCluster = {
+            name: clusters[a].name + '-' + clusters[b].name,
+            distance: minAverageDistance,
+            points: clusters[a].points.concat(clusters[b].points), // Unir puntos
+            children: [clusters[a], clusters[b]]
+        };
+
+        // Actualizar la lista de clústeres
+        clusters = clusters.filter((_, i) => i !== a && i !== b);
+        clusters.push(newCluster);
+        n--;
+    }
+
+    return clusters[0];  // Devolver la jerarquía final
+}
+
+
+function createRadialDendrogram(hierarchyData, selectedAttributes, distanceMatrix, selectedCity, dateRange) {
+    // Verificar que los datos de entrada no sean undefined
+    if (!hierarchyData || !selectedAttributes || !distanceMatrix || !selectedCity || !dateRange) {
+        console.error("Datos de entrada inválidos:", { hierarchyData, selectedAttributes, distanceMatrix, selectedCity, dateRange });
+        return; // Salir de la función si los datos son inválidos
+    }
+
+    const width = 400;
+    const height = 400;
+    const clusterRadius = 140;
+
+    const clusterLayout = d3.cluster()
+                            .size([2 * Math.PI, clusterRadius]);
+
+    const root = d3.hierarchy(hierarchyData);
+    clusterLayout(root);
+
+    // Configurar el gráfico
+    const svg = d3.select('#chart-view-dendrogram')
+                  .html('')  // Limpiar el contenedor antes de redibujar
+                  .append('svg')
+                  .attr('width', width)
+                  .attr('height', height)
+                  .append('g')
+                  .attr('transform', `translate(${width / 2}, ${height / 2})`);
+
+    // Crear el tooltip
+    const tooltip = d3.select('body').append('div')
+                      .attr('class', 'tooltip')
+                      .style('position', 'absolute')
+                      .style('visibility', 'hidden')
+                      .style('background', 'rgba(0, 0, 0, 0.7)')
+                      .style('color', 'white')
+                      .style('padding', '5px')
+                      .style('border-radius', '5px');
+
+    // Definir la escala de color
+    const colorScale = d3.scaleLinear()
+                         .domain([0, d3.max(distanceMatrix.flat())]) // Rango de 0 a la distancia máxima
+                         .range(['red', 'blue']); // De rojo a azul
+
+    // Dibujar los enlaces como líneas, sin áreas
+    svg.selectAll('.link')
+       .data(root.links())
+       .enter().append('path')
+       .attr('class', 'link')
+       .attr('d', d3.linkRadial()
+           .angle(d => d.x)
+           .radius(d => d.y))
+       .style('fill', 'none')  // Eliminar área
+       .style('stroke', d => {
+           const attribute = d.target.data.attribute; // Asegúrate de que el atributo esté en los datos
+           return attribute && isMeteorologicalAttribute(attribute) ? 'blue' : '#ccc'; // Color azul para meteorología
+       })
+       .style('stroke-width', d => {
+           const attribute = d.target.data.attribute; // Asegúrate de que el atributo esté en los datos
+           return attribute && isMeteorologicalAttribute(attribute) ? 2 : 1; // Grosor de línea
+       })
+       .style('stroke-dasharray', d => {
+           const attribute = d.target.data.attribute; // Asegúrate de que el atributo esté en los datos
+           return attribute && isMeteorologicalAttribute(attribute) ? '5,5' : '0'; // Líneas discontinuas para meteorología
+       });
+
+    // Dibujar los nodos
+    const node = svg.selectAll('.node')
+                    .data(root.descendants())
+                    .enter().append('g')
+                    .attr('class', 'node')
+                    .attr('transform', d => `rotate(${(d.x * 180 / Math.PI - 90)}) translate(${d.y}, 0)`);
+
+    // Agregar círculo para los nodos
+    node.append('circle')
+        .attr('r', 5)
+        .style('fill', d => {
+            const distance = d.data.distance || 0; // Asegúrate de que la distancia esté en los datos
+            return colorScale(distance); // Aplicar el color basado en la distancia
+        })
+        .on('mouseover', (event, d) => {
+            const distance = d.data.distance || 0; // Asegúrate de que la distancia esté en los datos
+            tooltip.style('visibility', 'visible')
+                   .html(`Distancia: ${distance.toFixed(2)}`); // Mostrar la distancia en el tooltip
+        })
+        .on('mousemove', (event) => {
+            tooltip.style('top', (event.pageY + 5) + 'px')
+                   .style('left', (event.pageX + 5) + 'px');
+        })
+        .on('mouseout', () => {
+            tooltip.style('visibility', 'hidden');
+        })
+        .on('click', (event, d) => {
+            // Obtén la ciudad y el contaminante de los datos
+            const contaminant = d.data.name; // El nombre del nodo puede representar el contaminante
+            const startDate = dateRange.split(' a ')[0]; // Rango de fechas, ajustar según tu lógica
+            const endDate = dateRange.split(' a ')[1];  // Rango de fechas, ajustar según tu lógica
+
+            // Mostrar los datos en consola
+            console.log(`Ciudad: ${selectedCity}`);
+            console.log(`Contaminante: ${contaminant}`);
+            console.log(`Rango de fechas: ${startDate} a ${endDate}`);
+        });
+
+    // Añadir los textos dinámicos según los atributos seleccionados
+    node.append('text')
+    .style('font-size', '14px')
+    .style('font-weight', 'bold')
+    .attr('dy', '.60em')
+    .attr('text-anchor', d => d.x < Math.PI === !d.children ? 'start' : 'end')
+    .attr('transform', d => d.x >= Math.PI ? 'rotate(180)' : null)
+    .text(d => {
+        const attributeIndex = d.data.index;
+        return selectedAttributes.length > 0 ? selectedAttributes[attributeIndex] : d.data.name;
+    });
+
+    // Dibujar el triángulo rojo en el nodo raíz
+    svg.append('polygon')
+        .attr('points', `${-5},${-15} ${5},${-15} ${0},${-25}`) // Definir los puntos del triángulo
+        .attr('transform', `translate(0, -33) rotate(180)`) // Rotar el triángulo 180 grados y posicionarlo sobre el nodo raíz
+        .style('fill', 'blue')
+        .style('visibility', root.children ? 'visible' : 'hidden'); // Solo visible si es el nodo raíz
+}
+
+
+// Función para determinar si un atributo es meteorológico
+function isMeteorologicalAttribute(attribute) {
+    const meteorologicalAttributes = ['TEMP', 'PRES', 'DEWP', 'RAIN']; // Agrega aquí tus atributos meteorológicos
+    return meteorologicalAttributes.includes(attribute);
+}

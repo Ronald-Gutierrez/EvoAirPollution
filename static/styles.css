@@ -36,7 +36,7 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     font-size: 0.9em; /* Cambia el tamaño de la fuente a más pequeño */
     padding: 10px;
-    color: #777; /* Color más suave para los checkboxes */
+    color: #0e0e0e; /* Color más suave para los checkboxes */
 
 }
 h4{
@@ -118,7 +118,7 @@ label {
 
 .options-chek label {
     font-size: 0.9em; /* Cambia el tamaño de la fuente a más pequeño */
-    color: #777; /* Color más suave para los checkboxes */
+    color: #000000; /* Color más suave para los checkboxes */
 }
 .options-chek input[type="checkbox"] {
     margin-right: 5px; /* Espacio entre checkbox y label */
@@ -169,7 +169,7 @@ label#checkbox-container {
 /* Estilos para el título del panel */
 #dashboard h3 {
     font-size: 1em;
-    color: #333;
+    color: #000000;
     margin-bottom: 15px;
 }
 
@@ -191,7 +191,7 @@ label#checkbox-container {
     margin-top: 130px; /* Espacio superior para separar de otros elementos */
     margin-left: 210px;
     font-family: Arial, sans-serif; /* Fuente de la leyenda */
-    color: #777; /* Color más suave para los checkboxes */
+    color: #000000; /* Color más suave para los checkboxes */
     font-size: 0.8em; /* Aumenta el tamaño de la letra */
 
 }
@@ -218,10 +218,17 @@ label#checkbox-container {
     gap: 20px; /* Espacio entre los grupos */
 }
 
-.contaminants, .meteorological {
+.meteorological {
     display: flex;
     flex-wrap: wrap;
     gap: 10px; /* Espacio entre los checkbox */
+    margin-top: -10px;
+}
+.contaminants {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px; /* Espacio entre los checkbox */
+    margin-top: -20px;
 }
 
 .contaminants label, .meteorological label {
@@ -237,7 +244,7 @@ label#checkbox-container {
 
 .contaminants {
     flex: 1 1 48%; /* Ocupa el 48% del ancho del contenedor y puede reducirse si es necesario */
-    margin-top: 80%;
+    margin-top: 81%;
     justify-content: center;
 
 }
@@ -246,4 +253,60 @@ label#checkbox-container {
     flex: 1 1 48%; /* Ocupa el 48% del ancho del contenedor y puede reducirse si es necesario */
     justify-content: center;
 
+}
+
+#chart-view-dendrogram{
+    height: 20%;
+    width: 20%;
+    position: absolute; /* Cambia a posición absoluta */
+    top: -4%; /* Ajusta la posición vertical */
+    left: 5%; /* Ajusta la posición horizontal */
+    border-radius: 8px;
+    padding: 15px; /* Espaciado interno */
+}
+.tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 12px;
+    pointer-events: none;
+}
+
+#correlation-bar-container {
+    position: absolute;
+    right: 15px; /* Ajusta la posición */
+    top: 120px;
+    height: 200px;
+    width: 20px;
+}
+
+#correlation-bar {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+#correlation-gradient {
+    background: linear-gradient(to top, red, blue); /* De rojo a azul */
+    height: 100%;
+}
+
+#negative-label,
+#positive-label {
+    position: absolute;
+    width: 100%;
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    color: #f0f0f0;
+}
+
+#negative-label {
+    top: 0;
+}
+
+#positive-label {
+    bottom: 0;
 }
