@@ -475,8 +475,8 @@ function updateCorrelationMatrix() {
     const visualizarTodo = document.getElementById('visualizar-todo').checked;
 
     selectedCities.forEach(selectedCity => {
-        console.log(`Generando la matriz de correlación para la ciudad: ${selectedCity}`);
-        console.log(`Rango de fechas: ${visualizarTodo ? 'Todos los datos' : `${startDate} a ${endDate}`}`);
+        // console.log(`Generando la matriz de correlación para la ciudad: ${selectedCity}`);
+        // console.log(`Rango de fechas: ${visualizarTodo ? 'Todos los datos' : `${startDate} a ${endDate}`}`);
 
         d3.csv(`data/${selectedCity}`).then(data => {
             // Filtrar los datos por fechas estrictamente dentro del rango
@@ -847,7 +847,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
            );
 
         svg.select('.y-label')
-           .text(`Nivel promedio diario de ${contaminant}`);
+           .text(`Nivel diario de ${contaminant}`);
 
         const points = svg.selectAll('.point')
                           .data(averagedData, d => d.date);
@@ -862,42 +862,69 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
               .on('mouseover', function(event, d) {
                 // Obtener las coordenadas del punto donde se activa el tooltip
                 const [mouseX, mouseY] = d3.pointer(event, svg.node());
+                const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
             
+                // Calcular las dimensiones del tooltip
+                const tooltipWidth = tooltip.node().offsetWidth;
+                const tooltipHeight = tooltip.node().offsetHeight;
+            
+                // Limitar la posición del tooltip dentro de los límites de la gráfica
+                const maxX = width + margin.left - tooltipWidth; // Limitar el tooltip hacia la derecha
+                const maxY = height + margin.top - tooltipHeight; // Limitar el tooltip hacia abajo
+            
+                // Asegurarse de que el tooltip no se desborde fuera de la gráfica
+                const limitedX = Math.min(mouseX + margin.left, maxX);
+                const limitedY = Math.max(mouseY + margin.top - tooltipHeight - 10, margin.top);
+            
+                // Hacer visible el tooltip con los valores
                 tooltip.transition()
                        .duration(200)
-                       .style('opacity', 1); // Hacer visible el tooltip
+                       .style('opacity', 1);
             
                 tooltip.html(`<strong>Ciudad:</strong> ${selectedCity}<br>
-                              <strong>Contaminante:</strong> ${contaminant}<br>
+                              <strong>Contaminante:</strong> ${currentContaminant}<br>
                               <strong>Fecha:</strong> ${d3.timeFormat("%Y-%m-%d")(d.date)}<br>
                               <strong>Concentración:</strong> ${d.value}<br>
                               <strong>AQI:</strong> ${d.aqi}`)
-                       .style('left', (mouseX + margin.left) + 'px') // Centrado en la posición del mouse
-                       .style('top', (mouseY + margin.top - tooltip.node().offsetHeight - 10) + 'px') // Encima del punto
+                       .style('left', `${limitedX}px`)  // Centrado en la posición ajustada del mouse
+                       .style('top', `${limitedY}px`)  // Encima del punto, ajustado con límites
                        .style('color', 'black'); // Color de texto en negro
             })
-            
-            
-              .on('mouseout', function() {
-                  tooltip.transition()
-                         .duration(200)
-                         .style('opacity', 0); // Hacer invisible el tooltip
-              })
-              .on('click', function(event, d) {
+            .on('mouseout', function() {
+                tooltip.transition()
+                       .duration(200)
+                       .style('opacity', 0); // Hacer invisible el tooltip
+            })  
+                      
+            .on('click', function(event, d) {
                 // Eliminar la ventana flotante previa, si existe
                 let floatingWindow = d3.select('#floating-window');
                 if (!floatingWindow.empty()) {
                     floatingWindow.remove();
                 }
             
-                // Crear nueva ventana flotante debajo del punto de clic
+                // Obtener las coordenadas del mouse
                 const [mouseX, mouseY] = d3.pointer(event, svg.node());
             
+                // Limitar la posición de la ventana emergente dentro de los límites de la gráfica
+                const windowWidth = 400;  // Ancho estimado de la ventana emergente
+                const windowHeight = 220; // Alto estimado de la ventana emergente (agregamos un poco más de espacio para el título)
+            
+                // Asegurarse de que la ventana no se salga de los límites de la gráfica
+                const maxX = width + margin.left - windowWidth;
+                const maxY = height + margin.top - windowHeight;
+            
+                // Ajustamos la posición para que no se tape el punto
+                const padding = 10; // Un poco de espacio alrededor del punto
+                const limitedX = Math.min(mouseX + margin.left + padding, maxX);  // Ajustamos la posición horizontal
+                const limitedY = Math.min(mouseY + margin.top + padding, maxY);  // Ajustamos la posición vertical
+            
+                // Crear nueva ventana flotante
                 floatingWindow = container.append('div')
                     .attr('id', 'floating-window')
                     .style('position', 'absolute')
-                    .style('left', `${mouseX + margin.left}px`)
-                    .style('top', `${mouseY + margin.top + 10}px`)
+                    .style('left', `${limitedX}px`)
+                    .style('top', `${limitedY}px`)
                     .style('background-color', '#fff')
                     .style('border', '1px solid #ccc')
                     .style('padding', '10px')
@@ -918,9 +945,19 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                     .style('cursor', 'pointer')
                     .on('click', () => floatingWindow.remove());
             
+                const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
+                const selectedDate = d3.timeFormat("%Y-%m-%d")(d.date);  // Formatear la fecha
+            
+                // Título de la ventana emergente
+                floatingWindow.append('div')
+                    .style('text-align', 'center')
+                    .style('font-size', '14px')
+                    .style('font-weight', 'bold')
+                    .style('margin-bottom', '10px')
+                    .text(`Serie temporal por hora de ${currentContaminant}`);
+            
                 // Cargar los datos horarios del día y contaminante seleccionado
                 d3.csv(`data/${selectedCity}`).then(hourlyData => {
-                    const selectedDate = d3.timeFormat("%Y-%m-%d")(d.date);  // Formatear la fecha
                     const selectedDayData = hourlyData
                         .filter(row => {
                             const rowDate = new Date(`${row.year}-${row.month}-${row.day}`);
@@ -928,7 +965,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                         })
                         .map(row => ({
                             hour: +row.hour,
-                            value: +row[contaminant.replace('.', '_')]  // Usar el contaminante seleccionado
+                            value: +row[currentContaminant.replace('.', '_')]  // Usar el contaminante seleccionado
                         }))
                         .filter(row => !isNaN(row.value));  // Filtrar valores inválidos
             
@@ -946,13 +983,16 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                         .append('g')
                         .attr('transform', `translate(${miniMargin.left}, ${miniMargin.top})`);
             
-                    // Escalas y ejes
+                    // Escalas y ejes con soporte para valores negativos
+                    const yMax = d3.max(selectedDayData, d => Math.abs(d.value));
+                    const yMin = d3.min(selectedDayData, d => d.value);
+                    const yMiniScale = d3.scaleLinear()
+                        .domain([yMin, yMax])  // Escala dinámica para incluir valores negativos
+                        .range([miniHeight, 0]);
+            
                     const xMiniScale = d3.scaleLinear()
                         .domain([0, 23])  // Rango de horas en el día
                         .range([0, miniWidth]);
-                    const yMiniScale = d3.scaleLinear()
-                        .domain([0, d3.max(selectedDayData, d => d.value)])  // Escala basada en los valores de contaminante
-                        .range([miniHeight, 0]);
             
                     const xMiniAxis = d3.axisBottom(xMiniScale).ticks(24).tickFormat(d => `${d}:00`);
                     const yMiniAxis = d3.axisLeft(yMiniScale);
@@ -982,7 +1022,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                         .attr('transform', 'rotate(-90)')
                         .attr('text-anchor', 'middle')
                         .style('font-size', '12px')
-                        .text(`Concentración de ${contaminant}`);
+                        .text(`Concentración de ${currentContaminant}`);
             
                     // Línea de la serie temporal horaria
                     const line = d3.line()
@@ -996,41 +1036,23 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                         .attr('stroke-width', 1.5)
                         .attr('d', line);
                 });
-            })
-            // .on('click', function(event, d) {
-            //     // Cargar los datos horarios del día seleccionado
-            //     d3.csv(data/${selectedCity}).then(hourlyData => {
-            //         const selectedDate = d3.timeFormat("%Y-%m-%d")(d.date);  // Formatear la fecha
-            //         const selectedDayData = hourlyData
-            //             .filter(row => new Date(${row.year}-${row.month}-${row.day}).getTime() === d.date.getTime())
-            //             .map(row => ({
-            //                 date: selectedDate, // Añadir la fecha en cada registro
-            //                 hour: row.hour,
-            //                 ...Object.fromEntries(Object.keys(row).map(key => [key.replace('.', '_'), row[key]]))
-            //             }));
-            
-            //         // Mostrar la fecha en la consola
-            //         console.log(Datos horarios para el día: ${selectedDate});
-            //         console.table(selectedDayData, ['date', 'hour', 'city', 'contaminant', contaminant.replace('.', '_')]);
-            //     });
-            // })
-            
-            
-              .transition()
-              .duration(750)
-              .attr('cy', d => yScale(d.value));
+            })                  
 
-        points.transition()
-              .duration(750)
-              .attr('cx', d => xScale(d.date))
-              .attr('cy', d => yScale(d.value))
-              .attr('fill', d => d.color);
+            .transition()
+            .duration(750)
+            .attr('cy', d => yScale(d.value));
 
-        points.exit()
-              .transition()
-              .duration(750)
-              .attr('cy', yScale(0))
-              .remove();
+            points.transition()
+                .duration(750)
+                .attr('cx', d => xScale(d.date))
+                .attr('cy', d => yScale(d.value))
+                .attr('fill', d => d.color);
+
+            points.exit()
+                .transition()
+                .duration(750)
+                .attr('cy', yScale(0))
+                .remove();
     });
 }
 
