@@ -287,6 +287,19 @@ function updateChart() {
         });
     });
 }
+// Colores definidos para cada atributo
+const attributeColors = {
+    'PM2_5': '#FF5733',
+    'PM10': '#FF8D1A',
+    'SO2': '#C70039',
+    'NO2': '#900C3F',
+    'CO': '#581845',
+    'O3': '#1D84B5',
+    'TEMP': '#76D7C4',
+    'PRES': '#F39C12',
+    'DEWP': '#8E44AD',
+    'RAIN': '#3498DB'
+};
 
 // Función para generar la gráfica radial
 function drawRadialChart(data, attributes) {
@@ -308,13 +321,13 @@ function drawRadialChart(data, attributes) {
 
     // Define colors for each season
     const seasonColors = {
-        'Spring': '#2ca25f',  // Verde fuerte
-        'Summer': '#d95f0e',  // Naranja intenso
-        'Autumn': '#7570b3',  // Púrpura
-        'Winter': '#1f78b4',  // Azul
-        'YearRound': '#6a3d9a' // Violeta oscuro
+        'Spring': '#2ca25f',
+        'Summer': '#d95f0e',
+        'Autumn': '#7570b3',
+        'Winter': '#1f78b4',
+        'YearRound': '#6a3d9a'
     };
-    
+
     // Function to get season based on date
     function getSeason(month, day) {
         if ((month === 3 && day >= 20) || (month > 3 && month < 6) || (month === 6 && day <= 21)) {
@@ -340,9 +353,12 @@ function drawRadialChart(data, attributes) {
                       .angle((d, j) => angleScale(j))
                       .radius(d => radialScale(d[attr]) || 0);
 
+        // Utiliza el color definido en `attributeColors` para cada serie
+        const lineColor = attributeColors[attr] || '#000';  // Por si no está definido, asigna un color por defecto
+
         svg.append('path').datum(data)
            .attr('fill', 'none')
-           .attr('stroke', d3.schemeCategory10[index % 10])
+           .attr('stroke', lineColor)
            .attr('stroke-width', 1.5)
            .attr('d', line);
 
@@ -373,20 +389,45 @@ function drawRadialChart(data, attributes) {
         });
     });
 
-    const years = Array.from(new Set(data.map(d => d.year)));
-    years.forEach((year, i) => {
-        const angle = angleScale((data.length / years.length) * i);
-        const x = Math.sin(angle) * radius;
-        const y = -Math.cos(angle) * radius;
-        svg.append('text')
-           .attr('x', x)
-           .attr('y', y)
-           .attr('dy', '0.35em')
-           .attr('text-anchor', 'middle')
-           .attr('font-size', '12px')
-           .text(year);
+    // Agregar etiquetas dinámicas de tiempo (meses o días)
+    const timeSpan = (new Date(data[data.length - 1].date) - new Date(data[0].date)) / (1000 * 60 * 60 * 24);
+    const isMonthly = timeSpan > 30;
+    const isYearly = timeSpan > 365;
+
+    const displayedLabels = new Set();  // Para evitar etiquetas repetidas
+
+    data.forEach((d, i) => {
+        const angle = angleScale(i);
+        const x = Math.sin(angle) * (radius + 10);
+        const y = -Math.cos(angle) * (radius + 10);
+
+        let label;
+        let labelKey;
+        if (isYearly) {
+            label = d3.timeFormat('%Y')(new Date(d.date));
+            labelKey = `year-${label}`;
+        } else if (isMonthly) {
+            label = d3.timeFormat('%b')(new Date(d.date)); // Mes
+            labelKey = `month-${label}`;
+        } else {
+            label = d3.timeFormat('%d %b')(new Date(d.date)); // Día y Mes
+            labelKey = `day-${label}`;
+        }
+
+        // Mostrar solo si la etiqueta aún no se ha agregado
+        if (!displayedLabels.has(labelKey)) {
+            svg.append('text')
+               .attr('x', x)
+               .attr('y', y)
+               .attr('dy', '0.35em')
+               .attr('text-anchor', 'middle')
+               .attr('font-size', '10px')
+               .text(label);
+            displayedLabels.add(labelKey);  // Marca la etiqueta como mostrada
+        }
     });
 }
+
 
 ///////////////////////////////////////////////
 // Funciones para la matriz de correlación
@@ -704,14 +745,13 @@ function isMeteorologicalAttribute(attribute) {
     const meteorologicalAttributes = ['TEMP', 'PRES', 'DEWP', 'RAIN']; // Asegúrate de que estos sean los atributos correctos
     return meteorologicalAttributes.includes(attribute);
 }
-
 function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
     currentContaminant = contaminant; // Asignar el contaminante actual
 
     const container = d3.select('#serie-temporal');
 
     const margin = { top: 20, right: 30, bottom: 60, left: 60 };
-    const width = 1050 - margin.left - margin.right;
+    const width = 1020 - margin.left - margin.right;
     const height = 380 - margin.top - margin.bottom;
 
     let svg = container.select("svg g");
@@ -722,6 +762,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
             .attr('height', height + margin.top + margin.bottom)
             .append('g')
             .attr('transform', `translate(${margin.left}, ${margin.top})`);
+            
 
         // Añadir etiquetas para los ejes solo una vez
         svg.append('text')
@@ -732,6 +773,16 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
             .attr('text-anchor', 'middle')
             .attr('font-size', '12px');
     }
+
+    // Límites diarios para cada contaminante
+    const dailyLimits = {
+        'PM2_5': 75,
+        'PM10': 150,
+        'CO': 4,
+        'SO2': 150,
+        'NO2': 80,
+        'O3': 200
+    };
 
     // Definir los límites y colores del AQI
     const pollutantLimits = {
@@ -769,7 +820,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
         return 6;
     }
 
-    // Crear el tooltip (información que aparecerá al pasar el mouse sobre un punto)
+    // Crear el tooltip
     const tooltip = container.append('div')
         .attr('class', 'tooltip')
         .style('position', 'absolute')
@@ -777,7 +828,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
         .style('border', '1px solid #ccc')
         .style('padding', '8px')
         .style('border-radius', '4px')
-        .style('opacity', 0); // Empezamos con la opacidad a 0 (invisible)
+        .style('opacity', 0);
 
     d3.csv(`data/${selectedCity}`).then(data => {
         const filteredData = data
@@ -809,7 +860,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
             .map(d => {
                 const aqi = calculateIndividualAQI(contaminant, d.value);
                 const category = aqi !== null ? getAQICategory(aqi) : null;
-                const color = category ? aqiColors[category - 1] : meteorologicalColor; // Azul para meteorológicos
+                const color = category ? aqiColors[category - 1] : meteorologicalColor;
                 return { ...d, aqi, category, color };
             });
 
@@ -860,63 +911,33 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
               .attr('r', 4)
               .attr('fill', d => d.color)
               .on('mouseover', function(event, d) {
-                // Obtener las coordenadas del punto donde se activa el tooltip
                 const [mouseX, mouseY] = d3.pointer(event, svg.node());
                 const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
-                
-                // Seleccionar el punto que fue hoverado
                 const point = d3.select(this);
-                
-                // Cambiar el tamaño y borde del punto cuando el mouse está encima
-                point.transition()
-                     .duration(200)
-                     .attr('r', 10)  // Hacerlo más grande
-                     .style('stroke', 'cyan')  // Bordearlo con color celeste fluorescente
-                     .style('stroke-width', 3);  // Grosor del borde
+                point.transition().duration(200).attr('r', 10).style('stroke', 'cyan').style('stroke-width', 3);
             
-                // Calcular las dimensiones del tooltip
                 const tooltipWidth = tooltip.node().offsetWidth;
                 const tooltipHeight = tooltip.node().offsetHeight;
-            
-                // Limitar la posición del tooltip dentro de los límites de la gráfica
-                const maxX = width + margin.left - tooltipWidth; // Limitar el tooltip hacia la derecha
-                const maxY = height + margin.top - tooltipHeight; // Limitar el tooltip hacia abajo
-            
-                // Asegurarse de que el tooltip no se desborde fuera de la gráfica
+                const maxX = width + margin.left - tooltipWidth;
+                const maxY = height + margin.top - tooltipHeight;
                 const limitedX = Math.min(mouseX + margin.left, maxX);
                 const limitedY = Math.max(mouseY + margin.top - tooltipHeight - 10, margin.top);
-            
-                // Hacer visible el tooltip con los valores
-                tooltip.transition()
-                       .duration(200)
-                       .style('opacity', 1);
-            
+
+                tooltip.transition().duration(200).style('opacity', 1);
                 tooltip.html(`<strong>Ciudad:</strong> ${selectedCity}<br>
                               <strong>Contaminante:</strong> ${currentContaminant}<br>
                               <strong>Fecha:</strong> ${d3.timeFormat("%Y-%m-%d")(d.date)}<br>
                               <strong>Concentración:</strong> ${d.value}<br>
                               <strong>AQI:</strong> ${d.aqi}`)
-                       .style('left', `${limitedX}px`)  // Centrado en la posición ajustada del mouse
-                       .style('top', `${limitedY}px`)  // Encima del punto, ajustado con límites
-                       .style('color', 'black'); // Color de texto en negro
+                       .style('left', `${limitedX}px`)
+                       .style('top', `${limitedY}px`)
+                       .style('color', 'black');
             })
             .on('mouseout', function() {
-                // Seleccionar el punto
                 const point = d3.select(this);
-            
-                // Regresar al tamaño y estilo original
-                point.transition()
-                     .duration(200)
-                     .attr('r', 5)  // Regresar al tamaño original
-                     .style('stroke', 'none')  // Eliminar el borde
-                     .style('stroke-width', 0); // Eliminar el grosor del borde
-            
-                // Hacer invisible el tooltip
-                tooltip.transition()
-                       .duration(200)
-                       .style('opacity', 0);
-            })            
-                      
+                point.transition().duration(200).attr('r', 5).style('stroke', 'none').style('stroke-width', 0);
+                tooltip.transition().duration(200).style('opacity', 0);
+            }) 
             .on('click', function(event, d) {
                 // Eliminar la ventana flotante previa, si existe
                 let floatingWindow = d3.select('#floating-window');
@@ -929,7 +950,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
             
                 // Limitar la posición de la ventana emergente dentro de los límites de la gráfica
                 const windowWidth = 400;
-                const windowHeight = 220;
+                const windowHeight = 240;
             
                 const maxX = width + margin.left - windowWidth;
                 const maxY = height + margin.top - windowHeight;
@@ -1022,7 +1043,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
             
                 meteorologicalFactors.forEach(factor => {
                     const isCheckedmet = factor === currentContaminant;
-
+            
                     meteorologicalChecks.append('label')
                         .style('margin-right', '10px')
                         .style('color', attributeColors[factor]) // Establecer el color del texto
@@ -1053,8 +1074,27 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                                 });
                                 data.hour = +row.hour;
                                 return data;
-                            })
-                            .filter(row => Object.values(row).some(val => !isNaN(val)));  // Filtrar datos válidos
+                            });
+            
+                        // Completar horas faltantes con la media
+                        selectedContaminants.forEach(contaminant => {
+                            let consecutiveNaNs = 0;
+                            for (let i = 0; i < selectedDayData.length; i++) {
+                                if (isNaN(selectedDayData[i][contaminant])) {
+                                    consecutiveNaNs++;
+                                    if (consecutiveNaNs <= 3) {
+                                        // Si hay entre 1 y 3 horas consecutivas faltantes, completar con la media
+                                        const prevValue = selectedDayData[i - 1]?.[contaminant];
+                                        const nextValue = selectedDayData[i + 1]?.[contaminant];
+                                        if (!isNaN(prevValue) && !isNaN(nextValue)) {
+                                            selectedDayData[i][contaminant] = (prevValue + nextValue) / 2;
+                                        }
+                                    }
+                                } else {
+                                    consecutiveNaNs = 0;  // Reiniciar el contador si el valor no es NaN
+                                }
+                            }
+                        });
             
                         // Elimina el SVG anterior, si existe, para actualizar con nuevos datos
                         floatingWindow.select('svg').remove();
@@ -1074,11 +1114,11 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                         const yMax = d3.max(selectedDayData, d => Math.max(...Object.values(d).filter(val => !isNaN(val))));
                         const yMin = d3.min(selectedDayData, d => Math.min(...Object.values(d).filter(val => !isNaN(val))));
                         const yMiniScale = d3.scaleLinear()
-                            .domain([yMin, yMax])  // Escala dinámica para incluir valores negativos
+                            .domain([yMin, yMax])
                             .range([miniHeight, 0]);
             
                         const xMiniScale = d3.scaleLinear()
-                            .domain([0, 23])  // Rango de horas en el día
+                            .domain([0, 23])
                             .range([0, miniWidth]);
             
                         const xMiniAxis = d3.axisBottom(xMiniScale).ticks(8).tickValues(d3.range(0, 24, 3)).tickFormat(d => `${d}:00`);
@@ -1109,13 +1149,14 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                         // Línea de la serie temporal para cada contaminante seleccionado
                         selectedContaminants.forEach(contaminant => {
                             const line = d3.line()
+                                .defined(d => !isNaN(d[contaminant]))
                                 .x(d => xMiniScale(d.hour))
                                 .y(d => yMiniScale(d[contaminant]));
             
                             miniSvg.append('path')
                                 .datum(selectedDayData)
                                 .attr('fill', 'none')
-                                .attr('stroke', attributeColors[contaminant])  // Usar el color del contaminante
+                                .attr('stroke', attributeColors[contaminant])
                                 .attr('stroke-width', 1.5)
                                 .attr('d', line);
                         });
@@ -1124,23 +1165,38 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
             
                 // Llamar a la función inicial para cargar la serie temporal por defecto
                 updateChart();
-            })
-                          
+            })            
             .transition()
             .duration(750)
             .attr('cy', d => yScale(d.value));
 
-            points.transition()
-                .duration(750)
-                .attr('cx', d => xScale(d.date))
-                .attr('cy', d => yScale(d.value))
-                .attr('fill', d => d.color);
+        points.transition()
+            .duration(750)
+            .attr('cx', d => xScale(d.date))
+            .attr('cy', d => yScale(d.value))
+            .attr('fill', d => d.color);
 
-            points.exit()
-                .transition()
-                .duration(750)
-                .attr('cy', yScale(0))
-                .remove();
+        points.exit()
+            .transition()
+            .duration(750)
+            .attr('cy', yScale(0))
+            .remove();
+
+        // Agregar línea límite diaria
+        const limitValue = dailyLimits[contaminant];
+        if (limitValue !== undefined) {
+            svg.selectAll(".limit-line").remove(); // Eliminar cualquier línea límite existente
+            
+            svg.append("line")
+               .attr("class", "limit-line")
+               .attr("x1", 0)
+               .attr("x2", width)
+               .attr("y1", yScale(limitValue))
+               .attr("y2", yScale(limitValue))
+               .attr("stroke", "red")
+               .attr("stroke-width", 1.5)
+               .attr("stroke-dasharray", "5,5"); // Línea discontinua
+        }
     });
 }
 

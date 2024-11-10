@@ -1,10 +1,11 @@
+
 function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
     currentContaminant = contaminant; // Asignar el contaminante actual
 
     const container = d3.select('#serie-temporal');
 
     const margin = { top: 20, right: 30, bottom: 60, left: 60 };
-    const width = 1050 - margin.left - margin.right;
+    const width = 1020 - margin.left - margin.right;
     const height = 380 - margin.top - margin.bottom;
 
     let svg = container.select("svg g");
@@ -15,6 +16,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
             .attr('height', height + margin.top + margin.bottom)
             .append('g')
             .attr('transform', `translate(${margin.left}, ${margin.top})`);
+            
 
         // Añadir etiquetas para los ejes solo una vez
         svg.append('text')
@@ -155,177 +157,304 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
               .on('mouseover', function(event, d) {
                 // Obtener las coordenadas del punto donde se activa el tooltip
                 const [mouseX, mouseY] = d3.pointer(event, svg.node());
+                const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
+                
+                // Seleccionar el punto que fue hoverado
+                const point = d3.select(this);
+                
+                // Cambiar el tamaño y borde del punto cuando el mouse está encima
+                point.transition()
+                     .duration(200)
+                     .attr('r', 10)  // Hacerlo más grande
+                     .style('stroke', 'cyan')  // Bordearlo con color celeste fluorescente
+                     .style('stroke-width', 3);  // Grosor del borde
             
+                // Calcular las dimensiones del tooltip
+                const tooltipWidth = tooltip.node().offsetWidth;
+                const tooltipHeight = tooltip.node().offsetHeight;
+            
+                // Limitar la posición del tooltip dentro de los límites de la gráfica
+                const maxX = width + margin.left - tooltipWidth; // Limitar el tooltip hacia la derecha
+                const maxY = height + margin.top - tooltipHeight; // Limitar el tooltip hacia abajo
+            
+                // Asegurarse de que el tooltip no se desborde fuera de la gráfica
+                const limitedX = Math.min(mouseX + margin.left, maxX);
+                const limitedY = Math.max(mouseY + margin.top - tooltipHeight - 10, margin.top);
+            
+                // Hacer visible el tooltip con los valores
                 tooltip.transition()
                        .duration(200)
-                       .style('opacity', 1); // Hacer visible el tooltip
+                       .style('opacity', 1);
             
                 tooltip.html(`<strong>Ciudad:</strong> ${selectedCity}<br>
-                              <strong>Contaminante:</strong> ${contaminant}<br>
+                              <strong>Contaminante:</strong> ${currentContaminant}<br>
                               <strong>Fecha:</strong> ${d3.timeFormat("%Y-%m-%d")(d.date)}<br>
                               <strong>Concentración:</strong> ${d.value}<br>
                               <strong>AQI:</strong> ${d.aqi}`)
-                       .style('left', (mouseX + margin.left) + 'px') // Centrado en la posición del mouse
-                       .style('top', (mouseY + margin.top - tooltip.node().offsetHeight - 10) + 'px') // Encima del punto
+                       .style('left', `${limitedX}px`)  // Centrado en la posición ajustada del mouse
+                       .style('top', `${limitedY}px`)  // Encima del punto, ajustado con límites
                        .style('color', 'black'); // Color de texto en negro
             })
+            .on('mouseout', function() {
+                // Seleccionar el punto
+                const point = d3.select(this);
             
+                // Regresar al tamaño y estilo original
+                point.transition()
+                     .duration(200)
+                     .attr('r', 5)  // Regresar al tamaño original
+                     .style('stroke', 'none')  // Eliminar el borde
+                     .style('stroke-width', 0); // Eliminar el grosor del borde
             
-              .on('mouseout', function() {
-                  tooltip.transition()
-                         .duration(200)
-                         .style('opacity', 0); // Hacer invisible el tooltip
-              })
+                // Hacer invisible el tooltip
+                tooltip.transition()
+                       .duration(200)
+                       .style('opacity', 0);
+            })            
+                      
+            .on('click', function(event, d) {
+                // Eliminar la ventana flotante previa, si existe
+                let floatingWindow = d3.select('#floating-window');
+                if (!floatingWindow.empty()) {
+                    floatingWindow.remove();
+                }
+            
+                // Obtener las coordenadas del mouse
+                const [mouseX, mouseY] = d3.pointer(event, svg.node());
+            
+                // Limitar la posición de la ventana emergente dentro de los límites de la gráfica
+                const windowWidth = 400;
+                const windowHeight = 240;
+            
+                const maxX = width + margin.left - windowWidth;
+                const maxY = height + margin.top - windowHeight;
+            
+                const padding = 10;
+                const limitedX = Math.min(mouseX + margin.left + padding, maxX);
+                const limitedY = Math.min(mouseY + margin.top + padding, maxY);
+            
+                // Crear nueva ventana flotante
+                floatingWindow = container.append('div')
+                    .attr('id', 'floating-window')
+                    .style('position', 'absolute')
+                    .style('left', `${limitedX}px`)
+                    .style('top', `${limitedY}px`)
+                    .style('background-color', '#fff')
+                    .style('border', '1px solid #ccc')
+                    .style('padding', '10px')
+                    .style('border-radius', '4px')
+                    .style('box-shadow', '0px 4px 8px rgba(0, 0, 0, 0.1)')
+                    .style('z-index', 1000);
+            
+                // Botón para cerrar la ventana
+                floatingWindow.append('button')
+                    .text('X')
+                    .attr('class', 'close-button')
+                    .style('position', 'absolute')
+                    .style('top', '5px')
+                    .style('right', '5px')
+                    .style('border', 'none')
+                    .style('background', 'transparent')
+                    .style('font-size', '14px')
+                    .style('cursor', 'pointer')
+                    .on('click', () => floatingWindow.remove());
+            
+                const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
+                const selectedDate = d3.timeFormat("%Y-%m-%d")(d.date);  // Formatear la fecha
+            
+                // Título de la ventana emergente
+                floatingWindow.append('div')
+                    .style('text-align', 'center')
+                    .style('font-size', '14px')
+                    .style('font-weight', 'bold')
+                    .style('margin-bottom', '10px')
+                    .text(`Serie temporal por hora de ${currentContaminant}`);
+            
+                // Colores asignados a cada contaminante y factor meteorológico
+                const attributeColors = {
+                    'PM2_5': '#FF5733',
+                    'PM10': '#FF8D1A',
+                    'SO2': '#C70039',
+                    'NO2': '#900C3F',
+                    'CO': '#581845',
+                    'O3': '#1D84B5',
+                    'TEMP': '#76D7C4',
+                    'PRES': '#F39C12',
+                    'DEWP': '#8E44AD',
+                    'RAIN': '#3498DB'
+                };
+            
+                // Agregar los checkboxes para los contaminantes y meteorológicos
+                const checkboxContainer = floatingWindow.append('div')
+                    .style('display', 'flex')
+                    .style('flex-direction', 'column');
+            
+                const contaminants = ['PM2_5', 'PM10', 'SO2', 'NO2', 'CO', 'O3'];
+                const meteorologicalFactors = ['TEMP', 'PRES', 'DEWP', 'RAIN'];
+            
+                // Agregar los checks para los contaminantes
+                const contaminantChecks = checkboxContainer.append('div')
+                    .style('display', 'flex')
+                    .style('font-size', '12px');
+            
+                contaminants.forEach(contaminant => {
+                    const isChecked = contaminant === currentContaminant;
+                    contaminantChecks.append('label')
+                        .style('margin-right', '10px')
+                        .style('color', attributeColors[contaminant]) // Establecer el color del texto
+                        .text(contaminant)
+                        .append('input')
+                        .attr('type', 'checkbox')
+                        .attr('value', contaminant)
+                        .property('checked', isChecked)  // Preseleccionar el contaminante actual
+                        .on('change', updateChart);
+                });
+            
+                // Agregar los checks para los factores meteorológicos
+                const meteorologicalChecks = checkboxContainer.append('div')
+                    .style('display', 'flex')
+                    .style('font-size', '12px');
+            
+                meteorologicalFactors.forEach(factor => {
+                    const isCheckedmet = factor === currentContaminant;
+            
+                    meteorologicalChecks.append('label')
+                        .style('margin-right', '10px')
+                        .style('color', attributeColors[factor]) // Establecer el color del texto
+                        .text(factor)
+                        .append('input')
+                        .attr('type', 'checkbox')
+                        .attr('value', factor)
+                        .property('checked', isCheckedmet)  // Puedes preseleccionar según sea necesario
+                        .on('change', updateChart);
+                });
+            
+                function updateChart() {
+                    // Obtener los contaminantes y factores seleccionados
+                    const selectedContaminants = Array.from(floatingWindow.selectAll('input[type="checkbox"]:checked'))
+                        .map(input => input.value);
+            
+                    // Cargar los datos horarios del día y contaminante seleccionado
+                    d3.csv(`data/${selectedCity}`).then(hourlyData => {
+                        const selectedDayData = hourlyData
+                            .filter(row => {
+                                const rowDate = new Date(`${row.year}-${row.month}-${row.day}`);
+                                return rowDate.getTime() === d.date.getTime();
+                            })
+                            .map(row => {
+                                const data = {};
+                                selectedContaminants.forEach(contaminant => {
+                                    data[contaminant] = +row[contaminant.replace('.', '_')] || NaN;
+                                });
+                                data.hour = +row.hour;
+                                return data;
+                            });
+            
+                        // Completar horas faltantes con la media
+                        selectedContaminants.forEach(contaminant => {
+                            let consecutiveNaNs = 0;
+                            for (let i = 0; i < selectedDayData.length; i++) {
+                                if (isNaN(selectedDayData[i][contaminant])) {
+                                    consecutiveNaNs++;
+                                    if (consecutiveNaNs <= 3) {
+                                        // Si hay entre 1 y 3 horas consecutivas faltantes, completar con la media
+                                        const prevValue = selectedDayData[i - 1]?.[contaminant];
+                                        const nextValue = selectedDayData[i + 1]?.[contaminant];
+                                        if (!isNaN(prevValue) && !isNaN(nextValue)) {
+                                            selectedDayData[i][contaminant] = (prevValue + nextValue) / 2;
+                                        }
+                                    }
+                                } else {
+                                    consecutiveNaNs = 0;  // Reiniciar el contador si el valor no es NaN
+                                }
+                            }
+                        });
+            
+                        // Elimina el SVG anterior, si existe, para actualizar con nuevos datos
+                        floatingWindow.select('svg').remove();
+            
+                        // Crear o actualizar el SVG para la serie temporal horaria
+                        const miniMargin = { top: 20, right: 20, bottom: 40, left: 50 };
+                        const miniWidth = 400 - miniMargin.left - miniMargin.right;
+                        const miniHeight = 200 - miniMargin.top - miniMargin.bottom;
+            
+                        const miniSvg = floatingWindow.append('svg')
+                            .attr('width', miniWidth + miniMargin.left + miniMargin.right)
+                            .attr('height', miniHeight + miniMargin.top + miniMargin.bottom)
+                            .append('g')
+                            .attr('transform', `translate(${miniMargin.left}, ${miniMargin.top})`);
+            
+                        // Escalas y ejes con soporte para valores negativos
+                        const yMax = d3.max(selectedDayData, d => Math.max(...Object.values(d).filter(val => !isNaN(val))));
+                        const yMin = d3.min(selectedDayData, d => Math.min(...Object.values(d).filter(val => !isNaN(val))));
+                        const yMiniScale = d3.scaleLinear()
+                            .domain([yMin, yMax])
+                            .range([miniHeight, 0]);
+            
+                        const xMiniScale = d3.scaleLinear()
+                            .domain([0, 23])
+                            .range([0, miniWidth]);
+            
+                        const xMiniAxis = d3.axisBottom(xMiniScale).ticks(8).tickValues(d3.range(0, 24, 3)).tickFormat(d => `${d}:00`);
+                        const yMiniAxis = d3.axisLeft(yMiniScale);
+            
+                        miniSvg.append('g')
+                            .attr('transform', `translate(0, ${miniHeight})`)
+                            .call(xMiniAxis)
+                            .selectAll('text')
+                            .style('text-anchor', 'end')
+                            .attr('dx', '-0.5em')
+                            .attr('dy', '-0.2em')
+                            .attr('transform', 'rotate(-45)');
+            
+                        miniSvg.append('g').call(yMiniAxis);
+            
+                        // Dibuja guías para todas las horas
+                        for (let hour = 0; hour < 24; hour++) {
+                            miniSvg.append('line')
+                                .attr('x1', xMiniScale(hour))
+                                .attr('x2', xMiniScale(hour))
+                                .attr('y1', 0)
+                                .attr('y2', miniHeight)
+                                .style('stroke', '#ccc')
+                                .style('stroke-dasharray', '2,2');
+                        }
+            
+                        // Línea de la serie temporal para cada contaminante seleccionado
+                        selectedContaminants.forEach(contaminant => {
+                            const line = d3.line()
+                                .defined(d => !isNaN(d[contaminant]))
+                                .x(d => xMiniScale(d.hour))
+                                .y(d => yMiniScale(d[contaminant]));
+            
+                            miniSvg.append('path')
+                                .datum(selectedDayData)
+                                .attr('fill', 'none')
+                                .attr('stroke', attributeColors[contaminant])
+                                .attr('stroke-width', 1.5)
+                                .attr('d', line);
+                        });
+                    });
+                }
+            
+                // Llamar a la función inicial para cargar la serie temporal por defecto
+                updateChart();
+            })                      
+                          
+            .transition()
+            .duration(750)
+            .attr('cy', d => yScale(d.value));
 
+            points.transition()
+                .duration(750)
+                .attr('cx', d => xScale(d.date))
+                .attr('cy', d => yScale(d.value))
+                .attr('fill', d => d.color);
 
-              
-            //   .on('click', function(event, d) {
-            //     // Eliminar la ventana flotante previa, si existe
-            //     let floatingWindow = d3.select('#floating-window');
-            //     if (!floatingWindow.empty()) {
-            //         floatingWindow.remove();
-            //     }
-            
-            //     // Crear nueva ventana flotante debajo del punto de clic
-            //     const [mouseX, mouseY] = d3.pointer(event, svg.node());
-            
-            //     floatingWindow = container.append('div')
-            //         .attr('id', 'floating-window')
-            //         .style('position', 'absolute')
-            //         .style('left', `${mouseX + margin.left}px`)
-            //         .style('top', `${mouseY + margin.top + 10}px`)
-            //         .style('background-color', '#fff')
-            //         .style('border', '1px solid #ccc')
-            //         .style('padding', '10px')
-            //         .style('border-radius', '4px')
-            //         .style('box-shadow', '0px 4px 8px rgba(0, 0, 0, 0.1)')
-            //         .style('z-index', 1000);
-            
-            //     // Botón para cerrar la ventana
-            //     floatingWindow.append('button')
-            //         .text('X')
-            //         .attr('class', 'close-button')
-            //         .style('position', 'absolute')
-            //         .style('top', '5px')
-            //         .style('right', '5px')
-            //         .style('border', 'none')
-            //         .style('background', 'transparent')
-            //         .style('font-size', '14px')
-            //         .style('cursor', 'pointer')
-            //         .on('click', () => floatingWindow.remove());
-            
-            //     // Cargar los datos horarios del día y contaminante seleccionado
-            //     d3.csv(`data/${selectedCity}`).then(hourlyData => {
-            //         const selectedDate = d3.timeFormat("%Y-%m-%d")(d.date);  // Formatear la fecha
-            //         const selectedDayData = hourlyData
-            //             .filter(row => {
-            //                 const rowDate = new Date(`${row.year}-${row.month}-${row.day}`);
-            //                 return rowDate.getTime() === d.date.getTime();
-            //             })
-            //             .map(row => ({
-            //                 hour: +row.hour,
-            //                 value: +row[contaminant.replace('.', '_')]  // Usar el contaminante seleccionado
-            //             }))
-            //             .filter(row => !isNaN(row.value));  // Filtrar valores inválidos
-            
-            //         // Crear o actualizar el SVG para la serie temporal horaria
-            //         const miniMargin = { top: 20, right: 20, bottom: 40, left: 50 };
-            //         const miniWidth = 400 - miniMargin.left - miniMargin.right;
-            //         const miniHeight = 200 - miniMargin.top - miniMargin.bottom;
-            
-            //         // Elimina el SVG anterior, si existe, para actualizar con nuevos datos
-            //         floatingWindow.select('svg').remove();
-            
-            //         const miniSvg = floatingWindow.append('svg')
-            //             .attr('width', miniWidth + miniMargin.left + miniMargin.right)
-            //             .attr('height', miniHeight + miniMargin.top + miniMargin.bottom)
-            //             .append('g')
-            //             .attr('transform', `translate(${miniMargin.left}, ${miniMargin.top})`);
-            
-            //         // Escalas y ejes
-            //         const xMiniScale = d3.scaleLinear()
-            //             .domain([0, 23])  // Rango de horas en el día
-            //             .range([0, miniWidth]);
-            //         const yMiniScale = d3.scaleLinear()
-            //             .domain([0, d3.max(selectedDayData, d => d.value)])  // Escala basada en los valores de contaminante
-            //             .range([miniHeight, 0]);
-            
-            //         const xMiniAxis = d3.axisBottom(xMiniScale).ticks(24).tickFormat(d => `${d}:00`);
-            //         const yMiniAxis = d3.axisLeft(yMiniScale);
-            
-            //         miniSvg.append('g')
-            //             .attr('transform', `translate(0, ${miniHeight})`)
-            //             .call(xMiniAxis)
-            //             .selectAll('text')
-            //             .style('text-anchor', 'end')
-            //             .attr('dx', '-0.5em')
-            //             .attr('dy', '-0.2em')
-            //             .attr('transform', 'rotate(-45)');
-            
-            //         miniSvg.append('g').call(yMiniAxis);
-            
-            //         // Etiquetas de ejes
-            //         miniSvg.append('text')
-            //             .attr('x', miniWidth / 2)
-            //             .attr('y', miniHeight + miniMargin.bottom - 5)
-            //             .attr('text-anchor', 'middle')
-            //             .style('font-size', '12px')
-            //             .text('Hora del día');
-            
-            //         miniSvg.append('text')
-            //             .attr('x', -miniHeight / 2)
-            //             .attr('y', -miniMargin.left + 10)
-            //             .attr('transform', 'rotate(-90)')
-            //             .attr('text-anchor', 'middle')
-            //             .style('font-size', '12px')
-            //             .text(`Concentración de ${contaminant}`);
-            
-            //         // Línea de la serie temporal horaria
-            //         const line = d3.line()
-            //             .x(d => xMiniScale(d.hour))
-            //             .y(d => yMiniScale(d.value));
-            
-            //         miniSvg.append('path')
-            //             .datum(selectedDayData)
-            //             .attr('fill', 'none')
-            //             .attr('stroke', '#007acc')
-            //             .attr('stroke-width', 1.5)
-            //             .attr('d', line);
-            //     });
-            // })
-            // // .on('click', function(event, d) {
-            // //     // Cargar los datos horarios del día seleccionado
-            // //     d3.csv(data/${selectedCity}).then(hourlyData => {
-            // //         const selectedDate = d3.timeFormat("%Y-%m-%d")(d.date);  // Formatear la fecha
-            // //         const selectedDayData = hourlyData
-            // //             .filter(row => new Date(${row.year}-${row.month}-${row.day}).getTime() === d.date.getTime())
-            // //             .map(row => ({
-            // //                 date: selectedDate, // Añadir la fecha en cada registro
-            // //                 hour: row.hour,
-            // //                 ...Object.fromEntries(Object.keys(row).map(key => [key.replace('.', '_'), row[key]]))
-            // //             }));
-            
-            // //         // Mostrar la fecha en la consola
-            // //         console.log(Datos horarios para el día: ${selectedDate});
-            // //         console.table(selectedDayData, ['date', 'hour', 'city', 'contaminant', contaminant.replace('.', '_')]);
-            // //     });
-            // // })
-            
-            
-              .transition()
-              .duration(750)
-              .attr('cy', d => yScale(d.value));
-
-        points.transition()
-              .duration(750)
-              .attr('cx', d => xScale(d.date))
-              .attr('cy', d => yScale(d.value))
-              .attr('fill', d => d.color);
-
-        points.exit()
-              .transition()
-              .duration(750)
-              .attr('cy', yScale(0))
-              .remove();
+            points.exit()
+                .transition()
+                .duration(750)
+                .attr('cy', yScale(0))
+                .remove();
     });
 }
