@@ -72,7 +72,8 @@ function initMap() {
                 // Agregar un evento de clic al marcador
                 marker.addListener("click", () => {
                     updateInfoWindowContent(infoWindow, station, map, marker);
-                    selectCityCheckbox(station.stationId);
+                    // selectCityCheckbox(station.stationId);
+
                 });
 
                 // Asignar la estación al objeto de estaciones por ciudad
@@ -88,7 +89,28 @@ function initMap() {
             console.error("Error al cargar el archivo CSV:", error);
         });
 
+    // Agregar evento de cambio para los radio buttons de selección de ciudad
+    const cityCheckboxes = document.querySelectorAll('input[name="city"]');
+    cityCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            if (lastInfoWindow) {
+                lastInfoWindow.close();
+            }
 
+            const selectedCity = checkbox.value;
+            const stations = map.stationsByCity[selectedCity];
+
+            if (stations) {
+                const { marker, infoWindow } = stations[0];
+                updateInfoWindowContent(infoWindow, stations[0], map, marker);
+            }
+
+            const lat = parseFloat(checkbox.getAttribute('data-lat'));
+            const lng = parseFloat(checkbox.getAttribute('data-lng'));
+            map.setCenter({ lat, lng });
+            map.setZoom(12);
+        });
+    });
 }
 
 // Función para actualizar el contenido del InfoWindow
@@ -113,17 +135,6 @@ function updateInfoWindowContent(infoWindow, station, map, marker) {
 
     infoWindow.setContent(content);
     openInfoWindow(map, marker, infoWindow);
-}
-// Función para seleccionar el checkbox de la ciudad correspondiente
-function selectCityCheckbox(city) {
-    const newCity = `Data_${city.charAt(0).toUpperCase() + city.slice(1)}.csv`;
-    console.log(newCity);
-    const checkbox = document.querySelector(`input[name="city"][value="${newCity}"]`);
-    if (checkbox) {
-        checkbox.checked = true;
-        checkbox.dispatchEvent(new Event('change'));
-
-    }
 }
 
 // Función para calcular los promedios de AQI, WSPM y WD en un rango de fechas
@@ -183,7 +194,17 @@ function openInfoWindow(map, marker, infoWindow) {
     map.setZoom(12);
     map.setCenter(marker.getPosition());
 }
+// Función para seleccionar el checkbox de la ciudad correspondiente
+function selectCityCheckbox(city) {
+    const newCity = `Data_${city.charAt(0).toUpperCase() + city.slice(1)}.csv`;
+    console.log(newCity);
+    const checkbox = document.querySelector(`input[name="city"][value="${newCity}"]`);
+    if (checkbox) {
+        checkbox.checked = true;
+        checkbox.dispatchEvent(new Event('change'));
 
+    }
+}
 // Función para parsear CSV a objetos organizados por estación
 function parseCSV(data) {
     const lines = data.split('\n');
@@ -781,7 +802,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
         { color: '#FF7E00', label: 'Insalubre' },
         { color: '#FF0000', label: 'Muy Insalubre' },
         { color: '#99004c', label: 'Malo' },
-        { color: '#7e0023', label: 'Severo' }
+        { color: '#800000', label: 'Severo' }
     ];
 
     // Verificar si la leyenda ya existe para evitar duplicados
