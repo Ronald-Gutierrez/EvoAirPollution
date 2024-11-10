@@ -743,7 +743,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
 
     const margin = { top: 20, right: 30, bottom: 60, left: 60 };
     const width = 1020 - margin.left - margin.right;
-    const height = 380 - margin.top - margin.bottom;
+    const height = 350 - margin.top - margin.bottom;
 
     let svg = container.select("svg g");
     if (svg.empty()) {
@@ -774,6 +774,40 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
         'NO2': 80,
         'O3': 200
     };
+     // Agregar la leyenda solo si no existe ya
+     const legendData = [
+        { color: '#00E400', label: 'Bueno' },
+        { color: '#FFFF00', label: 'Moderado' },
+        { color: '#FF7E00', label: 'Insalubre' },
+        { color: '#FF0000', label: 'Muy Insalubre' },
+        { color: '#99004c', label: 'Malo' },
+        { color: '#7e0023', label: 'Severo' }
+    ];
+
+    // Verificar si la leyenda ya existe para evitar duplicados
+    if (container.select('.legend-pca').empty()) {
+        // Crear la leyenda solo si no existe
+        const legend = container.insert('div', ':first-child')  // Insertar antes del primer hijo
+            .attr('class', 'legend-pca')
+            .style('display', 'flex')
+            .style('justify-content', 'center')
+            .style('align-items', 'center')  // Asegura que el texto y el color se alineen bien
+            .style('margin-bottom', '10px')  // Aumentar el margen para dar más espacio
+            .style('font-family', 'Arial, sans-serif')  // Establecer una fuente limpia
+            .style('font-weight', 'bold');  // Hacer el texto en negrita
+
+        legendData.forEach(item => {
+            legend.append('div')
+                .attr('class', 'legend-item-pca')
+                .style('background-color', item.color)
+                .style('padding', '6px 12px')  // Reducir el padding para hacer los items más compactos
+                .style('margin', '0 2px')  // Aumentar el margen entre los elementos
+                .style('border-radius', '10px')  // Bordes redondeados para un diseño más suave
+                .style('color', 'black')  // Asegurar que el texto sea blanco para que resalte sobre el color de fondo
+                .style('text-align', 'center')  // Centrar el texto
+                .text(item.label);
+        });
+    }
 
     // Definir los límites y colores del AQI
     const pollutantLimits = {
@@ -888,8 +922,13 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                update => update.transition().duration(750).call(yAxis)
            );
 
+
         svg.select('.y-label')
-           .text(`Nivel diario de ${contaminant}`);
+        .text(`Nivel diario de ${contaminant}`)
+        .style('font-size', '20px')
+        .style('font-weight', 'bold')
+        .attr('y', -margin.left + 20); // Ajusta el valor aquí para mover la etiqueta más abajo
+
 
         const points = svg.selectAll('.point')
                           .data(averagedData, d => d.date);
