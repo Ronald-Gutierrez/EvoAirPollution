@@ -863,6 +863,16 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                 // Obtener las coordenadas del punto donde se activa el tooltip
                 const [mouseX, mouseY] = d3.pointer(event, svg.node());
                 const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
+                
+                // Seleccionar el punto que fue hoverado
+                const point = d3.select(this);
+                
+                // Cambiar el tamaño y borde del punto cuando el mouse está encima
+                point.transition()
+                     .duration(200)
+                     .attr('r', 10)  // Hacerlo más grande
+                     .style('stroke', 'cyan')  // Bordearlo con color celeste fluorescente
+                     .style('stroke-width', 3);  // Grosor del borde
             
                 // Calcular las dimensiones del tooltip
                 const tooltipWidth = tooltip.node().offsetWidth;
@@ -891,10 +901,21 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                        .style('color', 'black'); // Color de texto en negro
             })
             .on('mouseout', function() {
+                // Seleccionar el punto
+                const point = d3.select(this);
+            
+                // Regresar al tamaño y estilo original
+                point.transition()
+                     .duration(200)
+                     .attr('r', 5)  // Regresar al tamaño original
+                     .style('stroke', 'none')  // Eliminar el borde
+                     .style('stroke-width', 0); // Eliminar el grosor del borde
+            
+                // Hacer invisible el tooltip
                 tooltip.transition()
                        .duration(200)
-                       .style('opacity', 0); // Hacer invisible el tooltip
-            })  
+                       .style('opacity', 0);
+            })            
                       
             .on('click', function(event, d) {
                 // Eliminar la ventana flotante previa, si existe
@@ -994,9 +1015,20 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                         .domain([0, 23])  // Rango de horas en el día
                         .range([0, miniWidth]);
             
-                    const xMiniAxis = d3.axisBottom(xMiniScale).ticks(24).tickFormat(d => `${d}:00`);
+                    // Definir el número de ticks que deseas mostrar
+                    const numberOfTicks = 8;
+
+                    // Calcular el intervalo de horas
+                    const tickInterval = Math.floor(24 / numberOfTicks);
+
+                    // Crear el eje X con los ticks distribuidos
+                    const xMiniAxis = d3.axisBottom(xMiniScale)
+                        .ticks(numberOfTicks) // Establecer el número de ticks
+                        .tickValues(d3.range(0, 24, tickInterval)) // Establecer los valores de los ticks
+                        .tickFormat(d => `${d}:00`); // Formato de los ticks
+
                     const yMiniAxis = d3.axisLeft(yMiniScale);
-            
+
                     miniSvg.append('g')
                         .attr('transform', `translate(0, ${miniHeight})`)
                         .call(xMiniAxis)
@@ -1005,9 +1037,20 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                         .attr('dx', '-0.5em')
                         .attr('dy', '-0.2em')
                         .attr('transform', 'rotate(-45)');
-            
+
                     miniSvg.append('g').call(yMiniAxis);
-            
+
+                    // Dibuja guías para todas las horas
+                    for (let hour = 0; hour < 24; hour++) {
+                        miniSvg.append('line')
+                            .attr('x1', xMiniScale(hour))
+                            .attr('x2', xMiniScale(hour))
+                            .attr('y1', 0)
+                            .attr('y2', miniHeight)
+                            .style('stroke', '#ccc') // Color de la guía
+                            .style('stroke-dasharray', '2,2'); // Línea discontinua
+                    }
+
                     // Etiquetas de ejes
                     miniSvg.append('text')
                         .attr('x', miniWidth / 2)
