@@ -1021,6 +1021,8 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                     .style('font-size', '12px');
             
                 meteorologicalFactors.forEach(factor => {
+                    const isCheckedmet = factor === currentContaminant;
+
                     meteorologicalChecks.append('label')
                         .style('margin-right', '10px')
                         .style('color', attributeColors[factor]) // Establecer el color del texto
@@ -1028,7 +1030,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                         .append('input')
                         .attr('type', 'checkbox')
                         .attr('value', factor)
-                        .property('checked', false)  // Puedes preseleccionar según sea necesario
+                        .property('checked', isCheckedmet)  // Puedes preseleccionar según sea necesario
                         .on('change', updateChart);
                 });
             
