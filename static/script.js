@@ -462,6 +462,9 @@ document.getElementById('fecha-fin').addEventListener('change', updateCorrelatio
 function calculateCorrelationMatrix(data, selectedAttributes) {
     const matrix = [];
 
+    // Normalizar datos
+    const normalizedData = normalizeData(data, selectedAttributes);
+
     // Iterar sobre cada par de atributos seleccionados
     for (let i = 0; i < selectedAttributes.length; i++) {
         const row = [];
@@ -469,7 +472,7 @@ function calculateCorrelationMatrix(data, selectedAttributes) {
             if (i === j) {
                 row.push(1); // Correlación perfecta de un atributo consigo mismo
             } else {
-                row.push(calculateCorrelation(data, selectedAttributes[i], selectedAttributes[j]));
+                row.push(calculateCorrelation(normalizedData, selectedAttributes[i], selectedAttributes[j]));
             }
         }
         matrix.push(row);
@@ -478,18 +481,31 @@ function calculateCorrelationMatrix(data, selectedAttributes) {
     return matrix;
 }
 
-// Función para calcular la correlación entre dos atributos
+// Función para normalizar los datos (z-score)
+function normalizeData(data, selectedAttributes) {
+    return data.map(d => {
+        const normalizedEntry = {};
+        selectedAttributes.forEach(attr => {
+            const mean = d3.mean(data, d => +d[attr]);
+            const stdDev = Math.sqrt(d3.mean(data, d => Math.pow(+d[attr] - mean, 2))); // desviación estándar
+            normalizedEntry[attr] = (+d[attr] - mean) / stdDev;
+        });
+        return normalizedEntry;
+    });
+}
+
+// Función para calcular la correlación entre dos atributos en los datos normalizados
 function calculateCorrelation(data, attr1, attr2) {
     const n = data.length;
-    const mean1 = d3.mean(data, d => +d[attr1]);
-    const mean2 = d3.mean(data, d => +d[attr2]);
+    const mean1 = d3.mean(data, d => d[attr1]);
+    const mean2 = d3.mean(data, d => d[attr2]);
     let numerator = 0;
     let denominator1 = 0;
     let denominator2 = 0;
 
     data.forEach(d => {
-        const x = +d[attr1] - mean1;
-        const y = +d[attr2] - mean2;
+        const x = d[attr1] - mean1;
+        const y = d[attr2] - mean2;
         numerator += x * y;
         denominator1 += x * x;
         denominator2 += y * y;
@@ -497,6 +513,7 @@ function calculateCorrelation(data, attr1, attr2) {
 
     return numerator / Math.sqrt(denominator1 * denominator2);
 }
+
 
 function calculateDistanceMatrix(correlationMatrix) {
     const numAttributes = correlationMatrix.length;
@@ -1037,7 +1054,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                     .on('click', () => floatingWindow.remove());
             
                 const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
-                const selectedDate = d3.timeFormat("%Y-%m-%d")(d.date);  // Formatear la fecha
+                const selectedDate = d3.timeFormat("%Y-%m-%d")(d.date);
             
                 // Título de la ventana emergente
                 floatingWindow.append('div')
@@ -1078,12 +1095,12 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                     const isChecked = contaminant === currentContaminant;
                     contaminantChecks.append('label')
                         .style('margin-right', '10px')
-                        .style('color', attributeColors[contaminant]) // Establecer el color del texto
+                        .style('color', attributeColors[contaminant])
                         .text(contaminant)
                         .append('input')
                         .attr('type', 'checkbox')
                         .attr('value', contaminant)
-                        .property('checked', isChecked)  // Preseleccionar el contaminante actual
+                        .property('checked', isChecked)
                         .on('change', updateChart);
                 });
             
@@ -1097,12 +1114,12 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
             
                     meteorologicalChecks.append('label')
                         .style('margin-right', '10px')
-                        .style('color', attributeColors[factor]) // Establecer el color del texto
+                        .style('color', attributeColors[factor])
                         .text(factor)
                         .append('input')
                         .attr('type', 'checkbox')
                         .attr('value', factor)
-                        .property('checked', isCheckedmet)  // Puedes preseleccionar según sea necesario
+                        .property('checked', isCheckedmet)
                         .on('change', updateChart);
                 });
             
@@ -1127,24 +1144,17 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                                 return data;
                             });
             
-                        // Completar horas faltantes con la media
+                        // Normalización de datos para los contaminantes seleccionados
                         selectedContaminants.forEach(contaminant => {
-                            let consecutiveNaNs = 0;
-                            for (let i = 0; i < selectedDayData.length; i++) {
-                                if (isNaN(selectedDayData[i][contaminant])) {
-                                    consecutiveNaNs++;
-                                    if (consecutiveNaNs <= 3) {
-                                        // Si hay entre 1 y 3 horas consecutivas faltantes, completar con la media
-                                        const prevValue = selectedDayData[i - 1]?.[contaminant];
-                                        const nextValue = selectedDayData[i + 1]?.[contaminant];
-                                        if (!isNaN(prevValue) && !isNaN(nextValue)) {
-                                            selectedDayData[i][contaminant] = (prevValue + nextValue) / 2;
-                                        }
-                                    }
-                                } else {
-                                    consecutiveNaNs = 0;  // Reiniciar el contador si el valor no es NaN
+                            const values = selectedDayData.map(d => d[contaminant]).filter(v => !isNaN(v));
+                            const minValue = d3.min(values);
+                            const maxValue = d3.max(values);
+            
+                            selectedDayData.forEach(d => {
+                                if (!isNaN(d[contaminant])) {
+                                    d[contaminant] = (d[contaminant] - minValue) / (maxValue - minValue);
                                 }
-                            }
+                            });
                         });
             
                         // Elimina el SVG anterior, si existe, para actualizar con nuevos datos
@@ -1161,18 +1171,16 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                             .append('g')
                             .attr('transform', `translate(${miniMargin.left}, ${miniMargin.top})`);
             
-                        // Escalas y ejes con soporte para valores negativos
-                        const yMax = d3.max(selectedDayData, d => Math.max(...Object.values(d).filter(val => !isNaN(val))));
-                        const yMin = d3.min(selectedDayData, d => Math.min(...Object.values(d).filter(val => !isNaN(val))));
-                        const yMiniScale = d3.scaleLinear()
-                            .domain([yMin, yMax])
-                            .range([miniHeight, 0]);
-            
+                        // Escalas y ejes
                         const xMiniScale = d3.scaleLinear()
                             .domain([0, 23])
                             .range([0, miniWidth]);
             
                         const xMiniAxis = d3.axisBottom(xMiniScale).ticks(8).tickValues(d3.range(0, 24, 3)).tickFormat(d => `${d}:00`);
+                        const yMiniScale = d3.scaleLinear()
+                            .domain([0, 1])  // Rango normalizado entre 0 y 1
+                            .range([miniHeight, 0]);
+            
                         const yMiniAxis = d3.axisLeft(yMiniScale);
             
                         miniSvg.append('g')
@@ -1185,17 +1193,6 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                             .attr('transform', 'rotate(-45)');
             
                         miniSvg.append('g').call(yMiniAxis);
-            
-                        // Dibuja guías para todas las horas
-                        for (let hour = 0; hour < 24; hour++) {
-                            miniSvg.append('line')
-                                .attr('x1', xMiniScale(hour))
-                                .attr('x2', xMiniScale(hour))
-                                .attr('y1', 0)
-                                .attr('y2', miniHeight)
-                                .style('stroke', '#ccc')
-                                .style('stroke-dasharray', '2,2');
-                        }
             
                         // Línea de la serie temporal para cada contaminante seleccionado
                         selectedContaminants.forEach(contaminant => {
@@ -1216,7 +1213,8 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
             
                 // Llamar a la función inicial para cargar la serie temporal por defecto
                 updateChart();
-            })            
+            })
+            
             .transition()
             .duration(750)
             .attr('cy', d => yScale(d.value));
