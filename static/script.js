@@ -774,6 +774,7 @@ function isMeteorologicalAttribute(attribute) {
     const meteorologicalAttributes = ['TEMP', 'PRES', 'DEWP', 'RAIN']; // Asegúrate de que estos sean los atributos correctos
     return meteorologicalAttributes.includes(attribute);
 }
+
 function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
     currentContaminant = contaminant; // Asignar el contaminante actual
 
@@ -1287,3 +1288,222 @@ document.getElementById('fecha-fin').addEventListener('change', () => {
         updateTimeSeriesChart(selectedCity, currentContaminant, startDate, endDate);
     }
 });
+
+
+
+
+//////////// GRAFICA DE REDUCCION DE DIMENSIONALIDADES ////////////
+
+// Escuchar cambios en los radio buttons de ciudades
+document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', updateUMAP);
+});
+
+// Escuchar cambios en el rango de fechas
+document.getElementById('fecha-inicio').addEventListener('change', updateUMAP);
+document.getElementById('fecha-fin').addEventListener('change', updateUMAP);
+
+// Manejar el checkbox de "Visualizar todo"
+document.getElementById('visualizar-todo').addEventListener('change', function () {
+    const isChecked = this.checked;
+    document.getElementById('fecha-inicio').disabled = isChecked;
+    document.getElementById('fecha-fin').disabled = isChecked;
+    updateUMAP();
+    document.getElementById('fecha-rango').innerText = isChecked ? "Visualizando todos los datos." : "";
+});
+
+async function fetchData(selectedCity) {
+    const response = await fetch(`UMAP_AQI/${selectedCity}`);
+    const data = await response.text();
+    return d3.csvParse(data, d => ({
+        year: +d.year,
+        month: +d.month,
+        day: +d.day,
+        UMAP1: +d.UMAP1,
+        UMAP2: +d.UMAP2,
+        AQI: +d.AQI,
+        city: selectedCity
+    }));
+}
+
+function filterData(data, startDate, endDate) {
+    if (!startDate || !endDate) return data;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return data.filter(d => {
+        const date = new Date(d.year, d.month - 1, d.day);
+        return date >= start && date <= end;
+    });
+}
+
+async function updateUMAP() {
+    // Obtener la ciudad seleccionada
+    const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked')?.value;
+    if (!selectedCity) {
+        alert("Por favor, selecciona una ciudad.");
+        return;
+    }
+
+    // Obtener las fechas seleccionadas
+    const visualizarTodo = document.getElementById('visualizar-todo').checked;
+    const fechaInicio = !visualizarTodo ? document.getElementById('fecha-inicio').value : null;
+    const fechaFin = !visualizarTodo ? document.getElementById('fecha-fin').value : null;
+
+    // Obtener y filtrar los datos
+    const data = await fetchData(selectedCity);
+    const filteredData = filterData(data, fechaInicio, fechaFin);
+
+    // Crear el gráfico
+    plotUMAP(filteredData);
+}
+
+
+function plotUMAP(data) {
+    // Limpiar el gráfico anterior
+    d3.select("#umap-reduccion").selectAll("*").remove();
+
+    // Dimensiones del contenedor
+    const container = d3.select("#umap-reduccion");
+    const width = container.node().clientWidth;
+    const height = container.node().clientHeight;
+
+    // Crear SVG
+    const svg = container.append("svg")
+        .attr("width", "100%")
+        .attr("height", "100%")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .on("contextmenu", (event) => event.preventDefault()); // Desactivar menú contextual del navegador
+
+    // Grupo para aplicar zoom
+    const g = svg.append("g");
+
+    // Escalas
+    const xScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.UMAP1))
+        .range([0, width]);
+
+    const yScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.UMAP2))
+        .range([height, 0]);
+
+    // Colores según el nivel de AQI
+    const colorScale = d3.scaleOrdinal()
+        .domain([1, 2, 3, 4, 5, 6])
+        .range(['#00E400', '#FFFF00', '#FF7E00', '#FF0000', '#99004c', '#800000']);
+
+    // Tooltip
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("position", "absolute")
+        .style("visibility", "hidden")
+        .style("background", "rgba(0, 0, 0, 0.7)")
+        .style("color", "#fff")
+        .style("padding", "5px 10px")
+        .style("border-radius", "5px")
+        .style("font-size", "12px");
+
+    // Dibujar puntos
+        g.selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", d => xScale(d.UMAP1))
+        .attr("cy", d => yScale(d.UMAP2))
+        .attr("r", 6)
+        .attr("fill", d => colorScale(d.AQI))
+        .attr("opacity", 1)
+        .attr("stroke", "none")  // Sin borde inicialmente
+        .on("mouseover", (event, d) => {
+            tooltip.style("visibility", "visible")
+                .html(`
+                    <strong>Ciudad:</strong> ${d.city}<br>
+                    <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
+                    <strong>AQI:</strong> ${d.AQI}
+                `);
+            
+            // Cambiar el tamaño y agregar borde azul cuando el mouse esté sobre el punto
+            d3.select(event.target)
+                .transition()  // Usamos una transición para un efecto suave
+                .duration(200)  // Duración de la animación
+                .attr("r", 10)  // Aumentar el radio del círculo
+                .attr("stroke", "blue")  // Establecer borde azul
+                .attr("stroke-width", 3);  // Definir el grosor del borde
+        })
+        .on("mousemove", (event) => {
+            tooltip.style("top", (event.pageY - 10) + "px")
+                .style("left", (event.pageX + 10) + "px");
+        })
+        .on("mouseout", (event) => {
+            tooltip.style("visibility", "hidden");
+            
+            // Restaurar el tamaño original y quitar el borde azul
+            d3.select(event.target)
+                .transition()  // Transición para suavizar el regreso
+                .duration(200)  // Duración de la animación
+                .attr("r", 5)  // Restaurar el radio original
+                .attr("stroke", "none")  // Quitar el borde
+                .attr("stroke-width", 0);  // Restablecer el grosor del borde
+        });
+
+    // Zoom
+    const zoom = d3.zoom()
+        .scaleExtent([0.5, 10])
+        .on("zoom", (event) => {
+            g.attr("transform", event.transform);
+        });
+
+    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 9.5).scale(0.8);
+    svg.call(zoom).call(zoom.transform, initialTransform);
+
+    // Selección circular
+    let selectionCircle;
+    let selectionData = [];
+
+    svg.on("mousedown", (event) => {
+        if (event.button !== 2) return; // Solo activar con anticlick (botón derecho del mouse)
+
+        const [startX, startY] = d3.pointer(event, g.node()); // Obtener posición relativa al grupo `g`
+
+        if (selectionCircle) {
+            selectionCircle.remove();
+        }
+
+        selectionCircle = g.append("circle")
+            .attr("cx", startX)
+            .attr("cy", startY)
+            .attr("r", 0)
+            .attr("fill", "rgba(100, 100, 255, 0.3)")
+            .attr("stroke", "blue")
+            .attr("stroke-width", 2);
+
+        svg.on("mousemove", (event) => {
+            const [currentX, currentY] = d3.pointer(event, g.node()); // Coordenadas actualizadas según el grupo `g`
+            const radius = Math.sqrt(
+                Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2)
+            );
+
+            selectionCircle.attr("r", radius);
+        });
+
+        svg.on("mouseup", () => {
+            svg.on("mousemove", null);
+            svg.on("mouseup", null);
+
+            const circleX = parseFloat(selectionCircle.attr("cx"));
+            const circleY = parseFloat(selectionCircle.attr("cy"));
+            const radius = parseFloat(selectionCircle.attr("r"));
+
+            selectionData = data.filter(d => {
+                const x = xScale(d.UMAP1);
+                const y = yScale(d.UMAP2);
+                return Math.sqrt(Math.pow(x - circleX, 2) + Math.pow(y - circleY, 2)) <= radius;
+            });
+
+            console.clear();
+            console.log("Puntos seleccionados:");
+            selectionData.forEach(d => {
+                console.log(`Ciudad: ${d.city}, Fecha: ${d.day}/${d.month}/${d.year}`);
+            });
+        });
+    });
+}
