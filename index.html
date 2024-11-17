@@ -44,13 +44,13 @@
     <div id="view-radial">
         <!-- <h3>Selecciona los atributos a mostrar:</h3> -->
         <div class="options-chek">
-            <label style="color: #FF5733;"><input type="checkbox" value="PM2_5"> PM2.5</label>
-            <label style="color: #FF8D1A;"><input type="checkbox" value="PM10"> PM10</label>
-            <label style="color: #C70039;"><input type="checkbox" value="SO2"> SO2</label>
-            <label style="color: #900C3F;"><input type="checkbox" value="NO2"> NO2</label>
+            <label style="color: #FF5733;"><input type="checkbox" value="PM2_5" checked> PM2.5</label>
+            <label style="color: #FF8D1A;"><input type="checkbox" value="PM10" checked> PM10</label>
+            <label style="color: #C70039;"><input type="checkbox" value="SO2" checked> SO2</label>
+            <label style="color: #900C3F;"><input type="checkbox" value="NO2" checked> NO2</label>
             <label style="color: #581845;"><input type="checkbox" value="CO"> CO</label>
             <label style="color: #1D84B5;"><input type="checkbox" value="O3"> O3</label>
-            <label style="color: #76D7C4;"><input type="checkbox" value="TEMP"> Temperatura</label>
+            <label style="color: #76D7C4;"><input type="checkbox" value="TEMP" checked> Temperatura</label>
             <label style="color: #F39C12;"><input type="checkbox" value="PRES"> Presion Atm.</label>
             <label style="color: #8E44AD;"><input type="checkbox" value="DEWP"> Humedad</label>
             <label style="color: #3498DB;"><input type="checkbox" value="RAIN"> Precipitacion</label>
@@ -82,23 +82,23 @@
         
     <div id="correlation">
         <div class="options-chek-correlation">
-            <!-- Contaminantes -->
             <div class="contaminants">
-                <label><input type="checkbox" name="values" value="PM2_5"> PM2.5</label>
-                <label><input type="checkbox" name="values" value="PM10"> PM10</label>
-                <label><input type="checkbox" name="values" value="SO2"> SO2</label>
-                <label><input type="checkbox" name="values" value="NO2"> NO2</label>
-                <label><input type="checkbox" name="values" value="CO"> CO</label>
-                <label><input type="checkbox" name="values" value="O3"> O3</label>
+                <label><input type="checkbox" name="values" value="PM2_5" checked> PM2.5</label>
+                <label><input type="checkbox" name="values" value="PM10" checked> PM10</label>
+                <label><input type="checkbox" name="values" value="SO2" checked> SO2</label>
+                <label><input type="checkbox" name="values" value="NO2" checked> NO2</label>
+                <label><input type="checkbox" name="values" value="CO" checked> CO</label>
+                <label><input type="checkbox" name="values" value="O3" checked> O3</label>
             </div>
             
             <!-- Meteorológicos -->
             <div class="meteorological">
-                <label><input type="checkbox" name="values" value="TEMP"> Temperatura</label>
-                <label><input type="checkbox" name="values" value="PRES"> Presión Atm.</label>
-                <label><input type="checkbox" name="values" value="DEWP"> Humedad</label>
-                <label><input type="checkbox" name="values" value="RAIN"> Precipitación</label>
+                <label><input type="checkbox" name="values" value="TEMP" checked> Temperatura</label>
+                <label><input type="checkbox" name="values" value="PRES" checked> Presión Atm.</label>
+                <label><input type="checkbox" name="values" value="DEWP" checked> Humedad</label>
+                <label><input type="checkbox" name="values" value="RAIN" checked> Precipitación</label>
             </div>
+            
         </div>
             <!-- Barra de Correlación -->
         <div id="correlation-bar-container">
@@ -140,6 +140,8 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAu8aVj7GRlhWYHK5_jh_4MYU_gOFdRg3Y&libraries=visualization&callback=initMap" async defer></script>
 
 
 </body>

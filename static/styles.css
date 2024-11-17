@@ -11,13 +11,13 @@ body {
 }
 
 #map {
-    height: 50%;
+    height: 50.1%;
     width: 26%;
     position: absolute; /* Cambia a posición absoluta */
-    top: 2%; /* Ajusta la posición vertical */
-    left: 11%; /* Ajusta la posición horizontal */
+    top: 1%; /* Ajusta la posición vertical */
+    left: 9.9%; /* Ajusta la posición horizontal */
     border: 1px solid #333;
-    border-radius: 8px;
+    border-radius: 3px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
 }
 
@@ -26,13 +26,13 @@ body {
     height: 48%;
     width: 8%;
     position: absolute; /* Cambia a posición absoluta */
-    top: 2%; /* Ajusta la posición vertical */
-    left: 1%; /* Ajusta la posición horizontal */
+    top: 1%; /* Ajusta la posición vertical */
+    left: 0.5%; /* Ajusta la posición horizontal */
     border: 1px solid #333;
     border-radius: 8px;
     background-color: #fff; /* Fondo blanco para la sección de visualización */
     background-color: #fff;
-    border-radius: 10px;
+    border-radius: 3px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     font-size: 0.9em; /* Cambia el tamaño de la fuente a más pequeño */
     padding: 10px;
@@ -53,50 +53,50 @@ h4{
 
 #view-radial {
     height: 47%;
-    width: 30%;
+    width: 32.4%;
     position: absolute; /* Cambia a posición absoluta */
-    top: 2%; /* Ajusta la posición vertical */
-    left: 67.3%; /* Ajusta la posición horizontal */    background-color: #fff; /* Fondo blanco para la sección de visualización */
+    top: 1%; /* Ajusta la posición vertical */
+    left: 65.34%; /* Ajusta la posición horizontal */    background-color: #fff; /* Fondo blanco para la sección de visualización */
     border: 1px solid #333;
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 15px; /* Espaciado interno */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
 }
 
 #correlation {
-    height: 40.5%;
-    width: 18.5%;
+    height: 43.5%;
+    width: 19%;
     position: absolute; /* Cambia a posición absoluta */
-    top: 54%; /* Ajusta la posición vertical */
-    left: 1%; /* Ajusta la posición horizontal */
+    top: 51.9%; /* Ajusta la posición vertical */
+    left: 0.5%; /* Ajusta la posición horizontal */
     background-color: #fff; /* Fondo blanco para la sección de visualización */
     border: 1px solid #333;
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 15px; /* Espaciado interno */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
 }
 #evolution {
-    height: 40.5%;
-    width: 30%;
+    height: 43.5%;
+    width: 30.5%;
     position: absolute; /* Cambia a posición absoluta */
-    top: 54%; /* Ajusta la posición vertical */
+    top: 51.9%; /* Ajusta la posición vertical */
     left: 67.3%; /* Ajusta la posición horizontal */
     background-color: #fff; /* Fondo blanco para la sección de visualización */
     border: 1px solid #333;
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 15px; /* Espaciado interno */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
 }
 
 #serie-temporal {
-    height: 40.5%;
-    width: 43%;
+    height: 43.5%;
+    width: 44%;
     position: absolute; /* Cambia a posición absoluta */
-    top: 54%; /* Ajusta la posición vertical */
-    left: 21.9%; /* Ajusta la posición horizontal */
+    top: 51.9%; /* Ajusta la posición vertical */
+    left: 21.44%; /* Ajusta la posición horizontal */
     background-color: #fff; /* Fondo blanco para la sección de visualización */
     border: 1px solid #333;
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 15px; /* Espaciado interno */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
 }
@@ -140,10 +140,10 @@ label {
     height: 47%;
     width: 27.2%;
     position: absolute; /* Cambia a posición absoluta */
-    top: 2%; /* Ajusta la posición vertical */
-    left: 37.7%; /* Ajusta la posición horizontal */    background-color: #fff; /* Fondo blanco para la sección de visualización */
+    top: 1%; /* Ajusta la posición vertical */
+    left: 36.23%; /* Ajusta la posición horizontal */    background-color: #fff; /* Fondo blanco para la sección de visualización */
     border: 1px solid #333;
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 15px; /* Espaciado interno */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
 }

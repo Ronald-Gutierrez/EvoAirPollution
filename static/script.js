@@ -1513,6 +1513,14 @@ function plotUMAP(data) {
     });
 }
 async function drawThemeRiver(cityFile, dates) {
+    // Agregar la fecha siguiente a la última fecha seleccionada
+    const lastDate = new Date(dates[dates.length - 1]);
+    const nextDate = new Date(lastDate);
+    nextDate.setDate(lastDate.getDate() + 1); // Aumentar un día (puedes ajustar la unidad de tiempo si lo necesitas)
+
+    // Añadir la nueva fecha al arreglo de fechas
+    dates.push(nextDate.toISOString());
+
     // Cargar datos de la ciudad seleccionada
     const response = await fetch(`data/${cityFile}`);
     const csvData = await response.text();
@@ -1594,10 +1602,7 @@ async function drawThemeRiver(cityFile, dates) {
         .range([0, width]);
 
     const y = d3.scaleLinear()
-        .domain([
-            d3.min(series, s => d3.min(s, d => d[0])),
-            d3.max(series, s => d3.max(s, d => d[1]))
-        ])
+        .domain([d3.min(series, s => d3.min(s, d => d[0])), d3.max(series, s => d3.max(s, d => d[1]))])
         .range([height, 0]);
 
     const color = d3.scaleOrdinal()
