@@ -1488,22 +1488,171 @@ function plotUMAP(data) {
         svg.on("mouseup", () => {
             svg.on("mousemove", null);
             svg.on("mouseup", null);
-
+        
             const circleX = parseFloat(selectionCircle.attr("cx"));
             const circleY = parseFloat(selectionCircle.attr("cy"));
             const radius = parseFloat(selectionCircle.attr("r"));
-
+        
             selectionData = data.filter(d => {
                 const x = xScale(d.UMAP1);
                 const y = yScale(d.UMAP2);
                 return Math.sqrt(Math.pow(x - circleX, 2) + Math.pow(y - circleY, 2)) <= radius;
             });
-
+        
             console.clear();
             console.log("Puntos seleccionados:");
+            console.log(`Ciudad: ${selectionData[0].city}`);
             selectionData.forEach(d => {
-                console.log(`Ciudad: ${d.city}, Fecha: ${d.day}/${d.month}/${d.year}`);
+                console.log(`Fecha: ${d.day}/${d.month}/${d.year}`);
             });
+        
+            const cityFile = selectionData[0].city; // Archivo de la ciudad seleccionada
+            const dates = selectionData.map(d => `${d.year}-${d.month}-${d.day}`);
+            drawThemeRiver(cityFile, dates);
         });
+    });
+}
+
+
+///GRAFICA PARA LA EVOLUCION DE LOS
+async function drawThemeRiver(cityFile, dates) {
+    // Cargar datos de la ciudad seleccionada
+    const response = await fetch(`data/${cityFile}`);
+    const csvData = await response.text();
+    const data = d3.csvParse(csvData, d => ({
+        date: new Date(+d.year, +d.month - 1, +d.day),
+        PM2_5: +d.PM2_5,
+        PM10: +d.PM10,
+        SO2: +d.SO2,
+        NO2: +d.NO2,
+        CO: +d.CO,
+        O3: +d.O3,
+        TEMP: +d.TEMP,
+        PRES: +d.PRES,
+        DEWP: +d.DEWP,
+        RAIN: +d.RAIN,
+    }));
+
+    // Convertir fechas seleccionadas en Set para búsquedas rápidas
+    const selectedDates = new Set(dates.map(date => new Date(date).getTime()));
+
+    // Filtrar datos solo con fechas seleccionadas
+    const filteredData = data.filter(d => selectedDates.has(d.date.getTime()));
+    if (filteredData.length === 0) {
+        alert("No se encontraron datos para las fechas seleccionadas.");
+        return;
+    }
+
+    // Normalizar atributos
+    const attributes = ["PM2_5", "PM10", "SO2", "NO2", "CO", "O3", "TEMP", "PRES", "DEWP", "RAIN"];
+    const normalizedData = filteredData.map(d => {
+        const normalized = { date: d.date };
+        attributes.forEach(attr => {
+            const values = filteredData.map(row => row[attr]);
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            normalized[attr] = (d[attr] - min) / (max - min); // Normalización Min-Max
+        });
+        return normalized;
+    });
+
+    // Identificar discontinuidades
+    const discontinuities = [];
+    for (let i = 1; i < filteredData.length; i++) {
+        const current = filteredData[i].date;
+        const previous = filteredData[i - 1].date;
+        if ((current - previous) > 86400000) { // Si la diferencia es mayor a 1 día
+            discontinuities.push(current);
+        }
+    }
+
+    // Crear gráfico Theme River
+    const margin = { top: 20, right: 70, bottom: 30, left: 40 };
+    const width = 550 - margin.left - margin.right;
+    const height = 400 - margin.top - margin.bottom;
+
+    const container = d3.select("#evolution");
+    container.selectAll("*").remove(); // Limpiar contenedor
+
+    const svg = container.append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const stack = d3.stack()
+        .keys(attributes)
+        .value((d, key) => d[key] || 0)
+        .order(d3.stackOrderNone)
+        .offset(d3.stackOffsetWiggle);
+
+    const series = stack(normalizedData);
+
+    const x = d3.scaleTime()
+        .domain(d3.extent(normalizedData, d => d.date))
+        .range([0, width]);
+
+    const y = d3.scaleLinear()
+        .domain([
+            d3.min(series, s => d3.min(s, d => d[0])),
+            d3.max(series, s => d3.max(s, d => d[1]))
+        ])
+        .range([height, 0]);
+
+    const color = d3.scaleOrdinal()
+        .domain(attributes)
+        .range(d3.schemeCategory10);
+
+    // Dibujar el gráfico Theme River
+    svg.append("g")
+        .selectAll("path")
+        .data(series)
+        .join("path")
+        .attr("fill", ({ key }) => color(key))
+        .attr("d", d3.area()
+            .x(d => x(d.data.date))
+            .y0(d => y(d[0]))
+            .y1(d => y(d[1])));
+
+    // Dibujar líneas verticales para discontinuidades
+    svg.append("g")
+        .selectAll("line")
+        .data(discontinuities)
+        .join("line")
+        .attr("x1", d => x(d))
+        .attr("x2", d => x(d))
+        .attr("y1", 0)
+        .attr("y2", height)
+        .attr("stroke", "red")
+        .attr("stroke-width", 2)
+        .attr("stroke-dasharray", "4 4"); // Líneas discontinuas
+
+    // Ejes
+    svg.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x));
+
+    svg.append("g")
+        .call(d3.axisLeft(y));
+
+    // Leyenda
+    const legend = svg.append("g")
+        .attr("transform", `translate(${width + 10},0)`);
+
+    attributes.forEach((attr, i) => {
+        const group = legend.append("g")
+            .attr("transform", `translate(0,${i * 20})`);
+
+        group.append("rect")
+            .attr("width", 10)
+            .attr("height", 10)
+            .attr("fill", color(attr));
+
+        group.append("text")
+            .attr("x", 15)
+            .attr("y", 10)
+            .text(attr)
+            .attr("font-size", 12)
+            .attr("alignment-baseline", "middle");
     });
 }
