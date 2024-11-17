@@ -1512,15 +1512,12 @@ function plotUMAP(data) {
         });
     });
 }
-
-
-///GRAFICA PARA LA EVOLUCION DE LOS
 async function drawThemeRiver(cityFile, dates) {
     // Cargar datos de la ciudad seleccionada
     const response = await fetch(`data/${cityFile}`);
     const csvData = await response.text();
     const data = d3.csvParse(csvData, d => ({
-        date: new Date(+d.year, +d.month - 1, +d.day),
+        date: new Date(+d.year, +d.month - 1, +d.day, +d.hour || 0),
         PM2_5: +d.PM2_5,
         PM10: +d.PM10,
         SO2: +d.SO2,
@@ -1533,25 +1530,29 @@ async function drawThemeRiver(cityFile, dates) {
         RAIN: +d.RAIN,
     }));
 
-    // Convertir fechas seleccionadas en Set para búsquedas rápidas
-    const selectedDates = new Set(dates.map(date => new Date(date).getTime()));
+    // Crear un mapa de fechas para búsquedas rápidas
+    const selectedDatesSet = new Map(dates.map(date => [new Date(date).getTime(), true]));
 
-    // Filtrar datos solo con fechas seleccionadas
-    const filteredData = data.filter(d => selectedDates.has(d.date.getTime()));
+    // Filtrar datos para las fechas seleccionadas
+    const filteredData = data.filter(d => selectedDatesSet.has(d.date.setMinutes(0, 0, 0)));
     if (filteredData.length === 0) {
         alert("No se encontraron datos para las fechas seleccionadas.");
         return;
     }
 
-    // Normalizar atributos
+    // Normalizar atributos (evitando iteraciones redundantes)
     const attributes = ["PM2_5", "PM10", "SO2", "NO2", "CO", "O3", "TEMP", "PRES", "DEWP", "RAIN"];
+    const attributeStats = attributes.reduce((stats, attr) => {
+        const values = filteredData.map(d => d[attr]);
+        stats[attr] = { min: Math.min(...values), max: Math.max(...values) };
+        return stats;
+    }, {});
+
     const normalizedData = filteredData.map(d => {
         const normalized = { date: d.date };
         attributes.forEach(attr => {
-            const values = filteredData.map(row => row[attr]);
-            const min = Math.min(...values);
-            const max = Math.max(...values);
-            normalized[attr] = (d[attr] - min) / (max - min); // Normalización Min-Max
+            const { min, max } = attributeStats[attr];
+            normalized[attr] = max > min ? (d[attr] - min) / (max - min) : 0.5; // Manejo de rango constante
         });
         return normalized;
     });
@@ -1561,15 +1562,15 @@ async function drawThemeRiver(cityFile, dates) {
     for (let i = 1; i < filteredData.length; i++) {
         const current = filteredData[i].date;
         const previous = filteredData[i - 1].date;
-        if ((current - previous) > 86400000) { // Si la diferencia es mayor a 1 día
+        if ((current - previous) > 3600000) { // Si la diferencia es mayor a 1 hora
             discontinuities.push(current);
         }
     }
 
     // Crear gráfico Theme River
     const margin = { top: 20, right: 70, bottom: 30, left: 40 };
-    const width = 550 - margin.left - margin.right;
-    const height = 400 - margin.top - margin.bottom;
+    const width = 580 - margin.left - margin.right;
+    const height = 375 - margin.top - margin.bottom;
 
     const container = d3.select("#evolution");
     container.selectAll("*").remove(); // Limpiar contenedor
