@@ -639,9 +639,9 @@ function createRadialDendrogram(hierarchyData, selectedAttributes, distanceMatri
         return; // Salir de la función si los datos son inválidos
     }
 
-    const width = 400;
-    const height = 400;
-    const clusterRadius = 140;
+    const width = 300;
+    const height = 310;
+    const clusterRadius = 100;
 
     const clusterLayout = d3.cluster().size([2 * Math.PI, clusterRadius]);
 
@@ -780,8 +780,8 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
     const container = d3.select('#serie-temporal');
 
     const margin = { top: 20, right: 30, bottom: 60, left: 60 };
-    const width = 1020 - margin.left - margin.right;
-    const height = 350 - margin.top - margin.bottom;
+    const width = 820 - margin.left - margin.right;
+    const height = 330 - margin.top - margin.bottom;
 
     let svg = container.select("svg g");
     if (svg.empty()) {
