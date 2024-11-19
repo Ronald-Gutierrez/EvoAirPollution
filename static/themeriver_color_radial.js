@@ -112,60 +112,30 @@ function initMap() {
         });
     });
 }
+
+// Función para actualizar el contenido del InfoWindow
 function updateInfoWindowContent(infoWindow, station, map, marker) {
     const fechaInicio = new Date(document.getElementById('fecha-inicio').value);
-    fechaInicio.setDate(fechaInicio.getDate() + 1);
+    fechaInicio.setDate(fechaInicio.getDate() +1);
     const fechaFin = new Date(document.getElementById('fecha-fin').value);
-    fechaFin.setDate(fechaFin.getDate());
+    fechaFin.setDate(fechaFin.getDate() );
     const { averageAQI, averageWSPM, averageWD } = calculateAverages(station, fechaInicio.toISOString().split('T')[0], fechaFin.toISOString().split('T')[0]);
 
-    // Definir los colores según el rango de AQI
-    const aqiColors = ['#00e400', '#ff0', '#ff7e00', '#f00', '#99004c', '#7e0023'];
-
-    // Establecer el color de fondo según el valor de averageAQI
-    const aqiColor = aqiColors[Math.min(Math.floor(averageAQI) - 1, 5)]; // Asegurarse de que no se salga del rango
-
-    // Convertir la dirección del viento en grados a formato de texto
-    const windDirection = averageWD; // Se asume que averageWD es la dirección en grados (0-360)
-    
-    // Crear la flecha rotada con un div
-    const windArrow = `
-    <div style="position: relative; display: inline-block; width: 0; height: 0; transform: rotate(${windDirection}deg); margin: auto;">
-        <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 30px; background-color: #FF5733;"></div>
-        <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 10px solid #FF5733;"></div>
-    </div>`;
-
-    // Formatear las fechas
-    const formatDate = (date) => {
-        const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-        return `${date.getDate()} de ${months[date.getMonth()]} de ${date.getFullYear()}`;
-    };
-
     const content = `
-    <div style="font-family: Arial, sans-serif; font-size: 12px; color: #333; padding: 8px 10px; max-width:180px; margin-top:-10px; max-height: 200px; line-height: 1.4; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
+    <div style="font-family: Arial, sans-serif; font-size: 12px; color: #333; padding: 8px 10px; max-width:180px; margin-top:-10px; max-height: 180px; line-height: 1.4; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
         <strong style="font-size: 14px; color: #1a73e8; display: block; margin-bottom: 5px;">${station.stationId.charAt(0).toUpperCase() + station.stationId.slice(1)}</strong>
-        <p style="margin: 3px 0;">
-            <strong>AQI:</strong> 
-            <span style="background-color: ${aqiColor}; color: #000; padding: 2px 5px; border-radius: 5px;">
-                ${Math.round(averageAQI)}
-            </span>
-        </p>
+        <p style="margin: 3px 0;"><strong>AQI:</strong> ${Math.round(averageAQI)}</p>
         <p style="margin: 3px 0;"><strong>Velocidad del viento:</strong> ${averageWSPM.toFixed(2)} m/s</p>
-        <p style="margin: 3px 0;">
-            <strong>Dirección del viento:</strong> ${averageWD}° 
-            <div style="display: flex; justify-content: center; align-items: center; margin-top: 25px;">
-                ${windArrow}
-            </div>
-        </p>
+        <p style="margin: 3px 0;"><strong>Dirección del viento:</strong> ${averageWD}</p>
         <p style="margin: 3px 0;"><strong>Zona:</strong> ${station.Notes}</p>
-        <p style="margin: 3px 0;"><strong>Fecha Inicio:</strong> ${formatDate(fechaInicio)}</p>
-        <p style="margin: 3px 0;"><strong>Fecha Fin:</strong> ${formatDate(fechaFin)}</p>
+        <p style="margin: 3px 0;"><strong>Fecha Inicio:</strong> ${new Date(fechaInicio).getDate()+1} de ${new Date(fechaInicio).getMonth() + 1 === 1 ? 'Enero' : new Date(fechaInicio).getMonth() + 1 === 2 ? 'Febrero' : new Date(fechaInicio).getMonth() + 1 === 3 ? 'Marzo' : new Date(fechaInicio).getMonth() + 1 === 4 ? 'Abril' : new Date(fechaInicio).getMonth() + 1 === 5 ? 'Mayo' : new Date(fechaInicio).getMonth() + 1 === 6 ? 'Junio' : new Date(fechaInicio).getMonth() + 1 === 7 ? 'Julio' : new Date(fechaInicio).getMonth() + 1 === 8 ? 'Agosto' : new Date(fechaInicio).getMonth() + 1 === 9 ? 'Septiembre' : new Date(fechaInicio).getMonth() + 1 === 10 ? 'Octubre' : new Date(fechaInicio).getMonth() + 1 === 11 ? 'Noviembre' : 'Diciembre'} de ${new Date(fechaInicio).getFullYear()}</p>
+        <p style="margin: 3px 0;"><strong>Fecha Fin:</strong> ${new Date(fechaFin).getDate()} de ${new Date(fechaFin).getMonth() + 1 === 1 ? 'Enero' : new Date(fechaFin).getMonth() + 1 === 2 ? 'Febrero' : new Date(fechaFin).getMonth() + 1 === 3 ? 'Marzo' : new Date(fechaFin).getMonth() + 1 === 4 ? 'Abril' : new Date(fechaFin).getMonth() + 1 === 5 ? 'Mayo' : new Date(fechaFin).getMonth() + 1 === 6 ? 'Junio' : new Date(fechaFin).getMonth() + 1 === 7 ? 'Julio' : new Date(fechaFin).getMonth() + 1 === 8 ? 'Agosto' : new Date(fechaFin).getMonth() + 1 === 9 ? 'Septiembre' : new Date(fechaFin).getMonth() + 1 === 10 ? 'Octubre' : new Date(fechaFin).getMonth() + 1 === 11 ? 'Noviembre' : 'Diciembre'} de ${new Date(fechaFin).getFullYear()}</p>
     </div>`;
+
 
     infoWindow.setContent(content);
     openInfoWindow(map, marker, infoWindow);
 }
-
 
 // Función para calcular los promedios de AQI, WSPM y WD en un rango de fechas
 function calculateAverages(station, fechaInicio, fechaFin) {
@@ -1038,10 +1008,11 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                 const limitedY = Math.max(mouseY + margin.top - tooltipHeight - 10, margin.top);
 
                 tooltip.transition().duration(200).style('opacity', 1);
-                tooltip.html(`<strong>Ciudad:</strong> ${selectedCity.replace('Data_', '').replace('.csv', '')}<br>
+                tooltip.html(`<strong>Ciudad:</strong> ${selectedCity}<br>
                               <strong>Contaminante:</strong> ${currentContaminant}<br>
                               <strong>Fecha:</strong> ${d3.timeFormat("%Y-%m-%d")(d.date)}<br>
-                              <strong>Concentración:</strong> ${d.value.toFixed(2)}`)
+                              <strong>Concentración:</strong> ${d.value}<br>
+                              <strong>AQI:</strong> ${d.aqi}`)
                        .style('left', `${limitedX}px`)
                        .style('top', `${limitedY}px`)
                        .style('color', 'black');
@@ -1485,7 +1456,7 @@ const svg = container.append("svg")
         .on("mouseover", (event, d) => {
             tooltip.style("visibility", "visible")
                 .html(`
-                    <strong>Ciudad:</strong> ${d.city.replace('Data_', '').replace('.csv', '')}<br>
+                    <strong>Ciudad:</strong> ${d.city}<br>
                     <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
                     <strong>AQI:</strong> ${d.AQI}
                 `);
@@ -1582,17 +1553,12 @@ const svg = container.append("svg")
         });
     });
 }
-
 async function drawThemeRiver(cityFile, dates) {
-    // Agregar la fecha siguiente a la última fecha seleccionada
     const lastDate = new Date(dates[dates.length - 1]);
     const nextDate = new Date(lastDate);
-    nextDate.setDate(lastDate.getDate() + 1); // Aumentar un día (puedes ajustar la unidad de tiempo si lo necesitas)
-
-    // Añadir la nueva fecha al arreglo de fechas
+    nextDate.setDate(lastDate.getDate() + 1);
     dates.push(nextDate.toISOString());
 
-    // Cargar datos de la ciudad seleccionada
     const response = await fetch(`data/${cityFile}`);
     const csvData = await response.text();
     const data = d3.csvParse(csvData, d => ({
@@ -1609,17 +1575,14 @@ async function drawThemeRiver(cityFile, dates) {
         RAIN: +d.RAIN,
     }));
 
-    // Crear un mapa de fechas para búsquedas rápidas
     const selectedDatesSet = new Map(dates.map(date => [new Date(date).getTime(), true]));
-
-    // Filtrar datos para las fechas seleccionadas
     const filteredData = data.filter(d => selectedDatesSet.has(d.date.setMinutes(0, 0, 0)));
+
     if (filteredData.length === 0) {
         alert("No se encontraron datos para las fechas seleccionadas.");
         return;
     }
 
-    // Normalizar atributos (evitando iteraciones redundantes)
     const attributes = ["PM2_5", "PM10", "SO2", "NO2", "CO", "O3", "TEMP", "PRES", "DEWP", "RAIN"];
     const attributeStats = attributes.reduce((stats, attr) => {
         const values = filteredData.map(d => d[attr]);
@@ -1631,31 +1594,17 @@ async function drawThemeRiver(cityFile, dates) {
         const normalized = { date: d.date };
         attributes.forEach(attr => {
             const { min, max } = attributeStats[attr];
-            normalized[attr] = max > min ? (d[attr] - min) / (max - min) : 0.5; // Manejo de rango constante
+            normalized[attr] = max > min ? (d[attr] - min) / (max - min) : 0.5;
         });
         return normalized;
     });
 
-    // Identificar discontinuidades (solo cuando las fechas no son consecutivas)
-    const discontinuities = [];
-    for (let i = 1; i < filteredData.length; i++) {
-        const current = filteredData[i].date;
-        const previous = filteredData[i - 1].date;
-        const diffInTime = current - previous;
-        const diffInDays = diffInTime / (1000 * 3600 * 24); // Convertir diferencia a días
-
-        if (diffInDays > 1) { // Si la diferencia es mayor a 1 día
-            discontinuities.push(current);
-        }
-    }
-
-    // Crear gráfico Theme River
-    const margin = { top: 50, right: 70, bottom: 30, left: 40 };
+    const margin = { top: 50, right: 20, bottom: 30, left: 40 };
     const width = 600 - margin.left - margin.right;
-    const height = 395 - margin.top - margin.bottom;
+    const height = 400 - margin.top - margin.bottom;
 
     const container = d3.select("#evolution-plot");
-    container.selectAll("*").remove(); // Limpiar contenedor
+    container.selectAll("*").remove();
 
     const svg = container.append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -1679,60 +1628,80 @@ async function drawThemeRiver(cityFile, dates) {
         .domain([d3.min(series, s => d3.min(s, d => d[0])), d3.max(series, s => d3.max(s, d => d[1]))])
         .range([height, 0]);
 
-    const color = d3.scaleOrdinal()
-        .domain(attributes)
-        .range(d3.schemeCategory10);
+    // Colores específicos para cada atributo
+    const attributeColors = {
+        'PM2_5': '#FF5733',
+        'PM10': '#FF8D1A',
+        'SO2': '#C70039',
+        'NO2': '#900C3F',
+        'CO': '#581845',
+        'O3': '#1D84B5',
+        'TEMP': '#76D7C4',
+        'PRES': '#F39C12',
+        'DEWP': '#8E44AD',
+        'RAIN': '#3498DB'
+    };
 
-    // Dibujar el gráfico Theme River
     svg.append("g")
         .selectAll("path")
         .data(series)
         .join("path")
-        .attr("fill", ({ key }) => color(key))
+        .attr("fill", (d) => attributeColors[d.key]) // Asignamos el color de cada flujo
         .attr("d", d3.area()
             .x(d => x(d.data.date))
             .y0(d => y(d[0]))
             .y1(d => y(d[1])));
 
-    // Dibujar líneas verticales para discontinuidades (solo si la diferencia es mayor a 1 día)
-    svg.append("g")
-        .selectAll("line")
-        .data(discontinuities)
-        .join("line")
-        .attr("x1", d => x(d))
-        .attr("x2", d => x(d))
-        .attr("y1", 0)
-        .attr("y2", height)
-        .attr("stroke", "red")
-        .attr("stroke-width", 2)
-        .attr("stroke-dasharray", "4 4"); // Líneas discontinuas
+    const minHeightThreshold = 5; // Límite en píxeles para mostrar etiquetas
 
-    // Ejes
+    series.forEach(layer => {
+        const layerData = layer;
+        const totalLength = layerData.length;
+
+        const positions = [
+            { index: 0, anchor: "start" }, // Inicio
+            { index: totalLength - 1, anchor: "end" } // Final
+        ];
+
+        positions.forEach(({ index, anchor }) => {
+            const point = layerData[index];
+            const height = y(point[0]) - y(point[1]);
+            if (Math.abs(height) > minHeightThreshold) {
+                svg.append("text")
+                    .attr("x", x(point.data.date))
+                    .attr("y", y((point[0] + point[1]) / 2))
+                    .text(layer.key)
+                    .attr("fill", "black") // Color de la etiqueta negro
+                    .attr("font-size", "12px")
+                    .attr("font-weight", "bold")
+                    .attr("text-anchor", anchor)
+                    .attr("alignment-baseline", "middle");
+            }
+        });
+    });
+
+    // Detectar fechas no consecutivas y agregar líneas entre ellas
+    for (let i = 1; i < normalizedData.length; i++) {
+        const prevDate = normalizedData[i - 1].date;
+        const currentDate = normalizedData[i].date;
+
+        // Verificar si las fechas no son consecutivas (diferencia mayor a 1 día)
+        if ((currentDate - prevDate) > 24 * 60 * 60 * 1000) {
+            svg.append("line")
+                .attr("x1", x(currentDate))
+                .attr("x2", x(currentDate))
+                .attr("y1", 0)
+                .attr("y2", height)
+                .attr("stroke", "black")
+                .attr("stroke-dasharray", "4,4") // Línea entrecortada
+                .attr("stroke-width", 1);
+        }
+    }
+
     svg.append("g")
         .attr("transform", `translate(0,${height})`)
         .call(d3.axisBottom(x));
 
     svg.append("g")
         .call(d3.axisLeft(y));
-
-    // Leyenda
-    const legend = svg.append("g")
-        .attr("transform", `translate(${width + 10},0)`);
-
-    attributes.forEach((attr, i) => {
-        const group = legend.append("g")
-            .attr("transform", `translate(0,${i * 20})`);
-
-        group.append("rect")
-            .attr("width", 10)
-            .attr("height", 10)
-            .attr("fill", color(attr));
-
-        group.append("text")
-            .attr("x", 15)
-            .attr("y", 10)
-            .text(attr)
-            .attr("font-size", 12)
-            .attr("alignment-baseline", "middle");
-    });
 }
