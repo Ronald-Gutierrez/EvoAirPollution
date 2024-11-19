@@ -641,7 +641,7 @@ function createRadialDendrogram(hierarchyData, selectedAttributes, distanceMatri
 
     const width = 300;
     const height = 310;
-    const clusterRadius = 100;
+    const clusterRadius = 90;
 
     const clusterLayout = d3.cluster().size([2 * Math.PI, clusterRadius]);
 
@@ -747,25 +747,25 @@ function createRadialDendrogram(hierarchyData, selectedAttributes, distanceMatri
             
         });
 
-    // Añadir los textos dinámicos según los atributos seleccionados
-    node.append('text')
-        .style('font-size', '14px')
-        .style('font-weight', 'bold')
-        .attr('dy', '.60em')
-        .attr('text-anchor', d => d.x < Math.PI === !d.children ? 'start' : 'end')
-        .attr('dx', d => d.x < Math.PI ? '10' : '-10')
-        .attr('transform', d => d.x >= Math.PI ? 'rotate(180)' : null)
-        .text(d => {
-            const attributeIndex = d.data.index;
-            return selectedAttributes.length > 0 ? selectedAttributes[attributeIndex] : d.data.name;
-        });
+        // Añadir los textos dinámicos según los atributos seleccionados
+        node.append('text')
+            .style('font-size', '14px')
+            .style('font-weight', 'bold')
+            .attr('dy', '.60em')
+            .attr('text-anchor', d => d.x < Math.PI === !d.children ? 'start' : 'end')
+            .attr('dx', d => d.x < Math.PI ? '10' : '-10')
+            .attr('transform', d => d.x >= Math.PI ? 'rotate(180)' : null)
+            .text(d => {
+                const attributeIndex = d.data.index;
+                return selectedAttributes.length > 0 ? selectedAttributes[attributeIndex] : d.data.name;
+            });
 
-    // Dibujar el triángulo rojo en el nodo raíz
-    svg.append('polygon')
-        .attr('points', `${-5},${-15} ${5},${-15} ${0},${-25}`)
-        .attr('transform', `translate(0, -33) rotate(180)`)
-        .style('fill', 'blue')
-        .style('visibility', root.children ? 'visible' : 'hidden');
+        // Dibujar el triángulo rojo en el nodo raíz
+        svg.append('polygon')
+            .attr('points', `${-5},${-15} ${5},${-15} ${0},${-25}`)
+            .attr('transform', `translate(0, -33) rotate(180)`)
+            .style('fill', 'blue')
+            .style('visibility', root.children ? 'visible' : 'hidden');
 }
 
 
@@ -775,6 +775,9 @@ function isMeteorologicalAttribute(attribute) {
     return meteorologicalAttributes.includes(attribute);
 }
 
+
+
+// GRAFICP ÁRA MI SERIE S TEMPORALES 
 function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
     currentContaminant = contaminant; // Asignar el contaminante actual
 
@@ -782,7 +785,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
 
     const margin = { top: 20, right: 30, bottom: 60, left: 60 };
     const width = 820 - margin.left - margin.right;
-    const height = 330 - margin.top - margin.bottom;
+    const height = 360 - margin.top - margin.bottom;
 
     let svg = container.select("svg g");
     if (svg.empty()) {
@@ -830,8 +833,9 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
             .attr('class', 'legend-pca')
             .style('display', 'flex')
             .style('justify-content', 'center')
-            .style('align-items', 'center')  // Asegura que el texto y el color se alineen bien
             .style('margin-bottom', '10px')  // Aumentar el margen para dar más espacio
+            .style('margin-left', '240px')  // Aumentar el margen para dar más espacio
+
             .style('font-family', 'Arial, sans-serif')  // Establecer una fuente limpia
             .style('font-weight', 'bold');  // Hacer el texto en negrita
 
@@ -895,14 +899,25 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
         .style('opacity', 0);
 
     d3.csv(`data/${selectedCity}`).then(data => {
-        const filteredData = data
-        .filter(d => {
+        let internalStartDate = startDate;
+        let internalEndDate = endDate;
+        
+        if (!internalStartDate || !internalEndDate) {
+            const dates = data.map(d => new Date(`${d.year}-${d.month}-${d.day}`));
+            const minDate = d3.min(dates);
+            const maxDate = d3.max(dates);
+            
+            // Formatear las fechas al formato YYYY-MM-DD solo para uso interno
+            internalStartDate = minDate.toISOString().split('T')[0];
+            internalEndDate = maxDate.toISOString().split('T')[0];
+        }
+
+        // Usar las fechas internas para el filtrado
+        const filteredData = data.filter(d => {
             const date = new Date(`${d.year}-${d.month}-${d.day}`);
-            const adjustedStartDate = new Date(startDate);
-            adjustedStartDate.setDate(adjustedStartDate.getDate() + 1); // Sumamos un día a la fecha de inicio
-    
-            return date >= adjustedStartDate && date <= new Date(endDate);
+            return date >= new Date(internalStartDate) && date <= new Date(internalEndDate);
         })
+        
         .map(d => ({
             date: new Date(`${d.year}-${d.month}-${d.day}`),
             value: +d[contaminant.replace('.', '_')]  // Reemplazamos el punto por guion bajo para acceder a las propiedades
@@ -1255,16 +1270,21 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
 let currentContaminant = null;
 
 // Escuchar cambios en los checkboxes de ciudad para la gráfica radial
-document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(checkbox => {
-    checkbox.addEventListener('change', () => {
+// Escuchar cambios en los radio buttons de ciudad
+document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+        const selectedCity = radio.value;
+        const startDate = document.getElementById('fecha-inicio').value;
+        const endDate = document.getElementById('fecha-fin').value;
+        
+        // Establecer un contaminante por defecto (por ejemplo, PM2.5)
+        currentContaminant = currentContaminant || 'PM2_5';
+        
+        // Actualizar las gráficas
         updateChart();
-        // Si ya hay un contaminante seleccionado, actualizamos la serie temporal
-        if (currentContaminant) {
-            const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
-            const startDate = document.getElementById('fecha-inicio').value;
-            const endDate = document.getElementById('fecha-fin').value;
-            updateTimeSeriesChart(selectedCity, currentContaminant, startDate, endDate);
-        }
+        updateCorrelationMatrix();
+        // updateUMAP();
+        updateTimeSeriesChart(selectedCity, currentContaminant, startDate, endDate);
     });
 });
 
@@ -1289,7 +1309,25 @@ document.getElementById('fecha-fin').addEventListener('change', () => {
     }
 });
 
-
+document.getElementById('visualizar-todo').addEventListener('change', function () {
+    const isChecked = this.checked;
+    document.getElementById('fecha-inicio').disabled = isChecked;
+    document.getElementById('fecha-fin').disabled = isChecked;
+    
+    // Actualizar todas las gráficas
+    updateChart();
+    updateCorrelationMatrix();
+    
+    // Actualizar la serie temporal si hay un contaminante seleccionado
+    if (currentContaminant) {
+        const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
+        const startDate = isChecked ? null : document.getElementById('fecha-inicio').value;
+        const endDate = isChecked ? null : document.getElementById('fecha-fin').value;
+        updateTimeSeriesChart(selectedCity, currentContaminant, startDate, endDate);
+    }
+    
+    document.getElementById('fecha-rango').innerText = isChecked ? "Visualizando todos los datos." : "";
+});
 
 
 //////////// GRAFICA DE REDUCCION DE DIMENSIONALIDADES ////////////
@@ -1360,19 +1398,21 @@ async function updateUMAP() {
 
 function plotUMAP(data) {
     // Limpiar el gráfico anterior
-    d3.select("#umap-reduccion").selectAll("*").remove();
+    d3.select("#umap-plot").selectAll("*").remove();
 
     // Dimensiones del contenedor
-    const container = d3.select("#umap-reduccion");
-    const width = container.node().clientWidth;
-    const height = container.node().clientHeight;
-
-    // Crear SVG
-    const svg = container.append("svg")
-        .attr("width", "100%")
-        .attr("height", "100%")
-        .attr("viewBox", `0 0 ${width} ${height}`)
-        .on("contextmenu", (event) => event.preventDefault()); // Desactivar menú contextual del navegador
+    const container = d3.select("#umap-plot");
+    const width = container.node().clientWidth || 800; // Default width
+    const height = container.node().clientHeight || 440; // Default height
+    
+// Crear SVG con fondo transparente
+const svg = container.append("svg")
+    .attr("transform", "translate(0, 0)")
+    .attr("width", "100%")
+    .attr("height", "100%")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .style("background", "none") // Fondo transparente
+    .on("contextmenu", (event) => event.preventDefault()); // Desactivar menú contextual del navegador
 
     // Grupo para aplicar zoom
     const g = svg.append("g");
@@ -1508,10 +1548,13 @@ function plotUMAP(data) {
         
             const cityFile = selectionData[0].city; // Archivo de la ciudad seleccionada
             const dates = selectionData.map(d => `${d.year}-${d.month}-${d.day}`);
+            
             drawThemeRiver(cityFile, dates);
         });
     });
 }
+
+
 async function drawThemeRiver(cityFile, dates) {
     // Agregar la fecha siguiente a la última fecha seleccionada
     const lastDate = new Date(dates[dates.length - 1]);
@@ -1576,11 +1619,11 @@ async function drawThemeRiver(cityFile, dates) {
     }
 
     // Crear gráfico Theme River
-    const margin = { top: 20, right: 70, bottom: 30, left: 40 };
-    const width = 580 - margin.left - margin.right;
-    const height = 375 - margin.top - margin.bottom;
+    const margin = { top: 50, right: 70, bottom: 30, left: 40 };
+    const width = 600 - margin.left - margin.right;
+    const height = 395 - margin.top - margin.bottom;
 
-    const container = d3.select("#evolution");
+    const container = d3.select("#evolution-plot");
     container.selectAll("*").remove(); // Limpiar contenedor
 
     const svg = container.append("svg")

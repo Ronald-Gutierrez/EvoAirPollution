@@ -18,7 +18,6 @@ body {
     left: 9.9%; /* Ajusta la posición horizontal */
     border: 1px solid #333;
     border-radius: 3px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
 }
 
 #dashboard
@@ -33,7 +32,6 @@ body {
     background-color: #fff; /* Fondo blanco para la sección de visualización */
     background-color: #fff;
     border-radius: 3px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     font-size: 0.9em; /* Cambia el tamaño de la fuente a más pequeño */
     padding: 10px;
     color: #0e0e0e; /* Color más suave para los checkboxes */
@@ -56,11 +54,11 @@ h4{
     width: 32.4%;
     position: absolute; /* Cambia a posición absoluta */
     top: 1%; /* Ajusta la posición vertical */
-    left: 65.34%; /* Ajusta la posición horizontal */    background-color: #fff; /* Fondo blanco para la sección de visualización */
+    left: 65.34%; /* Ajusta la posición horizontal */    
+    background-color: #fff; /* Fondo blanco para la sección de visualización */
     border: 1px solid #333;
     border-radius: 3px;
     padding: 15px; /* Espaciado interno */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
 }
 
 #correlation {
@@ -73,7 +71,6 @@ h4{
     border: 1px solid #333;
     border-radius: 3px;
     padding: 15px; /* Espaciado interno */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
 }
 #evolution {
     height: 43.5%;
@@ -85,7 +82,6 @@ h4{
     border: 1px solid #333;
     border-radius: 3px;
     padding: 15px; /* Espaciado interno */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
 }
 
 #serie-temporal {
@@ -98,7 +94,6 @@ h4{
     border: 1px solid #333;
     border-radius: 3px;
     padding: 15px; /* Espaciado interno */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Agrega una sombra para profundidad */
 }
 .city-selector,
 .view-radial h3 {
@@ -118,12 +113,15 @@ label {
 .options-chek label {
     font-size: 0.9em; /* Cambia el tamaño de la fuente a más pequeño */
     color: #000000; /* Color más suave para los checkboxes */
+
 }
 .options-chek input[type="checkbox"] {
     margin-right: 5px; /* Espacio entre checkbox y label */
     transform: scale(1.2); /* Aumenta el tamaño del checkbox */
 }
-
+.options-chek {
+    margin-top: 30px; /* Ajusta el valor según sea necesario */
+}
 #chart-view-radial{
     height: 46.4%;
     width: 35%;
@@ -136,17 +134,68 @@ label {
 
 }
 
-#umap-reduccion{
+#umap-reduccion {
+    position: relative;
+
     height: 47%;
     width: 27.2%;
-    position: absolute; /* Cambia a posición absoluta */
-    top: 1%; /* Ajusta la posición vertical */
-    left: 36.23%; /* Ajusta la posición horizontal */    background-color: #fff; /* Fondo blanco para la sección de visualización */
+    position: absolute;
+    top: 1%;
+    left: 36.23%;
+    background-color: #fff;
     border: 1px solid #333;
     border-radius: 3px;
-    padding: 15px; /* Espaciado interno */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+    padding: 15px;
+    overflow: hidden; /* Para evitar que el contenido desborde */
 }
+
+.title-banner {
+    position: absolute; /* Para posicionar en relación al contenedor padre */
+    top: 0; /* Alinear al borde superior */
+    left: 0; /* Alinear al borde izquierdo */
+    background-color: #f0f0f0; /* Color de fondo */
+    color: #333; /* Color del texto */
+    padding: 8px 20px 8px 10px; /* Espaciado interno */
+    font-weight: bold; /* Texto en negrita */
+    font-size: 15px; /* Tamaño de la fuente */
+    display: inline-block;
+    clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%); /* Forma del título con borde diagonal */
+    width: 30%; /* Ancho del título */
+    z-index: 1; /* Asegura que quede siempre por encima */
+    pointer-events: none; /* Evita interferencias al interactuar con otros elementos */
+}
+.title-banner2 {
+    position: absolute; /* Para posicionar en relación al contenedor padre */
+    top: 0; /* Alinear al borde superior */
+    left: 0; /* Alinear al borde izquierdo */
+    background-color: #f0f0f0; /* Color de fondo */
+    color: #333; /* Color del texto */
+    padding: 8px 20px 8px 10px; /* Espaciado interno */
+    font-weight: bold; /* Texto en negrita */
+    font-size: 15px; /* Tamaño de la fuente */
+    display: inline-block;
+    clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%); /* Forma del título con borde diagonal */
+    width: 40%; /* Ancho del título */
+    z-index: 1; /* Asegura que quede siempre por encima */
+    pointer-events: none; /* Evita interferencias al interactuar con otros elementos */
+    
+}
+.title-banner3 {
+    position: absolute; /* Para posicionar en relación al contenedor padre */
+    top: 0; /* Alinear al borde superior */
+    left: 0; /* Alinear al borde izquierdo */
+    background-color: #f0f0f0; /* Color de fondo */
+    color: #333; /* Color del texto */
+    padding: 8px 20px 8px 10px; /* Espaciado interno */
+    font-weight: bold; /* Texto en negrita */
+    font-size: 15px; /* Tamaño de la fuente */
+    display: inline-block;
+    clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%); /* Forma del título con borde diagonal */
+    width: 20%; /* Ancho del título */
+    z-index: 1; /* Asegura que quede siempre por encima */
+    pointer-events: none; /* Evita interferencias al interactuar con otros elementos */
+}
+
 
 .fechas-rad {
     margin-top: 15px; /* Ajusta el valor según cuánto espacio quieras agregar */
@@ -200,7 +249,7 @@ label#checkbox-container {
 
 #legend {
     display: flex; /* Usar flexbox para alinear los elementos en fila */
-    margin-top: 130px; /* Espacio superior para separar de otros elementos */
+    margin-top: 100px; /* Espacio superior para separar de otros elementos */
     margin-left: 160px;
     font-family: Arial, sans-serif; /* Fuente de la leyenda */
     color: #000000; /* Color más suave para los checkboxes */
