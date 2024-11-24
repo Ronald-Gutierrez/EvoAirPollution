@@ -112,30 +112,60 @@ function initMap() {
         });
     });
 }
-
-// Función para actualizar el contenido del InfoWindow
 function updateInfoWindowContent(infoWindow, station, map, marker) {
     const fechaInicio = new Date(document.getElementById('fecha-inicio').value);
-    fechaInicio.setDate(fechaInicio.getDate() +1);
+    fechaInicio.setDate(fechaInicio.getDate() + 1);
     const fechaFin = new Date(document.getElementById('fecha-fin').value);
-    fechaFin.setDate(fechaFin.getDate() );
+    fechaFin.setDate(fechaFin.getDate());
     const { averageAQI, averageWSPM, averageWD } = calculateAverages(station, fechaInicio.toISOString().split('T')[0], fechaFin.toISOString().split('T')[0]);
 
-    const content = `
-    <div style="font-family: Arial, sans-serif; font-size: 12px; color: #333; padding: 8px 10px; max-width:180px; margin-top:-10px; max-height: 180px; line-height: 1.4; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
-        <strong style="font-size: 14px; color: #1a73e8; display: block; margin-bottom: 5px;">${station.stationId.charAt(0).toUpperCase() + station.stationId.slice(1)}</strong>
-        <p style="margin: 3px 0;"><strong>AQI:</strong> ${Math.round(averageAQI)}</p>
-        <p style="margin: 3px 0;"><strong>Velocidad del viento:</strong> ${averageWSPM.toFixed(2)} m/s</p>
-        <p style="margin: 3px 0;"><strong>Dirección del viento:</strong> ${averageWD}</p>
-        <p style="margin: 3px 0;"><strong>Zona:</strong> ${station.Notes}</p>
-        <p style="margin: 3px 0;"><strong>Fecha Inicio:</strong> ${new Date(fechaInicio).getDate()+1} de ${new Date(fechaInicio).getMonth() + 1 === 1 ? 'Enero' : new Date(fechaInicio).getMonth() + 1 === 2 ? 'Febrero' : new Date(fechaInicio).getMonth() + 1 === 3 ? 'Marzo' : new Date(fechaInicio).getMonth() + 1 === 4 ? 'Abril' : new Date(fechaInicio).getMonth() + 1 === 5 ? 'Mayo' : new Date(fechaInicio).getMonth() + 1 === 6 ? 'Junio' : new Date(fechaInicio).getMonth() + 1 === 7 ? 'Julio' : new Date(fechaInicio).getMonth() + 1 === 8 ? 'Agosto' : new Date(fechaInicio).getMonth() + 1 === 9 ? 'Septiembre' : new Date(fechaInicio).getMonth() + 1 === 10 ? 'Octubre' : new Date(fechaInicio).getMonth() + 1 === 11 ? 'Noviembre' : 'Diciembre'} de ${new Date(fechaInicio).getFullYear()}</p>
-        <p style="margin: 3px 0;"><strong>Fecha Fin:</strong> ${new Date(fechaFin).getDate()} de ${new Date(fechaFin).getMonth() + 1 === 1 ? 'Enero' : new Date(fechaFin).getMonth() + 1 === 2 ? 'Febrero' : new Date(fechaFin).getMonth() + 1 === 3 ? 'Marzo' : new Date(fechaFin).getMonth() + 1 === 4 ? 'Abril' : new Date(fechaFin).getMonth() + 1 === 5 ? 'Mayo' : new Date(fechaFin).getMonth() + 1 === 6 ? 'Junio' : new Date(fechaFin).getMonth() + 1 === 7 ? 'Julio' : new Date(fechaFin).getMonth() + 1 === 8 ? 'Agosto' : new Date(fechaFin).getMonth() + 1 === 9 ? 'Septiembre' : new Date(fechaFin).getMonth() + 1 === 10 ? 'Octubre' : new Date(fechaFin).getMonth() + 1 === 11 ? 'Noviembre' : 'Diciembre'} de ${new Date(fechaFin).getFullYear()}</p>
+    // Definir los colores según el rango de AQI
+    const aqiColors = ['#00e400', '#ff0', '#ff7e00', '#f00', '#99004c', '#7e0023'];
+
+    // Establecer el color de fondo según el valor de averageAQI
+    const aqiColor = aqiColors[Math.min(Math.floor(averageAQI) - 1, 5)]; // Asegurarse de que no se salga del rango
+
+    // Convertir la dirección del viento en grados a formato de texto
+    const windDirection = averageWD; // Se asume que averageWD es la dirección en grados (0-360)
+    
+    // Crear la flecha rotada con un div
+    const windArrow = `
+    <div style="position: relative; display: inline-block; width: 0; height: 0; transform: rotate(${windDirection}deg); margin: auto;">
+        <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 30px; background-color: #FF5733;"></div>
+        <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 10px solid #FF5733;"></div>
     </div>`;
 
+    // Formatear las fechas
+    const formatDate = (date) => {
+        const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        return `${date.getDate()} de ${months[date.getMonth()]} de ${date.getFullYear()}`;
+    };
+
+    const content = `
+    <div style="font-family: Arial, sans-serif; font-size: 12px; color: #333; padding: 8px 10px; max-width:180px; margin-top:-10px; max-height: 200px; line-height: 1.4; border-radius: 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
+        <strong style="font-size: 14px; color: #1a73e8; display: block; margin-bottom: 5px;">${station.stationId.charAt(0).toUpperCase() + station.stationId.slice(1)}</strong>
+        <p style="margin: 3px 0;">
+            <strong>AQI:</strong> 
+            <span style="background-color: ${aqiColor}; color: #000; padding: 2px 5px; border-radius: 5px;">
+                ${Math.round(averageAQI)}
+            </span>
+        </p>
+        <p style="margin: 3px 0;"><strong>Velocidad del viento:</strong> ${averageWSPM.toFixed(2)} m/s</p>
+        <p style="margin: 3px 0;">
+            <strong>Dirección del viento:</strong> ${averageWD}° 
+            <div style="display: flex; justify-content: center; align-items: center; margin-top: 25px;">
+                ${windArrow}
+            </div>
+        </p>
+        <p style="margin: 3px 0;"><strong>Zona:</strong> ${station.Notes}</p>
+        <p style="margin: 3px 0;"><strong>Fecha Inicio:</strong> ${formatDate(fechaInicio)}</p>
+        <p style="margin: 3px 0;"><strong>Fecha Fin:</strong> ${formatDate(fechaFin)}</p>
+    </div>`;
 
     infoWindow.setContent(content);
     openInfoWindow(map, marker, infoWindow);
 }
+
 
 // Función para calcular los promedios de AQI, WSPM y WD en un rango de fechas
 function calculateAverages(station, fechaInicio, fechaFin) {
