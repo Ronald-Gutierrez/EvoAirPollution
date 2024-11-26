@@ -1058,8 +1058,8 @@ function isMeteorologicalAttribute(attribute) {
 
 
 // GRAFICP ÁRA MI SERIE S TEMPORALES 
-function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
-    currentContaminant = contaminant; // Asignar el contaminante actual
+function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate, selectedDates = null) {
+    currentContaminant = contaminant;
 
     const container = d3.select('#serie-temporal');
 
@@ -1179,36 +1179,40 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
         .style('opacity', 0);
 
     d3.csv(`data/${selectedCity}`).then(data => {
-        let internalStartDate = startDate;
-        let internalEndDate = endDate;
-        
-        if (!internalStartDate || !internalEndDate) {
-            const dates = data.map(d => new Date(`${d.year}-${d.month}-${d.day}`));
-            const minDate = d3.min(dates);
-            const maxDate = d3.max(dates);
-            
-            // Formatear las fechas al formato YYYY-MM-DD solo para uso interno
-            internalStartDate = minDate.toISOString().split('T')[0];
-            internalEndDate = maxDate.toISOString().split('T')[0];
+        let filteredData;
+
+        if (selectedDates && selectedDates.length > 0) {
+            // Filtrar datos según las fechas seleccionadas sin aumentar un día
+            const selectedDateSet = new Set(selectedDates);
+            filteredData = data.filter(d => {
+                const date = `${d.year}-${d.month}-${d.day}`;
+                return selectedDateSet.has(date);
+            });
+        } else {
+            // Filtrar datos usando el rango de fechas
+            let internalStartDate = startDate;
+            let internalEndDate = endDate;
+
+            if (!internalStartDate || !internalEndDate) {
+                const dates = data.map(d => new Date(`${d.year}-${d.month}-${d.day}`));
+                internalStartDate = d3.min(dates).toISOString().split('T')[0];
+                internalEndDate = d3.max(dates).toISOString().split('T')[0];
+            }
+
+            filteredData = data.filter(d => {
+                const date = new Date(`${d.year}-${d.month}-${d.day}`);
+                return date >= new Date(internalStartDate) && date <= new Date(internalEndDate);
+            });
         }
 
-        // Usar las fechas internas para el filtrado
-        const filteredData = data.filter(d => {
-            const date = new Date(`${d.year}-${d.month}-${d.day}`);
-            return date >= new Date(internalStartDate) && date <= new Date(internalEndDate);
-        })
-        
-        .map(d => ({
+        filteredData = filteredData.map(d => ({
             date: new Date(`${d.year}-${d.month}-${d.day}`),
-            value: +d[contaminant.replace('.', '_')]  // Reemplazamos el punto por guion bajo para acceder a las propiedades
-        }))
-        .filter(d => !isNaN(d.value));
-    
+            value: +d[contaminant.replace('.', '_')]
+        })).filter(d => !isNaN(d.value));
 
-        // Convertir los valores de CO a mg/m³ si están en µg/m³
         const convertedData = filteredData.map(d => ({
             ...d,
-            value: contaminant === 'CO' ? d.value / 1000 : d.value  // Convertir de µg/m³ a mg/m³ (si es CO)
+            value: contaminant === 'CO' ? d.value / 1000 : d.value
         }));
 
         const averagedData = d3.groups(convertedData, d => d.date)
@@ -1813,27 +1817,49 @@ const svg = container.append("svg")
             const circleY = parseFloat(selectionCircle.attr("cy"));
             const radius = parseFloat(selectionCircle.attr("r"));
         
-            selectionData = data.filter(d => {
+            // Asegúrate de que `data` esté definido
+            if (!data) {
+                console.error("El conjunto de datos no está disponible.");
+                return;
+            }
+        
+            // Filtrar los puntos seleccionados dentro del círculo
+            const selectionData = data.filter(d => {
                 const x = xScale(d.UMAP1);
                 const y = yScale(d.UMAP2);
                 return Math.sqrt(Math.pow(x - circleX, 2) + Math.pow(y - circleY, 2)) <= radius;
             });
         
-            // console.clear();
+            // Verificar si hay datos seleccionados
+            if (selectionData.length === 0) {
+                console.warn("No se seleccionaron puntos dentro del área.");
+                return;
+            }
+        
+            // Construir el arreglo de fechas seleccionadas
+            const selectedDates = selectionData.map(d => `${d.year}-${d.month}-${d.day}`);
+        
+            // Verifica que haya fechas válidas en `selectedDates`
+            if (selectedDates.length === 0) {
+                console.warn("No hay fechas válidas en los datos seleccionados.");
+                return;
+            }
+        
+            // Obtener el archivo de la ciudad seleccionada
+            const cityFile = selectionData[0].city;
             console.log("Puntos seleccionados:");
             console.log(`Ciudad: ${selectionData[0].city}`);
             selectionData.forEach(d => {
                 console.log(`Fecha: ${d.day}/${d.month}/${d.year}`);
             });
-        
-            const cityFile = selectionData[0].city; // Archivo de la ciudad seleccionada
-            const dates = selectionData.map(d => `${d.year}-${d.month}-${d.day}`);
-
-            updateCorrelationMatrixnew(dates);  // Aquí pasas las fechas seleccionadas
-            drawThemeRiver(cityFile, dates);
+            // Llamar a las funciones con las fechas seleccionadas
+            updateTimeSeriesChart(cityFile, currentContaminant, null, null, selectedDates);
+            updateCorrelationMatrixnew(selectedDates);
+            drawThemeRiver(cityFile, selectedDates);
             updateRadialChartWithSelection(selectionData);
-
+            
         });
+        
     });
 }
 
