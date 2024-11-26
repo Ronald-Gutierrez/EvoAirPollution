@@ -1298,8 +1298,8 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate, se
                 tooltip.html(`<strong>Ciudad:</strong> ${selectedCity}<br>
                               <strong>Contaminante:</strong> ${currentContaminant}<br>
                               <strong>Fecha:</strong> ${d3.timeFormat("%d-%m-%Y")(d.date)}<br>
-                              <strong>Concentración:</strong> ${d.value}<br>
-                              <strong>AQI:</strong> ${d.aqi}`)
+                              <strong>Concentración:</strong> ${d.value.toFixed(2)}<br>
+                              <strong>AQI:</strong> ${d.aqi.toFixed(2)}`)
                        .style('left', `${limitedX}px`)
                        .style('top', `${limitedY}px`)
                        .style('color', 'black');
@@ -1620,25 +1620,27 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate, se
 
         // Dibujar rectángulos de fondo para las estaciones
         const seasonRects = svg.selectAll('.season-rect')
-                              .data(groupedSeasons);
+        .data(groupedSeasons);
 
-        seasonRects.enter()
-                  .append('rect')
-                  .attr('class', 'season-rect')
-                  .attr('x', d => xScale(d.start))
-                  .attr('y', 0)
-                  .attr('width', d => xScale(d.end) - xScale(d.start))
-                  .attr('height', height)
-                  .attr('fill', d => seasonColors[d.season])
-                  .attr('opacity', 0.3)
-                  .merge(seasonRects)
-                  .transition()
-                  .duration(750)
-                  .attr('x', d => xScale(d.start))
-                  .attr('width', d => xScale(d.end) - xScale(d.start))
-                  .attr('fill', d => seasonColors[d.season]);
+            seasonRects.enter()
+            .append('rect')
+            .attr('class', 'season-rect')
+            .attr('x', d => xScale(d.start))
+            .attr('y', 0)
+            .attr('width', d => xScale(d.end) - xScale(d.start))
+            .attr('height', height)
+            .attr('fill', d => seasonColors[d.season])
+            .attr('opacity', 0.2) // Para no bloquear la visibilidad
+            .lower() // Colocar los rectángulos detrás de los demás elementos
+            .merge(seasonRects)
+            .transition()
+            .duration(750)
+            .attr('x', d => xScale(d.start))
+            .attr('width', d => xScale(d.end) - xScale(d.start))
+            .attr('fill', d => seasonColors[d.season]);
 
-        seasonRects.exit().remove();
+            seasonRects.exit().remove();
+
 
         // ... resto del código existente para dibujar puntos y líneas ...
     });
