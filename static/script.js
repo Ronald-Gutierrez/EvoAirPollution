@@ -1828,7 +1828,8 @@ const svg = container.append("svg")
         
             const cityFile = selectionData[0].city; // Archivo de la ciudad seleccionada
             const dates = selectionData.map(d => `${d.year}-${d.month}-${d.day}`);
-            
+
+            updateCorrelationMatrixnew(dates);  // Aquí pasas las fechas seleccionadas
             drawThemeRiver(cityFile, dates);
             updateRadialChartWithSelection(selectionData);
 
@@ -1836,6 +1837,52 @@ const svg = container.append("svg")
     });
 }
 
+function updateCorrelationMatrixnew(dates) {
+    const selectedAttributes = Array.from(document.querySelectorAll('.options-chek-correlation input[type="checkbox"]:checked'))
+                                    .map(cb => cb.value);
+
+    if (selectedAttributes.length === 0) return;
+
+    // Obtener las ciudades seleccionadas
+    const selectedCities = Array.from(document.querySelectorAll('#city-checkboxes input[type="radio"]:checked'))
+                                .map(cb => cb.value);
+
+    const visualizarTodo = document.getElementById('visualizar-todo').checked;
+
+    selectedCities.forEach(selectedCity => {
+        d3.csv(`data/${selectedCity}`).then(data => {
+            // Filtrar los datos por las fechas seleccionadas
+            if (dates && dates.length > 0) {
+                data = data.filter(d => {
+                    const date = `${d.year}-${d.month}-${d.day}`;
+                    return dates.includes(date); // Filtrar solo las fechas seleccionadas
+                });
+            }
+
+            const parsedData = d3.groups(data, d => `${d.year}-${d.month}-${d.day}`).map(([date, entries]) => {
+                const avg = {};
+                selectedAttributes.forEach(attr => {
+                    const values = entries.map(d => +d[attr.replace('.', '_')]).filter(v => !isNaN(v));
+                    avg[attr] = values.length > 0 ? d3.mean(values) : 0;
+                });
+                return avg;
+            });
+
+            const correlationMatrix = calculateCorrelationMatrix(parsedData, selectedAttributes);
+            const matrizdistancia = calculateDistanceMatrix(correlationMatrix);
+            const hierarchyData = buildHierarchy(selectedAttributes, matrizdistancia);
+
+            // Crear o actualizar el dendrograma radial
+            createRadialDendrogram(hierarchyData, selectedAttributes, matrizdistancia, selectedCity, dates.join(', '));
+        });
+    });
+}
+
+
+
+
+
+///////////////////PARA MI RAFICA DE FLUJO PARA LA EVOLUCION THEMERIVER
 async function drawThemeRiver(cityFile, dates) {
     const lastDate = new Date(dates[dates.length - 1]);
     const nextDate = new Date(lastDate);
