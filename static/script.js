@@ -56,16 +56,17 @@ function initMap() {
             const stations = parseCSV(csvData);
             stations.forEach(station => {
                 const position = { lat: parseFloat(station.latitude), lng: parseFloat(station.longitude) };
+                const iconUrl = createCustomIcon(station.Notes);
+
                 const marker = new google.maps.Marker({
                     position: position,
                     map: map,
                     title: station.stationId,
                     icon: {
-                        url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
-                        scaledSize: new google.maps.Size(20, 20)
+                        url: iconUrl,
+                        scaledSize: new google.maps.Size(25, 25)
                     }
                 });
-
                 // Crear un InfoWindow para mostrar información
                 const infoWindow = new google.maps.InfoWindow();
 
@@ -112,6 +113,8 @@ function initMap() {
         });
     });
 }
+
+
 function updateInfoWindowContent(infoWindow, station, map, marker) {
     const fechaInicio = new Date(document.getElementById('fecha-inicio').value);
     fechaInicio.setDate(fechaInicio.getDate() + 1);
@@ -199,7 +202,37 @@ function calculateAverages(station, fechaInicio, fechaFin) {
         averageWD: totalWD || "N/A"
     };
 }
+function createCustomIcon(category) {
+    const svg = d3.create("svg")
+        .attr("xmlns", "http://www.w3.org/2000/svg")
+        .attr("viewBox", "0 0 100 100")
+        .attr("width", "100")
+        .attr("height", "100");
 
+    if (category === "Urban") {
+        // Triángulo más pequeño
+        svg.append("polygon")
+            .attr("points", "50,20 75,80 25,80") // Coordenadas ajustadas para reducir el tamaño
+            .attr("fill", "black");
+        
+    } else if (category === "Rural") {
+        // Cuadrado
+        svg.append("rect")
+            .attr("x", "20")
+            .attr("y", "20")
+            .attr("width", "40")
+            .attr("height", "40")
+            .attr("fill", "black");
+    } else if (category === "Cross Reference") {
+        // Estrella
+        svg.append("polygon")
+            .attr("points", "50,15 61,40 87,40 67,60 74,85 50,70 26,85 33,60 13,40 39,40")
+            .attr("fill", "black");
+    }
+
+    // Convertir SVG a data URL
+    return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg.node().outerHTML);
+}
 // Escuchar cambios en el rango de fechas
 document.getElementById('fecha-inicio').addEventListener('change', updateStationInfoWindows);
 document.getElementById('fecha-fin').addEventListener('change', updateStationInfoWindows);
@@ -343,6 +376,9 @@ const attributeColors = {
     'RAIN': '#3498DB'
 };
 
+
+
+
 // Función para generar la gráfica radial
 function drawRadialChart(data, attributes) {
     d3.select('#chart-view-radial').html("");
@@ -469,6 +505,220 @@ function drawRadialChart(data, attributes) {
         }
     });
 }
+
+// GRAFICAS PAR RADIAL PERO QUE SEA POR LA SELECCION DEL UMAPO
+
+function updateRadialChartWithSelection(selectionData) {
+    if (selectionData.length === 0) return;
+
+    const selectedCity = selectionData[0].city; // Nombre de la ciudad seleccionada
+    const selectedDates = selectionData.map(d => `${d.year}-${d.month}-${d.day}`); // Fechas seleccionadas
+
+    d3.csv(`data/${selectedCity}`).then(data => {
+        // Filtrar los datos por las fechas seleccionadas
+        const filteredData = data.filter(d => {
+            const dateStr = `${d.year}-${d.month}-${d.day}`;
+            return selectedDates.includes(dateStr);
+        });
+
+        // Agrupar y calcular promedio por atributo
+        const attributes = Array.from(document.querySelectorAll('.options-chek input[type="checkbox"]:checked'))
+                                .map(cb => cb.value);
+
+        const aggregatedData = d3.groups(filteredData, d => `${d.year}-${d.month}-${d.day}`).map(([date, entries]) => {
+            const avg = {};
+            attributes.forEach(attr => {
+                const values = entries.map(d => +d[attr.replace('.', '_')]).filter(v => !isNaN(v));
+                avg[attr] = values.length > 0 ? d3.mean(values) : 0;
+            });
+            avg.date = date;
+            return avg;
+        });
+
+        // Llamar a la nueva función para dibujar la gráfica radial
+        drawRadialChart2(aggregatedData, attributes);
+    });
+}
+
+
+
+function drawRadialChart2(data, attributes) {
+    d3.select('#chart-view-radial').html(""); // Limpia el gráfico existente
+    const width = 450;
+    const height = 450;
+    const radius = Math.min(width, height) / 2 - 40;
+    const svg = d3.select('#chart-view-radial')
+                  .append('svg')
+                  .attr('width', width)
+                  .attr('height', height)
+                  .append('g')
+                  .attr('transform', `translate(${width / 2}, ${height / 2})`);
+
+    const angleScale = d3.scaleLinear().domain([0, data.length]).range([0, 2 * Math.PI]);
+    const maxValues = attributes.map(attr => d3.max(data, d => d[attr]));
+    const centralHoleRadius = 30;
+    const ringWidth = (radius - centralHoleRadius) / attributes.length;
+
+    // Tooltip para mostrar información
+    const tooltip = d3.select("body").append("div")
+                      .style("position", "absolute")
+                      .style("background", "#f9f9f9")
+                      .style("padding", "10px")
+                      .style("border", "1px solid #ccc")
+                      .style("border-radius", "5px")
+                      .style("box-shadow", "0px 0px 10px rgba(0, 0, 0, 0.1)")
+                      .style("display", "none")
+                      .style("pointer-events", "none")
+                      .style("font-size", "12px");
+
+    // Define colors for each season
+    const seasonColors = {
+        'Spring': '#2ca25f',
+        'Summer': '#d95f0e',
+        'Autumn': '#7570b3',
+        'Winter': '#1f78b4',
+        'YearRound': '#6a3d9a'
+    };
+
+    // Function to get season based on date (month and day)
+    function getSeason(date) {
+        const month = date.getMonth(); // Get month (0-11)
+        const day = date.getDate(); // Get day (1-31)
+        
+        if ((month === 2 && day >= 20) || (month > 2 && month < 5) || (month === 5 && day <= 21)) {
+            return 'Spring';
+        } else if ((month === 5 && day >= 21) || (month > 5 && month < 8) || (month === 8 && day <= 22)) {
+            return 'Summer';
+        } else if ((month === 8 && day >= 23) || (month > 8 && month < 11) || (month === 11 && day <= 21)) {
+            return 'Autumn';
+        } else {
+            return 'Winter';
+        }
+    }
+
+    attributes.forEach((attr, index) => {
+        const radialScale = d3.scaleLinear().domain([0, maxValues[index]]).range([centralHoleRadius + index * ringWidth, centralHoleRadius + (index + 1) * ringWidth]);
+
+        svg.append("circle")
+           .attr("cx", 0).attr("cy", 0)
+           .attr("r", radialScale(maxValues[index]))
+           .attr("fill", "none")
+           .attr("stroke", "#000")
+           .attr("stroke-width", 1)
+           .attr("stroke-dasharray", "3,3");
+
+        const lineColor = attributeColors[attr] || '#000';
+
+        let previousDate = null;
+
+        // Dibuja los segmentos de la estación
+        data.forEach((d, i) => {
+            const date = new Date(d.date); // Convertir la fecha a un objeto Date
+            const season = getSeason(date);  // Obtiene la estación
+            const seasonColor = seasonColors[season];   // Asigna el color correspondiente
+            const startAngle = angleScale(i);
+            const endAngle = angleScale(i + 1);
+
+            const pathArc = d3.arc()
+                              .innerRadius(centralHoleRadius + index * ringWidth)
+                              .outerRadius(radialScale(maxValues[index]))
+                              .startAngle(startAngle)
+                              .endAngle(endAngle);
+
+            svg.append('path')
+               .attr('d', pathArc)
+               .attr('fill', seasonColor)
+               .attr('opacity', 0.2);  // Opacidad para que no tape el gráfico
+
+            const currentAngle = angleScale(i);
+            const currentRadius = radialScale(d[attr] || 0);
+            const x = Math.sin(currentAngle) * currentRadius;
+            const y = -Math.cos(currentAngle) * currentRadius;
+
+            if (i > 0 && previousDate) {
+                const currentDate = new Date(d.date);
+                const diffDays = (currentDate - previousDate) / (1000 * 60 * 60 * 24);
+
+                if (diffDays === 1) {
+                    // Fechas continuas: dibujar línea
+                    svg.append('line')
+                       .attr('x1', Math.sin(angleScale(i - 1)) * radialScale(data[i - 1][attr] || 0))
+                       .attr('y1', -Math.cos(angleScale(i - 1)) * radialScale(data[i - 1][attr] || 0))
+                       .attr('x2', x)
+                       .attr('y2', y)
+                       .attr('stroke', lineColor)
+                       .attr('stroke-width', 1.5);
+                } else {
+                    // Fechas discontinuas: marcar con línea separadora
+                    svg.append('line')
+                    .attr('x1', 0)
+                    .attr('y1', 0)
+                    .attr('x2', Math.sin(angleScale(i)) * radius)  // Extiende hasta el borde exterior
+                    .attr('y2', -Math.cos(angleScale(i)) * radius)  // Extiende hasta el borde exterior
+                    .attr('stroke', '#000') // Línea negra para separar
+                    .attr('stroke-width', 1)
+                    .attr('stroke-dasharray', '4,2')
+                    .attr('opacity', 0.3); 
+
+                 
+                }
+            }
+
+            // Dibujar punto más pequeño
+            svg.append('circle')
+               .attr('cx', x)
+               .attr('cy', y)
+               .attr('r', 3) // Hacer el punto más pequeño
+               .attr('fill', lineColor)
+               .on("mouseover", () => {
+                   tooltip.style("display", "block")
+                          .html(`<strong>Fecha:</strong> ${d3.timeFormat('%d-%m-%Y')(new Date(d.date))}<br><strong>${attr}:</strong> ${d[attr].toFixed(2)}`);
+               })
+               .on("mousemove", (event) => {
+                   tooltip.style("left", (event.pageX + 10) + "px")
+                          .style("top", (event.pageY - 20) + "px");
+               })
+               .on("mouseout", () => {
+                   tooltip.style("display", "none");
+               });
+
+            previousDate = new Date(d.date);
+        });
+
+        svg.append('text')
+           .attr('x', 0)
+           .attr('y', -radialScale(maxValues[index]) - 10)
+           .attr('dy', '-0.5em')
+           .attr('text-anchor', 'middle')
+           .attr('font-size', '14px')
+           .attr('font-weight', 'bold')
+           .text(attr);
+    });
+
+    // Agregar etiquetas distribuidas de tiempo
+    const step = Math.ceil(data.length / 10); // Distribuir etiquetas cada 10% de los puntos
+    data.forEach((d, i) => {
+        if (i % step === 0) {
+            const angle = angleScale(i);
+            const x = Math.sin(angle) * (radius + 10);
+            const y = -Math.cos(angle) * (radius + 10);
+
+            const label = d3.timeFormat('%d %b')(new Date(d.date));
+
+            svg.append('text')
+               .attr('x', x)
+               .attr('y', y)
+               .attr('dy', '0.35em')
+               .attr('text-anchor', 'middle')
+               .attr('font-size', '10px')
+               .text(label);
+        }
+    });
+}
+
+
+
+
 
 
 ///////////////////////////////////////////////
@@ -1040,7 +1290,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                 tooltip.transition().duration(200).style('opacity', 1);
                 tooltip.html(`<strong>Ciudad:</strong> ${selectedCity}<br>
                               <strong>Contaminante:</strong> ${currentContaminant}<br>
-                              <strong>Fecha:</strong> ${d3.timeFormat("%Y-%m-%d")(d.date)}<br>
+                              <strong>Fecha:</strong> ${d3.timeFormat("%d-%m-%Y")(d.date)}<br>
                               <strong>Concentración:</strong> ${d.value}<br>
                               <strong>AQI:</strong> ${d.aqi}`)
                        .style('left', `${limitedX}px`)
@@ -1108,7 +1358,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate) {
                     .style('font-size', '14px')
                     .style('font-weight', 'bold')
                     .style('margin-bottom', '10px')
-                    .text(`Serie temporal por hora de ${currentContaminant}`);
+                    .text(`Serie temporal por hora de ${currentContaminant} para el ${d3.timeFormat("%d-%m-%Y")(d.date)} `);
             
                 // Colores asignados a cada contaminante y factor meteorológico
                 const attributeColors = {
@@ -1569,7 +1819,7 @@ const svg = container.append("svg")
                 return Math.sqrt(Math.pow(x - circleX, 2) + Math.pow(y - circleY, 2)) <= radius;
             });
         
-            console.clear();
+            // console.clear();
             console.log("Puntos seleccionados:");
             console.log(`Ciudad: ${selectionData[0].city}`);
             selectionData.forEach(d => {
@@ -1580,6 +1830,8 @@ const svg = container.append("svg")
             const dates = selectionData.map(d => `${d.year}-${d.month}-${d.day}`);
             
             drawThemeRiver(cityFile, dates);
+            updateRadialChartWithSelection(selectionData);
+
         });
     });
 }
