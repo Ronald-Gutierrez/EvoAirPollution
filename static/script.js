@@ -672,7 +672,7 @@ function drawRadialChart2(data, attributes) {
                .attr('fill', lineColor)
                .on("mouseover", () => {
                    tooltip.style("display", "block")
-                          .html(`<strong>Fecha:</strong> ${d3.timeFormat('%d-%m-%Y')(new Date(d.date))}<br><strong>${attr}:</strong> ${d[attr].toFixed(2)}`);
+                          .html(`<strong>Fecha:</strong> ${d3.timeFormat('%d/%m/%Y')(new Date(d.date))}<br><strong>${attr}:</strong> ${d[attr].toFixed(2)}`);
                })
                .on("mousemove", (event) => {
                    tooltip.style("left", (event.pageX + 10) + "px")
@@ -1295,9 +1295,9 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate, se
                 const limitedY = Math.max(mouseY + margin.top - tooltipHeight - 10, margin.top);
 
                 tooltip.transition().duration(200).style('opacity', 1);
-                tooltip.html(`<strong>Ciudad:</strong> ${selectedCity}<br>
+                tooltip.html(`<strong>Ciudad:</strong> ${selectedCity.replace('Data_', '').replace('.csv', '')}<br>
                               <strong>Contaminante:</strong> ${currentContaminant}<br>
-                              <strong>Fecha:</strong> ${d3.timeFormat("%d-%m-%Y")(d.date)}<br>
+                              <strong>Fecha:</strong> ${d3.timeFormat("%d/%m/%Y")(d.date)}<br>
                               <strong>Concentración:</strong> ${d.value.toFixed(2)}<br>
                               <strong>AQI:</strong> ${d.aqi.toFixed(2)}`)
                        .style('left', `${limitedX}px`)
@@ -1837,7 +1837,7 @@ const svg = container.append("svg")
         .on("mouseover", (event, d) => {
             tooltip.style("visibility", "visible")
                 .html(`
-                    <strong>Ciudad:</strong> ${d.city}<br>
+                    <strong>Ciudad:</strong> ${d.city.replace('Data_', '').replace('.csv', '')}<br>
                     <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
                     <strong>AQI:</strong> ${d.AQI}
                 `);
