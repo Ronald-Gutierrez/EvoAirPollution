@@ -1271,6 +1271,9 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate, se
         const points = svg.selectAll('.point')
                           .data(averagedData, d => d.date);
 
+
+
+                          
         points.enter()
               .append('circle')
               .attr('class', 'point')
@@ -1546,6 +1549,98 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate, se
                .attr("stroke-width", 1.5)
                .attr("stroke-dasharray", "5,5"); // Línea discontinua
         }
+
+        // Define los colores de las estaciones
+        const seasonColors = {
+            'Spring': '#2ecc71',
+            'Summer': '#e67e22',
+            'Autumn': '#9b59b6',
+            'Winter': '#3498db'
+        };
+
+        // Función para determinar la estación
+        function getSeason(month, day) {
+            if ((month === 3 && day >= 20) || month === 4 || month === 5 || (month === 6 && day <= 20)) {
+                return 'Spring';
+            } else if ((month === 6 && day >= 21) || month === 7 || month === 8 || (month === 9 && day <= 22)) {
+                return 'Summer';
+            } else if ((month === 9 && day >= 23) || month === 10 || month === 11 || (month === 12 && day <= 20)) {
+                return 'Autumn';
+            } else {
+                return 'Winter';
+            }
+        }
+
+        // Filtrar datos según el rango de fechas seleccionado
+        let filteredSeasons = [];
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            filteredSeasons = d3.timeDay.range(start, d3.timeDay.offset(end, 1)).map(date => {
+                const season = getSeason(date.getMonth() + 1, date.getDate());
+                return { date, season };
+            });
+        } else if (selectedDates && selectedDates.length > 0) {
+            // Si hay fechas seleccionadas específicas
+            filteredSeasons = selectedDates.map(date => {
+                const dateObj = new Date(date);
+                const season = getSeason(dateObj.getMonth() + 1, dateObj.getDate());
+                return { date: dateObj, season };
+            });
+        }
+
+        // Agrupar las fechas por temporada contigua
+        const groupedSeasons = [];
+        let currentSeason = null;
+        let start = null;
+
+        filteredSeasons.forEach(({ date, season }, index) => {
+            if (season !== currentSeason) {
+                if (currentSeason) {
+                    groupedSeasons.push({ 
+                        season: currentSeason, 
+                        start, 
+                        end: filteredSeasons[index - 1].date 
+                    });
+                }
+                currentSeason = season;
+                start = date;
+            }
+        });
+
+        // Agregar la última temporada
+        if (currentSeason && filteredSeasons.length > 0) {
+            groupedSeasons.push({ 
+                season: currentSeason, 
+                start, 
+                end: filteredSeasons[filteredSeasons.length - 1].date 
+            });
+        }
+
+        // Dibujar rectángulos de fondo para las estaciones
+        const seasonRects = svg.selectAll('.season-rect')
+                              .data(groupedSeasons);
+
+        seasonRects.enter()
+                  .append('rect')
+                  .attr('class', 'season-rect')
+                  .attr('x', d => xScale(d.start))
+                  .attr('y', 0)
+                  .attr('width', d => xScale(d.end) - xScale(d.start))
+                  .attr('height', height)
+                  .attr('fill', d => seasonColors[d.season])
+                  .attr('opacity', 0.3)
+                  .merge(seasonRects)
+                  .transition()
+                  .duration(750)
+                  .attr('x', d => xScale(d.start))
+                  .attr('width', d => xScale(d.end) - xScale(d.start))
+                  .attr('fill', d => seasonColors[d.season]);
+
+        seasonRects.exit().remove();
+
+        // ... resto del código existente para dibujar puntos y líneas ...
     });
 }
 
