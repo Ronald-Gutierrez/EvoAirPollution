@@ -1057,7 +1057,7 @@ function isMeteorologicalAttribute(attribute) {
 
 
 
-// GRAFICP ÁRA MI SERIE S TEMPORALES 
+// GRAFICA PARA MI SERIE S TEMPORALES 
 function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate, selectedDates = null) {
     currentContaminant = contaminant;
 
@@ -1240,18 +1240,20 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate, se
         const yAxis = d3.axisLeft(yScale);
 
         svg.selectAll('.x-axis')
-           .data([null])
-           .join(
-               enter => enter.append('g').attr('class', 'x-axis')
-                              .attr('transform', `translate(0, ${height})`)
-                              .call(xAxis)
-                              .selectAll("text")
-                              .style("text-anchor", "end")
-                              .attr("dx", "-0.8em")
-                              .attr("dy", "-0.2em")
-                              .attr("transform", "rotate(-45)"),
-               update => update.transition().duration(750).call(xAxis)
-           );
+        .data([null])
+        .join(
+            enter => enter.append('g')
+                .attr('class', 'x-axis')
+                .attr('transform', `translate(0, ${height})`)
+                .call(xAxis),
+            update => update.transition().duration(750).call(xAxis)
+        )
+        .selectAll("text") // Selecciona las etiquetas después de la actualización
+        .attr("dx", "-0.8em")
+        .attr("dy", "-0.2em")
+        .style("text-anchor", "end")
+        .attr("transform", "rotate(-45)"); // Asegura que todas estén rotadas a -45 grados
+    
 
         svg.selectAll('.y-axis')
            .data([null])
@@ -1579,8 +1581,7 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate, se
         
             updateChart();
         })
-                    
-            
+                
             .transition()
             .duration(750)
             .attr('cy', d => yScale(d.value));
@@ -1703,9 +1704,6 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate, se
             .attr('fill', d => seasonColors[d.season]);
 
             seasonRects.exit().remove();
-
-
-        // ... resto del código existente para dibujar puntos y líneas ...
     });
 }
 
@@ -1714,7 +1712,6 @@ function updateTimeSeriesChart(selectedCity, contaminant, startDate, endDate, se
 let currentContaminant = null;
 
 // Escuchar cambios en los checkboxes de ciudad para la gráfica radial
-// Escuchar cambios en los radio buttons de ciudad
 document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(radio => {
     radio.addEventListener('change', () => {
         const selectedCity = radio.value;
@@ -2064,35 +2061,32 @@ function updateCorrelationMatrixnew(dates) {
     });
 }
 
-
-
-
-
-///////////////////PARA MI RAFICA DE FLUJO PARA LA EVOLUCION THEMERIVER
 async function drawThemeRiver(cityFile, dates) {
+    // Añadir la fecha siguiente al último dato en el arreglo
     const lastDate = new Date(dates[dates.length - 1]);
     const nextDate = new Date(lastDate);
     nextDate.setDate(lastDate.getDate() + 1);
     dates.push(nextDate.toISOString());
 
+    // Cargar los datos desde el archivo CSV
     const response = await fetch(`data/${cityFile}`);
     const csvData = await response.text();
     const data = d3.csvParse(csvData, d => ({
         date: new Date(+d.year, +d.month - 1, +d.day, +d.hour || 0),
-        PM2_5: +d.PM2_5,
-        PM10: +d.PM10,
-        SO2: +d.SO2,
-        NO2: +d.NO2,
-        CO: +d.CO,
-        O3: +d.O3,
-        TEMP: +d.TEMP,
-        PRES: +d.PRES,
-        DEWP: +d.DEWP,
-        RAIN: +d.RAIN,
+        PM2_5: +d.PM2_5 || null,
+        PM10: +d.PM10 || null,
+        SO2: +d.SO2 || null,
+        NO2: +d.NO2 || null,
+        CO: +d.CO || null,
+        O3: +d.O3 || null,
+        TEMP: +d.TEMP || null,
+        PRES: +d.PRES || null,
+        DEWP: +d.DEWP || null,
+        RAIN: +d.RAIN || null,
     }));
 
-    const selectedDatesSet = new Map(dates.map(date => [new Date(date).getTime(), true]));
-    const filteredData = data.filter(d => selectedDatesSet.has(d.date.setMinutes(0, 0, 0)));
+    const selectedDatesSet = new Set(dates.map(date => new Date(date).getTime()));
+    const filteredData = data.filter(d => selectedDatesSet.has(d.date.getTime()));
 
     if (filteredData.length === 0) {
         alert("No se encontraron datos para las fechas seleccionadas.");
@@ -2104,7 +2098,7 @@ async function drawThemeRiver(cityFile, dates) {
     const attributes = [...contaminantAttributes, ...meteorologicalAttributes];
 
     const attributeStats = attributes.reduce((stats, attr) => {
-        const values = filteredData.map(d => d[attr]);
+        const values = filteredData.map(d => d[attr]).filter(value => value !== null);
         stats[attr] = { min: Math.min(...values), max: Math.max(...values) };
         return stats;
     }, {});
@@ -2113,12 +2107,14 @@ async function drawThemeRiver(cityFile, dates) {
         const normalized = { date: d.date };
         attributes.forEach(attr => {
             const { min, max } = attributeStats[attr];
-            normalized[attr] = max > min ? (d[attr] - min) / (max - min) : 0.5;
+            normalized[attr] = d[attr] !== null && max > min
+                ? (d[attr] - min) / (max - min)
+                : 0.5; // Normalizar valores faltantes como punto neutro
         });
         return normalized;
     });
 
-    const margin = { top: 50, right: 20, bottom: 30, left: 40 };
+    const margin = { top: 50, right: 20, bottom: 50, left: 40 };
     const width = 600 - margin.left - margin.right;
     const height = 400 - margin.top - margin.bottom;
 
@@ -2139,19 +2135,23 @@ async function drawThemeRiver(cityFile, dates) {
 
     const series = stack(normalizedData);
 
-    const x = d3.scaleTime()
-        .domain(d3.extent(normalizedData, d => d.date))
+    const x = d3.scaleLinear()
+        .domain([0, normalizedData.length - 1])
         .range([0, width]);
 
     const y = d3.scaleLinear()
-        .domain([d3.min(series, s => d3.min(s, d => d[0])), d3.max(series, s => d3.max(s, d => d[1]))])
+        .domain([
+            d3.min(series.flat(), d => d[0]),
+            d3.max(series.flat(), d => d[1])
+        ])
         .range([height, 0]);
 
-    // Escalas de color para contaminantes y meteorología
+    // Colores para los contaminantes (amarillo-oscuro a marrón)
     const colorContaminants = d3.scaleSequential()
         .domain([0, contaminantAttributes.length - 1])
         .interpolator(d3.interpolateYlOrBr);
 
+    // Colores para los factores meteorológicos (degradado verde)
     const colorMeteorological = d3.scaleSequential()
         .domain([0, meteorologicalAttributes.length - 1])
         .interpolator(d3.interpolateYlGn);
@@ -2161,36 +2161,33 @@ async function drawThemeRiver(cityFile, dates) {
         .data(series)
         .join("path")
         .attr("fill", (d, i) => {
+            // Separamos los colores para contaminantes y meteorológicos
             if (contaminantAttributes.includes(d.key)) {
                 return colorContaminants(contaminantAttributes.indexOf(d.key));
-            } else {
+            } else if (meteorologicalAttributes.includes(d.key)) {
                 return colorMeteorological(meteorologicalAttributes.indexOf(d.key));
             }
         })
         .attr("d", d3.area()
-            .x(d => x(d.data.date))
+            .x((d, i) => x(i))
             .y0(d => y(d[0]))
             .y1(d => y(d[1])));
 
-    // Agregar etiquetas en inicio y final del flujo, con límite de tamaño
-    const minHeightThreshold = 5; // Límite en píxeles para mostrar etiquetas
+    const minHeightThreshold = 5;
 
     series.forEach(layer => {
-        const layerData = layer;
-        const totalLength = layerData.length;
-
-        // Solo calcular índices para el inicio y el final
+        const totalLength = layer.length;
         const proportionalPositions = [
-            { index: 0, anchor: "start" }, // Inicio
-            { index: totalLength - 1, anchor: "end" } // Final
+            { index: 0, anchor: "start" },
+            { index: totalLength - 1, anchor: "end" }
         ];
 
         proportionalPositions.forEach(({ index, anchor }) => {
-            const point = layerData[index];
+            const point = layer[index];
             const height = y(point[0]) - y(point[1]);
             if (Math.abs(height) > minHeightThreshold) {
                 svg.append("text")
-                    .attr("x", x(point.data.date))
+                    .attr("x", x(index))
                     .attr("y", y((point[0] + point[1]) / 2))
                     .text(layer.key)
                     .attr("fill", "black")
@@ -2202,28 +2199,63 @@ async function drawThemeRiver(cityFile, dates) {
         });
     });
 
-    // Detectar fechas no consecutivas y agregar líneas entre ellas
-    for (let i = 1; i < normalizedData.length; i++) {
-        const prevDate = normalizedData[i - 1].date;
-        const currentDate = normalizedData[i].date;
+    // Limitar a 15 fechas si hay más de 30 puntos
+    const showDateEveryNPoints = normalizedData.length > 30 ? Math.floor(normalizedData.length / 25) : 1;
 
-        // Verificar si las fechas no son consecutivas (diferencia mayor a 1 día)
-        if ((currentDate - prevDate) > 24 * 60 * 60 * 1000) {
-            svg.append("line")
-                .attr("x1", x(currentDate))
-                .attr("x2", x(currentDate))
-                .attr("y1", 0)
-                .attr("y2", height)
-                .attr("stroke", "black")
-                .attr("stroke-dasharray", "4,4")
-                .attr("stroke-width", 1);
+    // Mostrar las fechas distribuidas uniformemente
+    const displayedDates = [];
+    for (let i = 0; i < normalizedData.length; i++) {
+        if (i % showDateEveryNPoints === 0) {
+            const currentDate = normalizedData[i].date;
+            displayedDates.push({ date: currentDate, index: i });
+
+            // Dibujar líneas de separación solo si la diferencia entre las fechas es mayor a un día
+            if (i > 0) {
+                const prevDate = normalizedData[i - 1].date;
+                if ((currentDate - prevDate) > 24 * 60 * 60 * 1000) {
+                    svg.append("line")
+                        .attr("x1", x(i))
+                        .attr("x2", x(i))
+                        .attr("y1", 0)
+                        .attr("y2", height)
+                        .attr("stroke", "black")
+                        .attr("stroke-dasharray", "4,4")
+                        .attr("stroke-width", 1);
+                }
+            }
         }
     }
 
+    // Mostrar las fechas seleccionadas
+    displayedDates.forEach(({ date, index }) => {
+        svg.append("text")
+            .attr("x", x(index))
+            .attr("y", height + 30)
+            .text(d3.timeFormat("%Y-%m-%d")(date))
+            .attr("fill", "black")
+            .attr("font-size", "10px")
+            .attr("text-anchor", "middle")
+            .attr("transform", "rotate(-45 " + x(index) + "," + (height + 20) + ")");
+    });
+
+    const xAxis = d3.axisBottom(x)
+        .ticks(d3.timeDay.every(1))
+        .tickFormat(d3.timeFormat("%Y-%m-%d"))
+        .tickSize(6);
+
+    const yAxis = d3.axisLeft(y)
+        .ticks(5)
+        .tickSize(6);
+
+    // Ejes X con rotación de 45 grados
     svg.append("g")
         .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(x));
+        .call(xAxis)
+        .selectAll("text")
+        .attr("transform", "rotate(-45)")  // Rotar etiquetas de las fechas
+        .style("text-anchor", "end");  // Alineación de las etiquetas rotadas
 
     svg.append("g")
-        .call(d3.axisLeft(y));
+        .call(yAxis);
 }
+
