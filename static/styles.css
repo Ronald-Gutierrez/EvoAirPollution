@@ -371,3 +371,7 @@ label#checkbox-container {
 #positive-label {
     bottom: 0;
 }
+.selected {
+    stroke: rgb(255, 0, 0);
+    stroke-width: 3;
+}

@@ -559,9 +559,6 @@ function updateRadialChartWithSelection(selectionData) {
         drawRadialChart2(aggregatedData, attributes);
     });
 }
-
-
-
 function drawRadialChart2(data, attributes) {
     d3.select('#chart-view-radial').html(""); // Limpia el gráfico existente
     const width = 450;
@@ -591,7 +588,6 @@ function drawRadialChart2(data, attributes) {
                       .style("pointer-events", "none")
                       .style("font-size", "12px");
 
-    // Define colors for each season
     const seasonColors = {
         'Spring': '#2ca25f',
         'Summer': '#d95f0e',
@@ -600,7 +596,6 @@ function drawRadialChart2(data, attributes) {
         'YearRound': '#6a3d9a'
     };
 
-    // Function to get season based on date (month and day)
     function getSeason(date) {
         const month = date.getMonth(); // Get month (0-11)
         const day = date.getDate(); // Get day (1-31)
@@ -628,14 +623,12 @@ function drawRadialChart2(data, attributes) {
            .attr("stroke-dasharray", "3,3");
 
         const lineColor = attributeColors[attr] || '#000';
-
         let previousDate = null;
 
-        // Dibuja los segmentos de la estación
         data.forEach((d, i) => {
-            const date = new Date(d.date); // Convertir la fecha a un objeto Date
-            const season = getSeason(date);  // Obtiene la estación
-            const seasonColor = seasonColors[season];   // Asigna el color correspondiente
+            const date = new Date(d.date);
+            const season = getSeason(date);
+            const seasonColor = seasonColors[season];
             const startAngle = angleScale(i);
             const endAngle = angleScale(i + 1);
 
@@ -648,7 +641,19 @@ function drawRadialChart2(data, attributes) {
             svg.append('path')
                .attr('d', pathArc)
                .attr('fill', seasonColor)
-               .attr('opacity', 0.2);  // Opacidad para que no tape el gráfico
+               .attr('opacity', 0.2)
+               .attr('class', `season-${season.replace(/\s+/g, '-')}`) // Clase específica para la estación
+               .on("click", function(event) {
+                    const clickedSeason = season;
+                    const selectedDates = data.filter(d => getSeason(new Date(d.date)) === clickedSeason).map(d => d.date);
+                    console.log(`Fechas en la estación ${clickedSeason}:`, selectedDates);
+                    
+                    // Limpiar selecciones previas
+                    svg.selectAll('path').classed('selected', false);
+
+                    // Resaltar la selección
+                    svg.selectAll(`.season-${clickedSeason.replace(/\s+/g, '-')}`).classed('selected', true);
+               });
 
             const currentAngle = angleScale(i);
             const currentRadius = radialScale(d[attr] || 0);
@@ -660,7 +665,6 @@ function drawRadialChart2(data, attributes) {
                 const diffDays = (currentDate - previousDate) / (1000 * 60 * 60 * 24);
 
                 if (diffDays === 1) {
-                    // Fechas continuas: dibujar línea
                     svg.append('line')
                        .attr('x1', Math.sin(angleScale(i - 1)) * radialScale(data[i - 1][attr] || 0))
                        .attr('y1', -Math.cos(angleScale(i - 1)) * radialScale(data[i - 1][attr] || 0))
@@ -669,26 +673,22 @@ function drawRadialChart2(data, attributes) {
                        .attr('stroke', lineColor)
                        .attr('stroke-width', 1.5);
                 } else {
-                    // Fechas discontinuas: marcar con línea separadora
                     svg.append('line')
                     .attr('x1', 0)
                     .attr('y1', 0)
-                    .attr('x2', Math.sin(angleScale(i)) * radius)  // Extiende hasta el borde exterior
-                    .attr('y2', -Math.cos(angleScale(i)) * radius)  // Extiende hasta el borde exterior
-                    .attr('stroke', '#000') // Línea negra para separar
+                    .attr('x2', Math.sin(angleScale(i)) * radius)
+                    .attr('y2', -Math.cos(angleScale(i)) * radius)
+                    .attr('stroke', '#000')
                     .attr('stroke-width', 1)
                     .attr('stroke-dasharray', '4,2')
                     .attr('opacity', 0.3); 
-
-                 
                 }
             }
 
-            // Dibujar punto más pequeño
             svg.append('circle')
                .attr('cx', x)
                .attr('cy', y)
-               .attr('r', 3) // Hacer el punto más pequeño
+               .attr('r', 3)
                .attr('fill', lineColor)
                .on("mouseover", () => {
                    tooltip.style("display", "block")
@@ -715,14 +715,12 @@ function drawRadialChart2(data, attributes) {
            .text(attr);
     });
 
-    // Agregar etiquetas distribuidas de tiempo
-    const step = Math.ceil(data.length / 10); // Distribuir etiquetas cada 10% de los puntos
+    const step = Math.ceil(data.length / 10);
     data.forEach((d, i) => {
         if (i % step === 0) {
             const angle = angleScale(i);
             const x = Math.sin(angle) * (radius + 10);
             const y = -Math.cos(angle) * (radius + 10);
-
             const label = d3.timeFormat('%d %b')(new Date(d.date));
 
             svg.append('text')
@@ -735,6 +733,7 @@ function drawRadialChart2(data, attributes) {
         }
     });
 }
+
 
 
 
