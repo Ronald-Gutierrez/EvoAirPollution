@@ -3,6 +3,8 @@ let lastInfoWindow = null;
 
 // Función para inicializar el mapa de Beijing con Google Maps
 function initMap() {
+    // Establecer fechas por defecto
+
     const beijing = { lat: 40.3, lng: 116.5074 }; // Coordenadas de Beijing
     
     // Definir estilos personalizados para ocultar carreteras y otros elementos
@@ -115,6 +117,7 @@ function initMap() {
 }
 
 
+let  ColorAqiglobal = null;
 function updateInfoWindowContent(infoWindow, station, map, marker) {
     const fechaInicio = new Date(document.getElementById('fecha-inicio').value);
     fechaInicio.setDate(fechaInicio.getDate() + 1);
@@ -122,11 +125,6 @@ function updateInfoWindowContent(infoWindow, station, map, marker) {
     fechaFin.setDate(fechaFin.getDate());
     const { averageAQI, averageWSPM, averageWD } = calculateAverages(station, fechaInicio.toISOString().split('T')[0], fechaFin.toISOString().split('T')[0]);
 
-    // Definir los colores según el rango de AQI
-    const aqiColors = ['#00e400', '#ff0', '#ff7e00', '#f00', '#99004c', '#7e0023'];
-
-    // Establecer el color de fondo según el valor de averageAQI
-    const aqiColor = aqiColors[Math.min(Math.floor(averageAQI) - 1, 5)]; // Asegurarse de que no se salga del rango
 
     // Convertir la dirección del viento en grados a formato de texto
     const windDirection = averageWD; // Se asume que averageWD es la dirección en grados (0-360)
@@ -149,7 +147,7 @@ function updateInfoWindowContent(infoWindow, station, map, marker) {
         <strong style="font-size: 14px; color: #1a73e8; display: block; margin-bottom: 5px;">${station.stationId.charAt(0).toUpperCase() + station.stationId.slice(1)}</strong>
         <p style="margin: 3px 0;">
             <strong>AQI:</strong> 
-            <span style="background-color: ${aqiColor}; color: #000; padding: 2px 5px; border-radius: 5px;">
+            <span style="background-color: ${averageAQI >= 0 && averageAQI <= 1.5 ? '#00e400' : averageAQI > 1.5 && averageAQI <= 2.5 ? '#ff0' : averageAQI > 2.5 && averageAQI <= 3.5 ? '#ff7e00' : averageAQI > 3.5 && averageAQI <= 4.5 ? '#f00' : averageAQI > 4.5 && averageAQI <= 5 ? '#99004c' : '#7e0023'}; color: #000; padding: 2px 5px; border-radius: 5px;">
                 ${Math.round(averageAQI)}
             </span>
         </p>
@@ -165,6 +163,8 @@ function updateInfoWindowContent(infoWindow, station, map, marker) {
         <p style="margin: 3px 0;"><strong>Fecha Fin:</strong> ${formatDate(fechaFin)}</p>
     </div>`;
 
+    console.log(averageAQI)
+    ColorAqiglobal = averageAQI
     infoWindow.setContent(content);
     openInfoWindow(map, marker, infoWindow);
 }
@@ -299,6 +299,8 @@ function parseCSV(data) {
     return Object.values(stations);
 }
 
+
+///////////////GRAFICA  RADIAL DE SERIE TEMPORAL.
 
 
 // Escuchar cambios en los checkboxes de ciudad para la gráfica radial
@@ -2061,6 +2063,11 @@ function updateCorrelationMatrixnew(dates) {
     });
 }
 
+
+
+//////////
+///GRAFICA PARA MI FLUIO DE EVOLCUION D ETHEME RIVER
+////////
 async function drawThemeRiver(cityFile, dates) {
     // Añadir la fecha siguiente al último dato en el arreglo
     const lastDate = new Date(dates[dates.length - 1]);
