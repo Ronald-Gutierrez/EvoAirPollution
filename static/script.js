@@ -3,7 +3,24 @@ let lastInfoWindow = null;
 
 // Función para inicializar el mapa de Beijing con Google Maps
 function initMap() {
-    // Establecer fechas por defecto
+    // Establecer fechas aleatorias por defecto
+    const randomDate = new Date(2013, 0, 1);  // Fecha inicial
+    const endDate = new Date(2016, 2, 31);   // Fecha final
+    const timeRange = endDate.getTime() - randomDate.getTime();
+    const randomTime = Math.random() * timeRange;
+    const selectedDate = new Date(randomDate.getTime() + randomTime);
+    
+    // Formatear las fechas para los inputs
+    const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    // Establecer fechas por defecto en los inputs
+    document.getElementById('fecha-inicio').value = formatDate(selectedDate);
+    document.getElementById('fecha-fin').value = formatDate(new Date(selectedDate.getTime() + (300 * 24 * 60 * 60 * 1000))); // 7 días después
 
     const beijing = { lat: 40.3, lng: 116.5074 }; // Coordenadas de Beijing
     
@@ -165,6 +182,7 @@ function updateInfoWindowContent(infoWindow, station, map, marker) {
 
     console.log(averageAQI)
     ColorAqiglobal = averageAQI
+    console.log(ColorAqiglobal)
     infoWindow.setContent(content);
     openInfoWindow(map, marker, infoWindow);
 }
