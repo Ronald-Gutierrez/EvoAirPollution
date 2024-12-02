@@ -192,7 +192,7 @@ label {
     display: inline-block;
     clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%); /* Forma del título con borde diagonal */
     width: 20%; /* Ancho del título */
-    z-index: 1; /* Asegura que quede siempre por encima */
+    z-index: 0; /* Asegura que quede siempre por encima */
     pointer-events: none; /* Evita interferencias al interactuar con otros elementos */
 }
 
