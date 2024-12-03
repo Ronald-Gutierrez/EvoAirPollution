@@ -559,6 +559,8 @@ function updateRadialChartWithSelection(selectionData) {
         drawRadialChart2(aggregatedData, attributes);
     });
 }
+
+
 function drawRadialChart2(data, attributes) {
     d3.select('#chart-view-radial').html(""); // Limpia el gráfico existente
     const width = 450;
@@ -645,7 +647,8 @@ function drawRadialChart2(data, attributes) {
                .attr('class', `season-${season.replace(/\s+/g, '-')}`) // Clase específica para la estación
                .on("click", function(event) {
                     const clickedSeason = season;
-                    const selectedDates = data.filter(d => getSeason(new Date(d.date)) === clickedSeason).map(d => d.date);
+                    const selectedDates = data.filter(d => getSeason(new Date(d.date)) === clickedSeason)
+                        .map(d => d.date);
                     console.log(`Fechas en la estación ${clickedSeason}:`, selectedDates);
                     
                     // Limpiar selecciones previas
@@ -653,6 +656,12 @@ function drawRadialChart2(data, attributes) {
 
                     // Resaltar la selección
                     svg.selectAll(`.season-${clickedSeason.replace(/\s+/g, '-')}`).classed('selected', true);
+
+                    // Obtener la ciudad seleccionada
+                    const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
+                    
+                    // Actualizar la gráfica de series temporales con las fechas seleccionadas
+                    updateTimeSeriesChart(selectedCity, null, null, selectedDates);
                });
 
             const currentAngle = angleScale(i);
@@ -1359,6 +1368,21 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .attr('cy', d => yScale(d.normalizedValues[attribute]))
                 .attr('r', 4)
                 .attr('fill', d => getAQIColor(d.value[attribute], attribute))
+                .style('stroke', d => {
+                    // Si hay fechas seleccionadas, verificar si este punto está en el rango
+                    if (selectedDates && selectedDates.length > 0) {
+                        const dateStr = d.date.toISOString().split('T')[0];
+                        return selectedDates.includes(dateStr) ? 'red' : 'none';
+                    }
+                    return 'none';
+                })
+                .style('stroke-width', d => {
+                    if (selectedDates && selectedDates.length > 0) {
+                        const dateStr = d.date.toISOString().split('T')[0];
+                        return selectedDates.includes(dateStr) ? '2' : '0';
+                    }
+                    return '0';
+                })
                 .on('mouseover', function(event, d) {
                     const [mouseX, mouseY] = d3.pointer(event);
                 
