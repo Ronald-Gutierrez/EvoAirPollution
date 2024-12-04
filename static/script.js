@@ -1406,7 +1406,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .attr('class', attribute)
                 .attr('cx', d => xScale(d.date))
                 .attr('cy', d => yScale(d.normalizedValues[attribute]))
-                .attr('r', 4)
+                .attr('r', 3)
                 .attr('fill', d => getAQIColor(d.value[attribute], attribute))
                 .on('mouseover', function(event, d) {
                     const [mouseX, mouseY] = d3.pointer(event);
