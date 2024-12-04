@@ -1194,6 +1194,8 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         drawChart(selectedAttributes, data, startDate, endDate, selectedDates);
     });
 
+
+    
     function drawChart(selectedAttributes, data, startDate, endDate, selectedDates) {
         const containerId = 'chart-container';
         let chartContainer = container.select(`#${containerId}`);
@@ -1368,21 +1370,6 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .attr('cy', d => yScale(d.normalizedValues[attribute]))
                 .attr('r', 4)
                 .attr('fill', d => getAQIColor(d.value[attribute], attribute))
-                .style('stroke', d => {
-                    // Si hay fechas seleccionadas, verificar si este punto está en el rango
-                    if (selectedDates && selectedDates.length > 0) {
-                        const dateStr = d.date.toISOString().split('T')[0];
-                        return selectedDates.includes(dateStr) ? 'red' : 'none';
-                    }
-                    return 'none';
-                })
-                .style('stroke-width', d => {
-                    if (selectedDates && selectedDates.length > 0) {
-                        const dateStr = d.date.toISOString().split('T')[0];
-                        return selectedDates.includes(dateStr) ? '2' : '0';
-                    }
-                    return '0';
-                })
                 .on('mouseover', function(event, d) {
                     const [mouseX, mouseY] = d3.pointer(event);
                 
