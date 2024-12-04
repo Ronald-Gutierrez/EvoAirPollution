@@ -1088,8 +1088,8 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
     const container = d3.select('#serie-temporal');
 
     const margin = { top: 20, right: 30, bottom: 60, left: 60 };
-    const width = 820 - margin.left - margin.right;
-    const height = 360 - margin.top - margin.bottom;
+    const width = 840 - margin.left - margin.right;
+    const height = 330 - margin.top - margin.bottom;
 
     const contaminantAttributes = ['PM2_5', 'PM10', 'SO2', 'NO2', 'CO', 'O3'];
     const meteorologicalAttributes = ['TEMP', 'PRES', 'DEWP', 'RAIN'];
@@ -1126,7 +1126,45 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             return 'Winter';
         }
     }
-
+    const legendData = [
+        { color: '#00E400', label: 'Bueno' },
+        { color: '#FFFF00', label: 'Moderado' },
+        { color: '#FF7E00', label: 'Insalubre' },
+        { color: '#FF0000', label: 'Muy Insalubre' },
+        { color: '#99004c', label: 'Malo' },
+        { color: '#800000', label: 'Severo' }
+    ];
+    
+    // Verificar si la leyenda ya existe para evitar duplicados
+    if (container.select('.legend-pca').empty()) {
+        // Crear la leyenda solo si no existe
+        const legend = container.insert('div', ':first-child')  // Insertar antes del primer hijo
+            .attr('class', 'legend-pca')
+            .style('display', 'flex')
+            .style('justify-content', 'center')
+            .style('margin-bottom', '10px')  // Aumentar el margen para dar más espacio
+            .style('margin-left', '240px')  // Aumentar el margen para dar más espacio
+            .style('font-family', 'Arial, sans-serif')  // Establecer una fuente limpia
+            .style('font-weight', 'bold');  // Hacer el texto en negrita
+    
+        legendData.forEach(item => {
+            const legendItem = legend.append('div')
+                .attr('class', 'legend-item-pca')
+                .style('background-color', item.color)
+                .style('padding', '3px 12px')  // Reducir el padding para hacer los items más compactos
+                .style('margin', '0 2px')  // Aumentar el margen entre los elementos
+                .style('border-radius', '5px')  // Bordes redondeados para un diseño más suave
+                .style('color', 'black')  // Establecer color de texto por defecto
+                .style('text-align', 'center')  // Centrar el texto
+                .text(item.label);
+    
+            // Cambiar color de texto a blanco para "Malo" y "Severo"
+            if (item.label === 'Malo' || item.label === 'Severo') {
+                legendItem.style('color', 'white');
+            }
+        });
+    }
+    
     function normalizeValue(value, min, max) {
         if (min === max) return 0.5; // Evitar divisiones por cero
         return (value - min) / (max - min);
