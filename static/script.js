@@ -1187,7 +1187,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         const attributes = [...contaminantAttributes, ...meteorologicalAttributes];
 
         // Establece los atributos que estarán seleccionados por defecto
-        let selectedAttributes = ["PM2_5", "PM10", "CO", "TEMP"]; // Ejemplo: solo O3 y PM10 seleccionados por defecto
+        let selectedAttributes = ["PM2_5"]; // Ejemplo: solo O3 y PM10 seleccionados por defecto
 
         let checkboxContainer = container.select('#checkbox-container');
         if (checkboxContainer.empty()) {
@@ -1269,6 +1269,9 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             );
         }
     
+
+
+        
         const averagedData = d3.groups(filteredData, d => d.date)
             .map(([date, values]) => ({
                 date: date,
