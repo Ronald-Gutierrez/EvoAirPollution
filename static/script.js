@@ -1094,7 +1094,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
     const contaminantAttributes = ['PM2_5', 'PM10', 'SO2', 'NO2', 'CO', 'O3'];
     const meteorologicalAttributes = ['TEMP', 'PRES', 'DEWP', 'RAIN'];
     const dailyLimits = {
-        'PM2_5': 75,
+        'PM2_5': 150,
         'PM10': 150,
         'CO': 4, // Convertido a µg/m³ (4 mg/m³ * 1000)
         'SO2': 150,
