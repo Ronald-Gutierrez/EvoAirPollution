@@ -1191,7 +1191,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
             'PM10': '#FF9900', // Naranja brillante para particulado
             'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
-            'NO2': '#000000', // Verde neón para contaminación visible
+            'NO2': '#4ee456', // Verde neón para contaminación visible
             'CO': '#00CED1', // Turquesa vibrante para gas incoloro
             'O3': '#0000FF', // Azul intenso para ozono
             'TEMP': '#008000', // Rosa fuerte para variación térmica
@@ -1199,7 +1199,6 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             'DEWP': '#4B0082', // Indigo para representar humedad
             'RAIN': '#1E90FF'  // Azul cielo para lluvia
         };
-
         let checkboxContainer = container.select('#checkbox-container');
         if (checkboxContainer.empty()) {
             checkboxContainer = container.append('div')
@@ -1207,19 +1206,21 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .style('display', 'flex')
                 .style('gap', '10px')
                 .style('flex-wrap', 'wrap')
+                .style('font-weight', 'bold')  // Hacer el texto en negrita
                 .style('margin', '30px 0 10px 50px');
         } else {
             checkboxContainer.selectAll('*').remove();
         }
-
+        
         checkboxContainer.selectAll('div')
             .data(attributes)
             .join('div')
             .style('display', 'flex')
-            .style('align-items', 'center')
-            .style('gap', '5px')
+            .style('align-items', 'center')  // Asegura que los elementos estén alineados verticalmente
+            .style('gap', '5px')  // Espacio entre el checkbox y el label
             .each(function (attribute) {
                 const div = d3.select(this);
+        
                 div.append('input')
                     .attr('type', 'checkbox')
                     .attr('value', attribute)
@@ -1229,20 +1230,22 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                         selectedAttributes = d3.selectAll('#checkbox-container input:checked')
                             .nodes()
                             .map(node => node.value);
-
+        
                         // Guarda el estado en el localStorage
                         localStorage.setItem('selectedAttributes', JSON.stringify(selectedAttributes));
-
+        
                         // Llama a drawChart para actualizar el gráfico
                         drawChart(selectedAttributes, data, startDate, endDate, selectedDates);
                     });
-
+        
                 div.append('label')
                     .text(attribute)
                     .style('cursor', 'pointer')
-                    .style('color', attributeColors[attribute]); // Aplicar color a la etiqueta
+                    .style('color', attributeColors[attribute])  // Aplicar color a la etiqueta
+                    .style('margin', '0')  // Elimina el margen del label para que se alinee mejor
+                    .style('vertical-align', 'middle');  // Asegura que el texto se alinee verticalmente con el checkbox
             });
-
+        
         // Llama a drawChart inicialmente con los atributos seleccionados por defecto
         drawChart(selectedAttributes, data, startDate, endDate, selectedDates);
     });
@@ -1564,7 +1567,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                         'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
                         'PM10': '#FF9900', // Naranja brillante para particulado
                         'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
-                        'NO2': '#000000', // Verde neón para contaminación visible
+                        'NO2': '#4ee456', // Verde neón para contaminación visible
                         'CO': '#00CED1', // Turquesa vibrante para gas incoloro
                         'O3': '#0000FF', // Azul intenso para ozono
                         'TEMP': '#008000', // Rosa fuerte para variación térmica

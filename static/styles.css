@@ -113,6 +113,7 @@ label {
 .options-chek label {
     font-size: 0.9em; /* Cambia el tamaño de la fuente a más pequeño */
     color: #000000; /* Color más suave para los checkboxes */
+    font-weight: 550; /* Hace el texto un poco más grueso que el normal */
 
 }
 .options-chek input[type="checkbox"] {
