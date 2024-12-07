@@ -2010,6 +2010,8 @@ function plotUMAP(data) {
         });
 
     svg.call(zoom);
+    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 9.5).scale(0.8);
+    svg.call(zoom).call(zoom.transform, initialTransform);
 
     svg.on("mousedown", (event) => {
         if (event.button !== 2) return; // Solo activar con anticlick (botón derecho del mouse)
