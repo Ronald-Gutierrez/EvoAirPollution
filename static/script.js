@@ -1,3 +1,4 @@
+
 // Variable para almacenar la última InfoWindow abierta
 let lastInfoWindow = null;
 
@@ -384,19 +385,17 @@ function updateChart() {
 }
 // Colores definidos para cada atributo
 const attributeColors = {
-    'PM2_5': '#FF5733',
-    'PM10': '#FF8D1A',
-    'SO2': '#C70039',
-    'NO2': '#900C3F',
-    'CO': '#581845',
-    'O3': '#1D84B5',
-    'TEMP': '#76D7C4',
-    'PRES': '#F39C12',
-    'DEWP': '#8E44AD',
-    'RAIN': '#3498DB'
+    'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
+    'PM10': '#FF9900', // Naranja brillante para particulado
+    'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
+    'NO2': '#4ee456', // Verde neón para contaminación visible
+    'CO': '#00CED1', // Turquesa vibrante para gas incoloro
+    'O3': '#0000FF', // Azul intenso para ozono
+    'TEMP': '#008000', // Rosa fuerte para variación térmica
+    'PRES': '#8B0000', // Rojo oscuro para presión atmosférica
+    'DEWP': '#4B0082', // Indigo para representar humedad
+    'RAIN': '#1E90FF'  // Azul cielo para lluvia
 };
-
-
 
 
 // Función para generar la gráfica radial
@@ -1189,6 +1188,19 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         // Establece los atributos que estarán seleccionados por defecto
         let selectedAttributes = ["PM2_5"]; // Ejemplo: solo O3 y PM10 seleccionados por defecto
 
+        const attributeColors = {
+            'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
+            'PM10': '#FF9900', // Naranja brillante para particulado
+            'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
+            'NO2': '#000000', // Verde neón para contaminación visible
+            'CO': '#00CED1', // Turquesa vibrante para gas incoloro
+            'O3': '#0000FF', // Azul intenso para ozono
+            'TEMP': '#008000', // Rosa fuerte para variación térmica
+            'PRES': '#8B0000', // Rojo oscuro para presión atmosférica
+            'DEWP': '#4B0082', // Indigo para representar humedad
+            'RAIN': '#1E90FF'  // Azul cielo para lluvia
+        };
+
         let checkboxContainer = container.select('#checkbox-container');
         if (checkboxContainer.empty()) {
             checkboxContainer = container.append('div')
@@ -1225,7 +1237,8 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
 
                 div.append('label')
                     .text(attribute)
-                    .style('cursor', 'pointer');
+                    .style('cursor', 'pointer')
+                    .style('color', attributeColors[attribute]); // Aplicar color a la etiqueta
             });
 
         // Llama a drawChart inicialmente con los atributos seleccionados por defecto
@@ -1402,7 +1415,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                     lineData.push(currentPoint);
                 } else {
                     if (lineData.length > 1) {
-                        drawLine(chartSvg, lineData, currentSeason);
+                        drawLine(chartSvg, lineData, attribute); // Pasa el atributo correspondiente
                     }
                     lineData = [currentPoint];
                 }
@@ -1412,7 +1425,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
 
             // Dibujar la última línea si es necesario
             if (lineData.length > 1) {
-                drawLine(chartSvg, lineData, currentSeason);
+                drawLine(chartSvg, lineData, attribute); // Pasa el atributo correspondiente
             }
 
             // Dibujar puntos válidos
@@ -1545,18 +1558,20 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                         .style('margin-bottom', '10px')
                         .text(`Serie temporal por hora de la fecha ${d3.timeFormat("%d-%m-%Y")(d.date)} `);
                 
+                    // Colores definidos para cada atributo
                     const attributeColors = {
-                        'PM2_5': '#FF5733',
-                        'PM10': '#FF8D1A',
-                        'SO2': '#C70039',
-                        'NO2': '#900C3F',
-                        'CO': '#581845',
-                        'O3': '#1D84B5',
-                        'TEMP': '#76D7C4',
-                        'PRES': '#F39C12',
-                        'DEWP': '#8E44AD',
-                        'RAIN': '#3498DB'
+                        'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
+                        'PM10': '#FF9900', // Naranja brillante para particulado
+                        'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
+                        'NO2': '#000000', // Verde neón para contaminación visible
+                        'CO': '#00CED1', // Turquesa vibrante para gas incoloro
+                        'O3': '#0000FF', // Azul intenso para ozono
+                        'TEMP': '#008000', // Rosa fuerte para variación térmica
+                        'PRES': '#8B0000', // Rojo oscuro para presión atmosférica
+                        'DEWP': '#4B0082', // Indigo para representar humedad
+                        'RAIN': '#1E90FF'  // Azul cielo para lluvia
                     };
+
                 
                     const units = {
                         'PM2_5': 'µg/m³',
@@ -1760,15 +1775,15 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             })
                 
         });
-    
+
         // Función para dibujar las líneas con el color correspondiente
-        function drawLine(chartSvg, points, season) {
+        function drawLine(chartSvg, points, attribute) {
             chartSvg.append('path')
                 .data([points])  // Aseguramos de pasar un array de puntos
                 .attr('class', 'line')
                 .attr('d', d3.line().x(d => d.x).y(d => d.y)(points))  // Usamos 'points' en lugar de 'd'
                 .attr('fill', 'none')
-                .attr('stroke', seasonColors[season])  // Usar el color de la estación
+                .attr('stroke', attributeColors[attribute])  // Usar el color del atributo
                 .attr('stroke-width', 2)
                 .on('mouseover', function(event, d) {
                     // Cambiar el estilo (ejemplo: aumentar el grosor de la línea)
@@ -1782,7 +1797,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                         .attr('y', yScale(d3.mean(d, p => p.y)) - 10)  // Promedio de la Y de la línea
                         .attr('font-size', '12px')
                         .attr('fill', '#000')
-                        .text(`Season: ${season}`);
+                        .text(`Attribute: ${attribute}`); // Cambiar a mostrar el atributo
                 })
                 .on('mouseout', function(event, d) {
                     // Restaurar el estilo al salir
@@ -1792,7 +1807,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                     // Eliminar el tooltip
                     chartSvg.select('#tooltip').remove();
                 });
-                    }
+        }
                 }
     
 }
@@ -2265,28 +2280,25 @@ async function drawThemeRiver(cityFile, dates) {
         ])
         .range([height, 0]);
 
-    // Colores para los contaminantes (amarillo-oscuro a marrón)
-    const colorContaminants = d3.scaleSequential()
-        .domain([0, contaminantAttributes.length - 1])
-        .interpolator(d3.interpolateYlOrBr);
-
-    // Colores para los factores meteorológicos (degradado verde)
-    const colorMeteorological = d3.scaleSequential()
-        .domain([0, meteorologicalAttributes.length - 1])
-        .interpolator(d3.interpolateYlGn);
+    // Colores definidos para cada atributo
+    const attributeColors = {
+        'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
+        'PM10': '#FF9900', // Naranja brillante para particulado
+        'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
+        'NO2': '#4ee456', // Verde neón para contaminación visible
+        'CO': '#00CED1', // Turquesa vibrante para gas incoloro
+        'O3': '#0000FF', // Azul intenso para ozono
+        'TEMP': '#008000', // Rosa fuerte para variación térmica
+        'PRES': '#8B0000', // Rojo oscuro para presión atmosférica
+        'DEWP': '#4B0082', // Indigo para representar humedad
+        'RAIN': '#1E90FF'  // Azul cielo para lluvia
+    };
 
     svg.append("g")
         .selectAll("path")
         .data(series)
         .join("path")
-        .attr("fill", (d, i) => {
-            // Separamos los colores para contaminantes y meteorológicos
-            if (contaminantAttributes.includes(d.key)) {
-                return colorContaminants(contaminantAttributes.indexOf(d.key));
-            } else if (meteorologicalAttributes.includes(d.key)) {
-                return colorMeteorological(meteorologicalAttributes.indexOf(d.key));
-            }
-        })
+        .attr("fill", d => attributeColors[d.key]) // Usar los colores definidos para cada atributo
         .attr("d", d3.area()
             .x((d, i) => x(i))
             .y0(d => y(d[0]))
