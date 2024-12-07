@@ -746,7 +746,6 @@ function drawRadialChart2(data, attributes) {
 
 
 
-
 ///////////////////////////////////////////////
 // Funciones para la matriz de correlación
 
@@ -1982,11 +1981,7 @@ function plotUMAP(data) {
                     <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
                     <strong>AQI:</strong> ${d.AQI}
                 `);
-                
-            // Cambiar el tamaño y agregar borde azul cuando el mouse esté sobre el punto
             d3.select(event.target)
-                .transition()  // Usamos una transición para un efecto suave
-                .duration(200)  // Duración de la animación
                 .attr("r", 10)  // Aumentar el radio del círculo
                 .attr("stroke", "blue")  // Establecer borde azul
                 .attr("stroke-width", 3);  // Definir el grosor del borde
@@ -1997,15 +1992,15 @@ function plotUMAP(data) {
         })
         .on("mouseout", (event) => {
             tooltip.style("visibility", "hidden");
-            
-            // Restaurar el tamaño original y quitar el borde azul
             d3.select(event.target)
-                .transition()  // Transición para suavizar el regreso
-                .duration(200)  // Duración de la animación
-                .attr("r", 5)  // Restaurar el radio original
-                .attr("stroke", "none")  // Quitar el borde
-                .attr("stroke-width", 0);  // Restablecer el grosor del borde
+                .attr("r", 6)  // Restaurar el radio original
+                .attr("stroke", "none");  // Quitar el borde
         });
+
+    // Variables para la selección
+    let isDrawing = false;
+    let points = [];
+    let selectionLine; // Para almacenar la línea de selección
 
     // Zoom
     const zoom = d3.zoom()
@@ -2014,110 +2009,102 @@ function plotUMAP(data) {
             g.attr("transform", event.transform);
         });
 
-    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 9.5).scale(0.8);
-    svg.call(zoom).call(zoom.transform, initialTransform);
-
-    // Selección circular
-    let selectionCircle;
-    let selectionData = [];
+    svg.call(zoom);
 
     svg.on("mousedown", (event) => {
         if (event.button !== 2) return; // Solo activar con anticlick (botón derecho del mouse)
 
-        const [startX, startY] = d3.pointer(event, g.node()); // Obtener posición relativa al grupo `g`
-
-        if (selectionCircle) {
-            selectionCircle.remove();
+        // Limpiar la selección anterior
+        if (selectionLine) {
+            selectionLine.remove();
         }
 
-        selectionCircle = g.append("circle")
-            .attr("cx", startX)
-            .attr("cy", startY)
-            .attr("r", 0)
+        isDrawing = true;
+        points = []; // Reiniciar puntos
+
+        const [startX, startY] = d3.pointer(event, g.node());
+        points.push([startX, startY]);
+
+        // Crear línea inicial
+        selectionLine = g.append("polyline")
             .attr("fill", "rgba(100, 100, 255, 0.3)")
             .attr("stroke", "blue")
-            .attr("stroke-width", 2);
+            .attr("stroke-width", 2)
+            .attr("points", points.join(" "));
 
         svg.on("mousemove", (event) => {
-            const [currentX, currentY] = d3.pointer(event, g.node()); // Coordenadas actualizadas según el grupo `g`
-            const radius = Math.sqrt(
-                Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2)
-            );
+            if (!isDrawing) return;
 
-            selectionCircle.attr("r", radius);
+            const [currentX, currentY] = d3.pointer(event, g.node());
+            points.push([currentX, currentY]);
+            selectionLine.attr("points", points.join(" "));
+        });
+    });
+
+    svg.on("mouseup", () => {
+        if (!isDrawing) return;
+
+        isDrawing = false;
+
+        // Unir el último punto con el primero
+        points.push(points[0]); // Añadir el primer punto al final para cerrar el polígono
+        selectionLine.attr("points", points.join(" ")); // Actualizar la línea para incluir el cierre
+
+        // Filtrar los puntos seleccionados dentro del polígono
+        const selectionData = data.filter(d => {
+            const x = xScale(d.UMAP1);
+            const y = yScale(d.UMAP2);
+            return d3.polygonContains(points, [x, y]); // Verificar si el punto está dentro del polígono
         });
 
-        svg.on("mouseup", () => {
-            svg.on("mousemove", null);
-            svg.on("mouseup", null);
+        // Verificar si hay datos seleccionados
+        if (selectionData.length === 0) {
+            console.warn("No se seleccionaron puntos dentro del área.");
+            return;
+        }
 
-            const circleX = parseFloat(selectionCircle.attr("cx"));
-            const circleY = parseFloat(selectionCircle.attr("cy"));
-            const radius = parseFloat(selectionCircle.attr("r"));
+        // Construir el arreglo de fechas seleccionadas
+        const selectedDates = selectionData.map(d => `${d.year}-${d.month}-${d.day}`);
 
-            // Asegúrate de que `data` esté definido
-            if (!data) {
-                console.error("El conjunto de datos no está disponible.");
-                return;
-            }
+        // Verifica que haya fechas válidas en `selectedDates`
+        if (selectedDates.length === 0) {
+            console.warn("No hay fechas válidas en los datos seleccionados.");
+            return;
+        }
 
-            // Filtrar los puntos seleccionados dentro del círculo
-            const selectionData = data.filter(d => {
-                const x = xScale(d.UMAP1);
-                const y = yScale(d.UMAP2);
-                return Math.sqrt(Math.pow(x - circleX, 2) + Math.pow(y - circleY, 2)) <= radius;
-            });
+        // Obtener el archivo de la ciudad seleccionada
+        const cityFile = selectionData[0].city;
+        console.log("Puntos seleccionados:");
+        console.log(`Ciudad: ${selectionData[0].city}`);
+        selectionData.forEach(d => {
+            console.log(`Fecha: ${d.day}/${d.month}/${d.year}`);
+        });
 
-            // Verificar si hay datos seleccionados
-            if (selectionData.length === 0) {
-                console.warn("No se seleccionaron puntos dentro del área.");
-                return;
-            }
+        // Llamar a las funciones con las fechas seleccionadas
+        updateTimeSeriesChart(cityFile, null, null, selectedDates);
+        updateCorrelationMatrixnew(selectedDates);
+        drawThemeRiver(cityFile, selectedDates);
+        updateRadialChartWithSelection(selectionData);
 
-            // Construir el arreglo de fechas seleccionadas
-            const selectedDates = selectionData.map(d => `${d.year}-${d.month}-${d.day}`);
+        // Restaurar todos los puntos a su estado original antes de aplicar cambios a los puntos seleccionados
+        svg.selectAll("circle")
+            .attr("r", 6)  // Restaurar el radio original de los puntos (ajusta según el tamaño original)
+            .attr("stroke", "none");  // Eliminar el borde azul
 
-            // Verifica que haya fechas válidas en `selectedDates`
-            if (selectedDates.length === 0) {
-                console.warn("No hay fechas válidas en los datos seleccionados.");
-                return;
-            }
-
-            // Obtener el archivo de la ciudad seleccionada
-            const cityFile = selectionData[0].city;
-            console.log("Puntos seleccionados:");
-            console.log(`Ciudad: ${selectionData[0].city}`);
-            selectionData.forEach(d => {
-                console.log(`Fecha: ${d.day}/${d.month}/${d.year}`);
-            });
-
-            // Llamar a las funciones con las fechas seleccionadas
-            updateTimeSeriesChart(cityFile, null, null, selectedDates);
-            updateCorrelationMatrixnew(selectedDates);
-            drawThemeRiver(cityFile, selectedDates);
-            updateRadialChartWithSelection(selectionData);
-
-            // Restaurar todos los puntos a su estado original antes de aplicar cambios a los puntos seleccionados
+        // Hacer los puntos seleccionados más grandes y agregar un borde azul
+        selectionData.forEach(d => {
+            const x = xScale(d.UMAP1);
+            const y = yScale(d.UMAP2);
+            // Buscar el círculo correspondiente y cambiar su radio y agregar un borde
             svg.selectAll("circle")
-                .attr("r", 5)  // Restaurar el radio original de los puntos (ajusta según el tamaño original)
-                .attr("stroke", "none")  // Eliminar el borde azul
-                .attr("stroke-width", 0);  // Eliminar el grosor del borde
-
-            // Hacer los puntos seleccionados más grandes y agregar un borde azul
-            selectionData.forEach(d => {
-                const x = xScale(d.UMAP1);
-                const y = yScale(d.UMAP2);
-                // Buscar el círculo correspondiente y cambiar su radio y agregar un borde
-                svg.selectAll("circle")
-                    .filter(function() {
-                        const cx = parseFloat(this.getAttribute("cx"));
-                        const cy = parseFloat(this.getAttribute("cy"));
-                        return cx === x && cy === y;
-                    })
-                    .attr("r", 10)  // Cambiar el tamaño del radio
-                    .attr("stroke", "blue")  // Agregar borde azul
-                    .attr("stroke-width", 3);  // Establecer el grosor del borde
-            });
+                .filter(function() {
+                    const cx = parseFloat(this.getAttribute("cx"));
+                    const cy = parseFloat(this.getAttribute("cy"));
+                    return cx === x && cy === y;
+                })
+                .attr("r", 10)  // Cambiar el tamaño del radio
+                .attr("stroke", "blue")  // Agregar borde azul
+                .attr("stroke-width", 3);  // Establecer el grosor del borde
         });
     });
 
@@ -2131,21 +2118,19 @@ function plotUMAP(data) {
         { color: '#800000', label: 'Severo' }
     ];
 
-        // Verificar si la leyenda ya existe para evitar duplicados
+    // Verificar si la leyenda ya existe para evitar duplicados
     if (container.select('.legend-pca').empty()) {
         // Crear la leyenda solo si no existe
         const legend = container.insert('div', ':first-child')
-        .attr('class', 'legend-pca')
-        .style('display', 'flex')
-        .style('justify-content', 'center')
-        .style('position', 'absolute')
-        .style('top', '93%')  // Coloca la leyenda al final del contenedor
-
-        .style('width', '96%')  // Asegura que ocupe todo el ancho disponible
-        .style('height', '5%')  // Asegura que ocupe todo el ancho disponible
-
-        .style('font-family', 'Arial, sans-serif')
-        .style('font-weight', 'bold')
+            .attr('class', 'legend-pca')
+            .style('display', 'flex')
+            .style('justify-content', 'center')
+            .style('position', 'absolute')
+            .style('top', '93%')  // Coloca la leyenda al final del contenedor
+            .style('width', '96%')  // Asegura que ocupe todo el ancho disponible
+            .style('height', '5%')  // Asegura que ocupe todo el ancho disponible
+            .style('font-family', 'Arial, sans-serif')
+            .style('font-weight', 'bold');
     
         legendData.forEach(item => {
             const legendItem = legend.append('div')
@@ -2157,7 +2142,6 @@ function plotUMAP(data) {
                 .style('color', 'black')  // Establecer color de texto por defecto
                 .style('text-align', 'center')  // Centrar el texto
                 .style('font-size', '14px')  // Hacer el texto más pequeño
-
                 .text(item.label);
 
             // Cambiar color de texto a blanco para "Malo" y "Severo"
@@ -2166,7 +2150,6 @@ function plotUMAP(data) {
             }
         });
     }
-
 }
 
 function updateCorrelationMatrixnew(dates) {
