@@ -1133,35 +1133,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         { color: '#800000', label: 'Severo' }
     ];
     
-    // Verificar si la leyenda ya existe para evitar duplicados
-    if (container.select('.legend-pca').empty()) {
-        // Crear la leyenda solo si no existe
-        const legend = container.insert('div', ':first-child')  // Insertar antes del primer hijo
-            .attr('class', 'legend-pca')
-            .style('display', 'flex')
-            .style('justify-content', 'center')
-            .style('margin-bottom', '10px')  // Aumentar el margen para dar más espacio
-            .style('margin-left', '240px')  // Aumentar el margen para dar más espacio
-            .style('font-family', 'Arial, sans-serif')  // Establecer una fuente limpia
-            .style('font-weight', 'bold');  // Hacer el texto en negrita
-    
-        legendData.forEach(item => {
-            const legendItem = legend.append('div')
-                .attr('class', 'legend-item-pca')
-                .style('background-color', item.color)
-                .style('padding', '3px 12px')  // Reducir el padding para hacer los items más compactos
-                .style('margin', '0 2px')  // Aumentar el margen entre los elementos
-                .style('border-radius', '5px')  // Bordes redondeados para un diseño más suave
-                .style('color', 'black')  // Establecer color de texto por defecto
-                .style('text-align', 'center')  // Centrar el texto
-                .text(item.label);
-    
-            // Cambiar color de texto a blanco para "Malo" y "Severo"
-            if (item.label === 'Malo' || item.label === 'Severo') {
-                legendItem.style('color', 'white');
-            }
-        });
-    }
+
     
     function normalizeValue(value, min, max) {
         if (min === max) return 0.5; // Evitar divisiones por cero
@@ -1946,7 +1918,6 @@ async function updateUMAP() {
     plotUMAP(filteredData);
 }
 
-
 function plotUMAP(data) {
     // Limpiar el gráfico anterior
     d3.select("#umap-plot").selectAll("*").remove();
@@ -1955,15 +1926,15 @@ function plotUMAP(data) {
     const container = d3.select("#umap-plot");
     const width = container.node().clientWidth || 800; // Default width
     const height = container.node().clientHeight || 440; // Default height
-    
-// Crear SVG con fondo transparente
-const svg = container.append("svg")
-    .attr("transform", "translate(0, 0)")
-    .attr("width", "100%")
-    .attr("height", "100%")
-    .attr("viewBox", `0 0 ${width} ${height}`)
-    .style("background", "none") // Fondo transparente
-    .on("contextmenu", (event) => event.preventDefault()); // Desactivar menú contextual del navegador
+        
+    // Crear SVG con fondo transparente
+    const svg = container.append("svg")
+        .attr("transform", "translate(0, 0)")
+        .attr("width", "100%")
+        .attr("height", "100%")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .style("background", "none") // Fondo transparente
+        .on("contextmenu", (event) => event.preventDefault()); // Desactivar menú contextual del navegador
 
     // Grupo para aplicar zoom
     const g = svg.append("g");
@@ -1994,7 +1965,7 @@ const svg = container.append("svg")
         .style("font-size", "12px");
 
     // Dibujar puntos
-        g.selectAll("circle")
+    g.selectAll("circle")
         .data(data)
         .enter()
         .append("circle")
@@ -2011,7 +1982,7 @@ const svg = container.append("svg")
                     <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
                     <strong>AQI:</strong> ${d.AQI}
                 `);
-            
+                
             // Cambiar el tamaño y agregar borde azul cuando el mouse esté sobre el punto
             d3.select(event.target)
                 .transition()  // Usamos una transición para un efecto suave
@@ -2147,10 +2118,55 @@ const svg = container.append("svg")
                     .attr("stroke", "blue")  // Agregar borde azul
                     .attr("stroke-width", 3);  // Establecer el grosor del borde
             });
-});
-
-        
+        });
     });
+
+    // Agregar la leyenda
+    const legendData = [
+        { color: '#00E400', label: 'Bueno' },
+        { color: '#FFFF00', label: 'Moderado' },
+        { color: '#FF7E00', label: 'Insalubre' },
+        { color: '#FF0000', label: 'Muy Insalubre' },
+        { color: '#99004c', label: 'Malo' },
+        { color: '#800000', label: 'Severo' }
+    ];
+
+        // Verificar si la leyenda ya existe para evitar duplicados
+    if (container.select('.legend-pca').empty()) {
+        // Crear la leyenda solo si no existe
+        const legend = container.insert('div', ':first-child')
+        .attr('class', 'legend-pca')
+        .style('display', 'flex')
+        .style('justify-content', 'center')
+        .style('position', 'absolute')
+        .style('top', '93%')  // Coloca la leyenda al final del contenedor
+
+        .style('width', '96%')  // Asegura que ocupe todo el ancho disponible
+        .style('height', '5%')  // Asegura que ocupe todo el ancho disponible
+
+        .style('font-family', 'Arial, sans-serif')
+        .style('font-weight', 'bold')
+    
+        legendData.forEach(item => {
+            const legendItem = legend.append('div')
+                .attr('class', 'legend-item-pca')
+                .style('background-color', item.color)
+                .style('padding', '3px 12px')  // Reducir el padding para hacer los items más compactos
+                .style('margin', '0 2px')  // Aumentar el margen entre los elementos
+                .style('border-radius', '5px')  // Bordes redondeados para un diseño más suave
+                .style('color', 'black')  // Establecer color de texto por defecto
+                .style('text-align', 'center')  // Centrar el texto
+                .style('font-size', '14px')  // Hacer el texto más pequeño
+
+                .text(item.label);
+
+            // Cambiar color de texto a blanco para "Malo" y "Severo"
+            if (item.label === 'Malo' || item.label === 'Severo') {
+                legendItem.style('color', 'white');
+            }
+        });
+    }
+
 }
 
 function updateCorrelationMatrixnew(dates) {
