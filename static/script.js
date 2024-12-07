@@ -1085,9 +1085,9 @@ function isMeteorologicalAttribute(attribute) {
 function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates = null) {
     const container = d3.select('#serie-temporal');
 
-    const margin = { top: 20, right: 30, bottom: 60, left: 60 };
+    const margin = { top: 20, right: 10, bottom: 60, left: 30 };
     const width = 840 - margin.left - margin.right;
-    const height = 330 - margin.top - margin.bottom;
+    const height = 360 - margin.top - margin.bottom;
 
     const contaminantAttributes = ['PM2_5', 'PM10', 'SO2', 'NO2', 'CO', 'O3'];
     const meteorologicalAttributes = ['TEMP', 'PRES', 'DEWP', 'RAIN'];
@@ -2268,7 +2268,7 @@ async function drawThemeRiver(cityFile, dates) {
         return normalized;
     });
 
-    const margin = { top: 50, right: 20, bottom: 50, left: 40 };
+    const margin = { top: 50, right: 30, bottom: 50, left: 20 };
     const width = 600 - margin.left - margin.right;
     const height = 400 - margin.top - margin.bottom;
 
