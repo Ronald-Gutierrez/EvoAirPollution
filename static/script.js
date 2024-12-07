@@ -1369,12 +1369,18 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
     
         // Agrupar los puntos consecutivos de la misma estación y dibujar líneas
         selectedAttributes.forEach(attribute => {
+            const filteredNormalizedData = normalizedData.filter(d => {
+                const value = d.value[attribute];
+                const aqiColor = getAQIColor(value, attribute);
+                return aqiColor !== '#7e0023'; // Filtrar puntos con color negro (fuera de rango)
+            });
+
             let previousPoint = null;
             let lineData = [];
             let currentSeason = null;
-    
-            // Primero procesar y dibujar todas las líneas
-            normalizedData.forEach((d, i) => {
+
+            // Procesar y dibujar líneas y puntos válidos
+            filteredNormalizedData.forEach((d, i) => {
                 const currentPoint = { 
                     x: xScale(d.date), 
                     y: yScale(d.normalizedValues[attribute]), 
@@ -1383,7 +1389,14 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                     value: d.value[attribute]
                 };
                 const season = getSeason(d.date.getMonth() + 1, d.date.getDate());
-    
+
+                // Verificar si el valor es undefined
+                if (d.value[attribute] === undefined) {
+                    // Si el valor es undefined, no unir con el punto anterior
+                    previousPoint = null; // Reiniciar previousPoint
+                    return; // Salir de la iteración actual
+                }
+
                 if (previousPoint && season === currentSeason) {
                     lineData.push(previousPoint);
                     lineData.push(currentPoint);
@@ -1396,15 +1409,15 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 previousPoint = currentPoint;
                 currentSeason = season;
             });
-    
+
             // Dibujar la última línea si es necesario
             if (lineData.length > 1) {
                 drawLine(chartSvg, lineData, currentSeason);
             }
-    
-            // Después dibujar los puntos
+
+            // Dibujar puntos válidos
             chartSvg.selectAll(`circle.${attribute}`)
-                .data(normalizedData)
+                .data(filteredNormalizedData)
                 .join('circle')
                 .attr('class', attribute)
                 .attr('cx', d => xScale(d.date))
