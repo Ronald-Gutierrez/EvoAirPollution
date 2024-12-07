@@ -387,7 +387,7 @@ const attributeColors = {
     'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
     'PM10': '#FF9900', // Naranja brillante para particulado
     'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
-    'NO2': '#4ee456', // Verde neón para contaminación visible
+    'NO2': '#d500f1', // Verde neón para contaminación visible
     'CO': '#00CED1', // Turquesa vibrante para gas incoloro
     'O3': '#0000FF', // Azul intenso para ozono
     'TEMP': '#008000', // Rosa fuerte para variación térmica
@@ -1162,7 +1162,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
             'PM10': '#FF9900', // Naranja brillante para particulado
             'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
-            'NO2': '#4ee456', // Verde neón para contaminación visible
+            'NO2': '#d500f1', // Verde neón para contaminación visible
             'CO': '#00CED1', // Turquesa vibrante para gas incoloro
             'O3': '#0000FF', // Azul intenso para ozono
             'TEMP': '#008000', // Rosa fuerte para variación térmica
@@ -1538,7 +1538,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                         'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
                         'PM10': '#FF9900', // Naranja brillante para particulado
                         'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
-                        'NO2': '#4ee456', // Verde neón para contaminación visible
+                        'NO2': '#d500f1', // Verde neón para contaminación visible
                         'CO': '#00CED1', // Turquesa vibrante para gas incoloro
                         'O3': '#0000FF', // Azul intenso para ozono
                         'TEMP': '#008000', // Rosa fuerte para variación térmica
@@ -2290,7 +2290,7 @@ async function drawThemeRiver(cityFile, dates) {
         'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
         'PM10': '#FF9900', // Naranja brillante para particulado
         'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
-        'NO2': '#4ee456', // Verde neón para contaminación visible
+        'NO2': '#d500f1', // Verde neón para contaminación visible
         'CO': '#00CED1', // Turquesa vibrante para gas incoloro
         'O3': '#0000FF', // Azul intenso para ozono
         'TEMP': '#008000', // Rosa fuerte para variación térmica
