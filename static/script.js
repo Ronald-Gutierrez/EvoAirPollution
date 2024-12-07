@@ -1,4 +1,3 @@
-
 // Variable para almacenar la última InfoWindow abierta
 let lastInfoWindow = null;
 
@@ -1186,7 +1185,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         const attributes = [...contaminantAttributes, ...meteorologicalAttributes];
 
         // Establece los atributos que estarán seleccionados por defecto
-        let selectedAttributes = ["PM2_5"]; // Ejemplo: solo O3 y PM10 seleccionados por defecto
+        let selectedAttributes = JSON.parse(localStorage.getItem('selectedAttributes')) || ["PM2_5"];
 
         const attributeColors = {
             'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
@@ -1224,12 +1223,15 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 div.append('input')
                     .attr('type', 'checkbox')
                     .attr('value', attribute)
-                    .property('checked', selectedAttributes.includes(attribute))  // Solo seleccionados por defecto
+                    .property('checked', selectedAttributes.includes(attribute))  // Usa el estado guardado
                     .on('change', function () {
-                        // Actualiza los atributos seleccionados
+                        // Actualiza los atributos seleccionados y guarda el estado
                         selectedAttributes = d3.selectAll('#checkbox-container input:checked')
                             .nodes()
                             .map(node => node.value);
+
+                        // Guarda el estado en el localStorage
+                        localStorage.setItem('selectedAttributes', JSON.stringify(selectedAttributes));
 
                         // Llama a drawChart para actualizar el gráfico
                         drawChart(selectedAttributes, data, startDate, endDate, selectedDates);
@@ -1244,7 +1246,6 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         // Llama a drawChart inicialmente con los atributos seleccionados por defecto
         drawChart(selectedAttributes, data, startDate, endDate, selectedDates);
     });
-
 
     
     function drawChart(selectedAttributes, data, startDate, endDate, selectedDates) {
