@@ -1084,8 +1084,8 @@ function isMeteorologicalAttribute(attribute) {
 function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates = null) {
     const container = d3.select('#serie-temporal');
 
-    const margin = { top: 20, right: 10, bottom: 60, left: 30 };
-    const width = 840 - margin.left - margin.right;
+    const margin = { top: 20, right: 10, bottom: 60, left: 50 };
+    const width = 800 - margin.left - margin.right;
     const height = 360 - margin.top - margin.bottom;
 
     const contaminantAttributes = ['PM2_5', 'PM10', 'SO2', 'NO2', 'CO', 'O3'];
@@ -1299,9 +1299,8 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             .attr('height', height + margin.top + margin.bottom)
             .append('g')
             .attr('transform', `translate(${margin.left}, ${margin.top})`);
-    
-        const xScale = d3.scaleTime()
-            .domain(d3.extent(normalizedData, d => d.date))
+            const xScale = d3.scaleTime()
+            .domain(d3.extent(normalizedData, d => d.date)) // Asegúrate de que 'date' sea un objeto Date
             .range([0, width]);
     
         const yExtent = d3.extent(
@@ -1311,20 +1310,21 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             .domain([Math.min(0, yExtent[0]), Math.max(1, yExtent[1])])
             .range([height, 0]);
     
-        const xAxis = d3.axisBottom(xScale).tickFormat(d3.timeFormat("%Y-%m-%d"));
-        const yAxis = d3.axisLeft(yScale);
-    
-        chartSvg.append('g')
+        // Crear el eje X
+        const xAxis = d3.axisBottom(xScale)
+            .tickFormat(d3.timeFormat("%d-%m-%Y")); // Formato de fecha "día/mes/año"
+            const yAxis = d3.axisLeft(yScale);
+            chartSvg.append('g')
             .attr('class', 'x-axis')
-            .attr('transform', `translate(0, ${height})`)
+            .attr('transform', `translate(0, ${height})`) // Colocar el eje en la parte inferior
             .call(xAxis)
             .selectAll("text")
-            .style("text-anchor", "middle")
+            .style("text-anchor", "middle") // Centrar el texto
             .style('font-size', '10px')
-            .attr("dx", "-34px")
+            .attr("dx", "-34px") // Ajustar la posición del texto
             .attr("dy", "0px")
-            .attr("transform", "rotate(-30)");
-    
+            .attr("transform", "rotate(-30)"); // Rotar 
+        
         chartSvg.append('g')
             .attr('class', 'y-axis')
             .call(yAxis)
@@ -2200,6 +2200,8 @@ function updateCorrelationMatrixnew(dates) {
 //////////
 ///GRAFICA PARA MI FLUIO DE EVOLCUION D ETHEME RIVER
 ////////
+
+
 async function drawThemeRiver(cityFile, dates) {
     // Añadir la fecha siguiente al último dato en el arreglo
     const lastDate = new Date(dates[dates.length - 1]);
@@ -2273,6 +2275,7 @@ async function drawThemeRiver(cityFile, dates) {
         .offset(d3.stackOffsetWiggle);
 
     const series = stack(normalizedData);
+    const xExtent = d3.extent(normalizedData, d => d.date); // Obtener el rango de fechas
 
     const x = d3.scaleLinear()
         .domain([0, normalizedData.length - 1])
@@ -2367,7 +2370,7 @@ async function drawThemeRiver(cityFile, dates) {
         svg.append("text")
             .attr("x", x(index))
             .attr("y", height + 30)
-            .text(d3.timeFormat("%Y-%m-%d")(date))
+            .text(d3.timeFormat("%d-%m-%Y")(date))
             .attr("fill", "black")
             .attr("font-size", "10px")
             .attr("text-anchor", "middle")
@@ -2376,7 +2379,7 @@ async function drawThemeRiver(cityFile, dates) {
 
     const xAxis = d3.axisBottom(x)
         .ticks(d3.timeDay.every(1))
-        .tickFormat(d3.timeFormat("%Y-%m-%d"))
+        .tickFormat(d3.timeFormat("%d-%m-%Y"))
         .tickSize(6);
 
     const yAxis = d3.axisLeft(y)
