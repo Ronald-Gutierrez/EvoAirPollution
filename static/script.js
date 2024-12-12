@@ -1085,7 +1085,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
     const container = d3.select('#serie-temporal');
 
     const margin = { top: 20, right: 10, bottom: 60, left: 50 };
-    const width = 800 - margin.left - margin.right;
+    const width = 830 - margin.left - margin.right;
     const height = 360 - margin.top - margin.bottom;
 
     const contaminantAttributes = ['PM2_5', 'PM10', 'SO2', 'NO2', 'CO', 'O3'];
@@ -1410,7 +1410,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .attr('class', attribute)
                 .attr('cx', d => xScale(d.date))
                 .attr('cy', d => yScale(d.normalizedValues[attribute]))
-                .attr('r', 3)
+                .attr('r',2)
                 .attr('fill', d => getAQIColor(d.value[attribute], attribute))
                 .on('mouseover', function(event, d) {
                     const [mouseX, mouseY] = d3.pointer(event);
@@ -1468,7 +1468,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                     const point = d3.select(this);
                     point.transition()
                         .duration(200)
-                        .attr('r', 4)
+                        .attr('r', 2)
                         .style('stroke', 'none')
                         .style('stroke-width', 0);
                 
