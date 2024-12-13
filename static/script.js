@@ -1410,7 +1410,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .attr('class', attribute)
                 .attr('cx', d => xScale(d.date))
                 .attr('cy', d => yScale(d.normalizedValues[attribute]))
-                .attr('r',2)
+                .attr('r', 2)
                 .attr('fill', d => getAQIColor(d.value[attribute], attribute))
                 .on('mouseover', function(event, d) {
                     const [mouseX, mouseY] = d3.pointer(event);
@@ -1760,6 +1760,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .attr('fill', 'none')
                 .attr('stroke', attributeColors[attribute])  // Usar el color del atributo
                 .attr('stroke-width', 2)
+                .attr('opacity', 0.7)  // Agregar opacidad a la línea
                 .on('mouseover', function(event, d) {
                     // Cambiar el estilo (ejemplo: aumentar el grosor de la línea)
                     d3.select(this)
