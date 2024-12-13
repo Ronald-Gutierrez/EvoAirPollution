@@ -1299,6 +1299,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             .attr('height', height + margin.top + margin.bottom)
             .append('g')
             .attr('transform', `translate(${margin.left}, ${margin.top})`);
+            
             const xScale = d3.scaleTime()
             .domain(d3.extent(normalizedData, d => d.date)) // Asegúrate de que 'date' sea un objeto Date
             .range([0, width]);
@@ -1410,7 +1411,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .attr('class', attribute)
                 .attr('cx', d => xScale(d.date))
                 .attr('cy', d => yScale(d.normalizedValues[attribute]))
-                .attr('r', 2)
+                .attr('r',2)
                 .attr('fill', d => getAQIColor(d.value[attribute], attribute))
                 .on('mouseover', function(event, d) {
                     const [mouseX, mouseY] = d3.pointer(event);
