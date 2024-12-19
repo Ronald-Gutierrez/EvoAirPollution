@@ -558,9 +558,9 @@ function updateRadialChartWithSelection(selectionData) {
     });
 }
 
-
 function drawRadialChart2(data, attributes) {
     d3.select('#chart-view-radial').html(""); // Limpia el gráfico existente
+
     const width = 450;
     const height = 450;
     const radius = Math.min(width, height) / 2 - 40;
@@ -571,8 +571,6 @@ function drawRadialChart2(data, attributes) {
                   .append('g')
                   .attr('transform', `translate(${width / 2}, ${height / 2})`);
 
-    const angleScale = d3.scaleLinear().domain([0, data.length]).range([0, 2 * Math.PI]);
-    const maxValues = attributes.map(attr => d3.max(data, d => d[attr]));
     const centralHoleRadius = 30;
     const ringWidth = (radius - centralHoleRadius) / attributes.length;
 
@@ -596,24 +594,106 @@ function drawRadialChart2(data, attributes) {
         'YearRound': '#6a3d9a'
     };
 
-    function getSeason(date) {
-        const month = date.getMonth(); // Get month (0-11)
-        const day = date.getDate(); // Get day (1-31)
-        
-        if ((month === 2 && day >= 20) || (month > 2 && month < 5) || (month === 5 && day <= 21)) {
-            return 'Spring';
-        } else if ((month === 5 && day >= 21) || (month > 5 && month < 8) || (month === 8 && day <= 22)) {
-            return 'Summer';
-        } else if ((month === 8 && day >= 23) || (month > 8 && month < 11) || (month === 11 && day <= 21)) {
-            return 'Autumn';
-        } else {
-            return 'Winter';
-        }
+    const attributeColors = {
+        'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
+        'PM10': '#FF9900', // Naranja brillante para particulado
+        'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
+        'NO2': '#d500f1', // Verde neón para contaminación visible
+        'CO': '#00CED1', // Turquesa vibrante para gas incoloro
+        'O3': '#0000FF', // Azul intenso para ozono
+        'TEMP': '#008000', // Verde para variación térmica
+        'PRES': '#8B0000', // Rojo oscuro para presión atmosférica
+        'DEWP': '#4B0082', // Indigo para representar humedad
+        'RAIN': '#1E90FF'  // Azul cielo para lluvia
+    };
+
+    // Obtener rango completo de fechas
+    const dateExtent = d3.extent(data, d => new Date(d.date));
+    const fullDateRange = d3.timeDay.range(dateExtent[0], d3.timeDay.offset(dateExtent[1], 1));
+
+    // Escala angular para cubrir todas las fechas
+    const angleScale = d3.scaleTime().domain(dateExtent).range([0, 2 * Math.PI]);
+
+    // Dibujar fondo por estaciones
+    const generateSeasonRanges = (year) => [
+        { season: 'Spring', start: new Date(year, 2, 20), end: new Date(year, 5, 21) },
+        { season: 'Summer', start: new Date(year, 5, 21), end: new Date(year, 8, 22) },
+        { season: 'Autumn', start: new Date(year, 8, 23), end: new Date(year, 11, 21) },
+        { season: 'Winter', start: new Date(year, 11, 21), end: new Date(year + 1, 2, 20) }
+    ];
+
+    const allSeasonRanges = [];
+    for (let year = dateExtent[0].getFullYear() - 1; year <= dateExtent[1].getFullYear() + 1; year++) {
+        allSeasonRanges.push(...generateSeasonRanges(year));
     }
+
+    allSeasonRanges.forEach(({ season, start, end }) => {
+        if (start < dateExtent[0]) start = dateExtent[0];
+        if (end > dateExtent[1]) end = dateExtent[1];
+        if (start >= end) return;
+
+        const startAngle = angleScale(start);
+        const endAngle = angleScale(end);
+
+        svg.append('path')
+           .attr('d', d3.arc()
+               .innerRadius(centralHoleRadius)
+               .outerRadius(radius)
+               .startAngle(startAngle)
+               .endAngle(endAngle))
+           .attr('fill', seasonColors[season])
+           .attr('opacity', 0.2)
+           .attr('class', `season-${season.replace(/\s+/g, '-')}`) // Clase específica para la estación
+           .on("click", function(event) {
+                const clickedSeason = season;
+                const selectedDates = data.filter(d => getSeason(new Date(d.date)) === clickedSeason)
+                    .map(d => d.date);
+                
+                // Verificar si hay fechas seleccionadas
+                if (selectedDates.length === 0) {
+                    console.log(`No hay datos para la estación ${clickedSeason}.`);
+                    return; // No hacer nada si no hay datos
+                }
+
+                console.log(`Fechas en la estación ${clickedSeason}:`, selectedDates);
+
+                // Limpiar selecciones previas
+                svg.selectAll('path').classed('selected', false);
+
+                // Resaltar la selección
+                svg.selectAll(`.season-${clickedSeason.replace(/\s+/g, '-')}`).classed('selected', true);
+
+                // Obtener la ciudad seleccionada
+                const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
+
+                // Actualizar la gráfica de series temporales con las fechas seleccionadas
+                updateTimeSeriesChart(selectedCity, null, null, selectedDates);
+           });
+    });
+
+    // Agregar líneas de corte en el 31 de diciembre de cada año
+    const years = d3.timeYear.range(dateExtent[0], d3.timeYear.offset(dateExtent[1], 1));
+    years.forEach(year => {
+        const dec31 = new Date(year, 11, 31);
+        const dec31Angle = angleScale(dec31);
+
+        svg.append('line')
+           .attr('x1', Math.sin(dec31Angle) * centralHoleRadius)
+           .attr('y1', -Math.cos(dec31Angle) * centralHoleRadius)
+           .attr('x2', Math.sin(dec31Angle) * radius)
+           .attr('y2', -Math.cos(dec31Angle) * radius)
+           .attr('stroke', '#000')
+           .attr('stroke-width', 2)
+           .attr('stroke-dasharray', '4,4');
+    });
+
+    // Obtener valores máximos por atributo
+    const maxValues = attributes.map(attr => d3.max(data, d => d[attr]));
 
     attributes.forEach((attr, index) => {
         const radialScale = d3.scaleLinear().domain([0, maxValues[index]]).range([centralHoleRadius + index * ringWidth, centralHoleRadius + (index + 1) * ringWidth]);
 
+        // Círculos de referencia
         svg.append("circle")
            .attr("cx", 0).attr("cy", 0)
            .attr("r", radialScale(maxValues[index]))
@@ -622,84 +702,25 @@ function drawRadialChart2(data, attributes) {
            .attr("stroke-width", 1)
            .attr("stroke-dasharray", "3,3");
 
-        const lineColor = attributeColors[attr] || '#000';
+        // Dibujar datos
         let previousDate = null;
-
         data.forEach((d, i) => {
             const date = new Date(d.date);
-            const season = getSeason(date);
-            const seasonColor = seasonColors[season];
-            const startAngle = angleScale(i);
-            const endAngle = angleScale(i + 1);
+            const angle = angleScale(date);
+            const value = d[attr] || 0;
+            const radiusValue = radialScale(value);
 
-            const pathArc = d3.arc()
-                              .innerRadius(centralHoleRadius + index * ringWidth)
-                              .outerRadius(radialScale(maxValues[index]))
-                              .startAngle(startAngle)
-                              .endAngle(endAngle);
-
-            svg.append('path')
-               .attr('d', pathArc)
-               .attr('fill', seasonColor)
-               .attr('opacity', 0.2)
-               .attr('class', `season-${season.replace(/\s+/g, '-')}`) // Clase específica para la estación
-               .on("click", function(event) {
-                    const clickedSeason = season;
-                    const selectedDates = data.filter(d => getSeason(new Date(d.date)) === clickedSeason)
-                        .map(d => d.date);
-                    console.log(`Fechas en la estación ${clickedSeason}:`, selectedDates);
-                    
-                    // Limpiar selecciones previas
-                    svg.selectAll('path').classed('selected', false);
-
-                    // Resaltar la selección
-                    svg.selectAll(`.season-${clickedSeason.replace(/\s+/g, '-')}`).classed('selected', true);
-
-                    // Obtener la ciudad seleccionada
-                    const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
-                    
-                    // Actualizar la gráfica de series temporales con las fechas seleccionadas
-                    updateTimeSeriesChart(selectedCity, null, null, selectedDates);
-               });
-
-            const currentAngle = angleScale(i);
-            const currentRadius = radialScale(d[attr] || 0);
-            const x = Math.sin(currentAngle) * currentRadius;
-            const y = -Math.cos(currentAngle) * currentRadius;
-
-            if (i > 0 && previousDate) {
-                const currentDate = new Date(d.date);
-                const diffDays = (currentDate - previousDate) / (1000 * 60 * 60 * 24);
-
-                if (diffDays === 1) {
-                    svg.append('line')
-                       .attr('x1', Math.sin(angleScale(i - 1)) * radialScale(data[i - 1][attr] || 0))
-                       .attr('y1', -Math.cos(angleScale(i - 1)) * radialScale(data[i - 1][attr] || 0))
-                       .attr('x2', x)
-                       .attr('y2', y)
-                       .attr('stroke', lineColor)
-                       .attr('stroke-width', 1.5);
-                } else {
-                    svg.append('line')
-                    .attr('x1', 0)
-                    .attr('y1', 0)
-                    .attr('x2', Math.sin(angleScale(i)) * radius)
-                    .attr('y2', -Math.cos(angleScale(i)) * radius)
-                    .attr('stroke', '#000')
-                    .attr('stroke-width', 1)
-                    .attr('stroke-dasharray', '4,2')
-                    .attr('opacity', 0.3); 
-                }
-            }
+            const x = Math.sin(angle) * radiusValue;
+            const y = -Math.cos(angle) * radiusValue;
 
             svg.append('circle')
                .attr('cx', x)
                .attr('cy', y)
-               .attr('r', 3)
-               .attr('fill', lineColor)
+               .attr('r', 2) // Puntos más pequeños
+               .attr('fill', attributeColors[attr])
                .on("mouseover", () => {
                    tooltip.style("display", "block")
-                          .html(`<strong>Fecha:</strong> ${d3.timeFormat('%d/%m/%Y')(new Date(d.date))}<br><strong>${attr}:</strong> ${d[attr].toFixed(2)}`);
+                          .html(`<strong>Fecha:</strong> ${d3.timeFormat('%d/%m/%Y')(date)}<br><strong>${attr}:</strong> ${value.toFixed(2)}`);
                })
                .on("mousemove", (event) => {
                    tooltip.style("left", (event.pageX + 10) + "px")
@@ -709,9 +730,30 @@ function drawRadialChart2(data, attributes) {
                    tooltip.style("display", "none");
                });
 
-            previousDate = new Date(d.date);
+            // Unir puntos si las fechas son consecutivas
+            if (previousDate) {
+                const diffDays = (date - previousDate) / (1000 * 60 * 60 * 24);
+                if (diffDays === 1) {
+                    const prevValue = data[i - 1][attr] || 0;
+                    const prevRadius = radialScale(prevValue);
+                    const prevAngle = angleScale(previousDate);
+                    const prevX = Math.sin(prevAngle) * prevRadius;
+                    const prevY = -Math.cos(prevAngle) * prevRadius;
+
+                    svg.append('line')
+                       .attr('x1', prevX)
+                       .attr('y1', prevY)
+                       .attr('x2', x)
+                       .attr('y2', y)
+                       .attr('stroke', attributeColors[attr])
+                       .attr('stroke-width', 1.5);
+                }
+            }
+
+            previousDate = date;
         });
 
+        // Etiqueta del atributo
         svg.append('text')
            .attr('x', 0)
            .attr('y', -radialScale(maxValues[index]) - 10)
@@ -722,27 +764,42 @@ function drawRadialChart2(data, attributes) {
            .text(attr);
     });
 
-    const step = Math.ceil(data.length / 10);
-    data.forEach((d, i) => {
-        if (i % step === 0) {
-            const angle = angleScale(i);
-            const x = Math.sin(angle) * (radius + 10);
-            const y = -Math.cos(angle) * (radius + 10);
-            const label = d3.timeFormat('%d %b')(new Date(d.date));
+    // Etiquetas de fechas alrededor del gráfico
+    fullDateRange.forEach((date, i) => {
+        const angle = angleScale(date);
+        const x = Math.sin(angle) * (radius + 10);
+        const y = -Math.cos(angle) * (radius + 10);
 
-            svg.append('text')
-               .attr('x', x)
-               .attr('y', y)
-               .attr('dy', '0.35em')
-               .attr('text-anchor', 'middle')
-               .attr('font-size', '10px')
-               .text(label);
+        let label = '';
+        if (i % Math.ceil(fullDateRange.length / 10) === 0) {
+            label = d3.timeFormat('%b %Y')(date); // Mes y año
         }
+        svg.append('text')
+           .attr('x', x)
+           .attr('y', y)
+           .attr('dy', '0.35em')
+           .attr('text-anchor', 'middle')
+           .attr('font-size', '10px')
+           .text(label);
     });
 }
 
 
 
+function getSeason(date) {
+    const month = date.getMonth(); // Get month (0-11)
+    const day = date.getDate(); // Get day (1-31)
+    
+    if ((month === 2 && day >= 20) || (month > 2 && month < 5) || (month === 5 && day <= 21)) {
+        return 'Spring';
+    } else if ((month === 5 && day >= 21) || (month > 5 && month < 8) || (month === 8 && day <= 22)) {
+        return 'Summer';
+    } else if ((month === 8 && day >= 23) || (month > 8 && month < 11) || (month === 11 && day <= 21)) {
+        return 'Autumn';
+    } else {
+        return 'Winter';
+    }
+}
 
 
 
