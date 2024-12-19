@@ -481,7 +481,7 @@ function drawRadialChart(data, attributes) {
             svg.append('path')
                .attr('d', pathArc)
                .attr('fill', seasonColor)
-               .attr('opacity', 0.2);
+               .attr('opacity', 0.3);
         });
     });
 
@@ -642,7 +642,7 @@ function drawRadialChart2(data, attributes) {
                .startAngle(startAngle)
                .endAngle(endAngle))
            .attr('fill', seasonColors[season])
-           .attr('opacity', 0.2)
+           .attr('opacity', 0.3)
            .attr('class', `season-${season.replace(/\s+/g, '-')}`) // Clase específica para la estación
            .on("click", function(event) {
                 const clickedSeason = season;
@@ -716,7 +716,7 @@ function drawRadialChart2(data, attributes) {
             svg.append('circle')
                .attr('cx', x)
                .attr('cy', y)
-               .attr('r', 2) // Puntos más pequeños
+               .attr('r', 1.5) // Puntos más pequeños
                .attr('fill', attributeColors[attr])
                .on("mouseover", () => {
                    tooltip.style("display", "block")
@@ -746,7 +746,7 @@ function drawRadialChart2(data, attributes) {
                        .attr('x2', x)
                        .attr('y2', y)
                        .attr('stroke', attributeColors[attr])
-                       .attr('stroke-width', 1.5);
+                       .attr('stroke-width', 1);
                 }
             }
 
@@ -1145,6 +1145,53 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
     const width = 830 - margin.left - margin.right;
     const height = 360 - margin.top - margin.bottom;
 
+    // Añadir contenedor para el checkbox AQI si no existe
+    let aqiCheckboxContainer = container.select('#aqi-checkbox-container');
+    
+    if (aqiCheckboxContainer.empty()) {
+        aqiCheckboxContainer = container.append('div')
+            .attr('id', 'aqi-checkbox-container')
+            .style('position', 'absolute')
+            .style('right', '20px')
+            .style('bottom', '361px')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '5px')
+            .style('background-color', 'rgba(255, 255, 255, 0.8)')
+            .style('padding', '5px')
+            .style('border-radius', '4px');
+        // Añadir el checkbox
+        aqiCheckboxContainer.append('input')
+            .attr('type', 'checkbox')
+            .attr('id', 'aqi-size-toggle')
+            .style('cursor', 'pointer');
+
+        // Añadir la etiqueta
+        aqiCheckboxContainer.append('label')
+            .attr('for', 'aqi-size-toggle')
+            .text('AQI')
+            .style('font-weight', 'bold')
+            .style('cursor', 'pointer')
+            .style('user-select', 'none');
+    }
+    // Obtener el checkbox
+    
+    const aqiCheckbox = document.querySelector('#aqi-size-toggle');
+
+    // Modificar el listener del checkbox AQI
+    aqiCheckbox.addEventListener('change', function () {
+        const isChecked = aqiCheckbox.checked;
+        // console.log(isChecked ? 'AQI seleccionado' : 'AQI no seleccionado');
+        
+        // Actualizar el radio de todos los círculos existentes
+        d3.select('#serie-temporal')
+            .selectAll('circle')
+            .transition()
+            .duration(200)  // Añadir una transición suave de 200ms
+            .attr('r', isChecked ? 4 : 0);
+    });
+
+    
     const contaminantAttributes = ['PM2_5', 'PM10', 'SO2', 'NO2', 'CO', 'O3'];
     const meteorologicalAttributes = ['TEMP', 'PRES', 'DEWP', 'RAIN'];
     const dailyLimits = {
@@ -1468,7 +1515,10 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .attr('class', attribute)
                 .attr('cx', d => xScale(d.date))
                 .attr('cy', d => yScale(d.normalizedValues[attribute]))
-                .attr('r',2)
+                .attr('r', () => {
+                    const aqiCheckbox = document.querySelector('#aqi-size-toggle');
+                    return aqiCheckbox.checked ? 4 : 0;
+                })
                 .attr('fill', d => getAQIColor(d.value[attribute], attribute))
                 .on('mouseover', function(event, d) {
                     const [mouseX, mouseY] = d3.pointer(event);

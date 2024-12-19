@@ -269,7 +269,7 @@ label#checkbox-container {
     height: 15px; /* Alto del cuadrado de color */
     margin-right: 15px; /* Espacio entre el cuadrado y el texto */
     border-radius: 20%;
-    opacity: 0.2; /* Opacidad del cuadrado de color */
+    opacity: 0.6; /* Opacidad del cuadrado de color */
 }
 
 
