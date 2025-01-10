@@ -383,6 +383,7 @@ document.getElementById('visualizar-todo').addEventListener('change', function (
     document.getElementById('fecha-fin').disabled = isChecked;
     updateChart();
     document.getElementById('fecha-rango').innerText = isChecked ? "Visualizando todos los datos." : "";
+    
 });
 
 // Asegúrate de que el estado del checkbox se refleje correctamente al cargar la página
@@ -1456,9 +1457,6 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             );
         }
     
-
-
-        
         const averagedData = d3.groups(filteredData, d => d.date)
             .map(([date, values]) => ({
                 date: date,
@@ -1996,12 +1994,14 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
 // Variable global para almacenar el contaminante seleccionado actualmente
 let currentContaminant = null;
 
-// Escuchar cambios en los checkboxes de ciudad para la gráfica radial
 document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(radio => {
     radio.addEventListener('change', () => {
         const selectedCity = radio.value;
-        const startDate = document.getElementById('fecha-inicio').value;
-        const endDate = document.getElementById('fecha-fin').value;
+
+        // Verificar si el checkbox 'visualizar-todo' está marcado
+        const isChecked = document.getElementById('visualizar-todo').checked;
+        const startDate = isChecked ? null : document.getElementById('fecha-inicio').value;
+        const endDate = isChecked ? null : document.getElementById('fecha-fin').value;
         
         // Establecer un contaminante por defecto (por ejemplo, PM2.5)
         currentContaminant = currentContaminant || 'PM2_5';
@@ -2053,6 +2053,7 @@ document.getElementById('visualizar-todo').addEventListener('change', function (
     }
     
     document.getElementById('fecha-rango').innerText = isChecked ? "Visualizando todos los datos." : "";
+            updateTimeSeriesChart(selectedCity, startDate, endDate);
 });
 
 
