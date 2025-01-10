@@ -1199,20 +1199,21 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         aqiCheckboxContainer = container.append('div')
             .attr('id', 'aqi-checkbox-container')
             .style('position', 'absolute')
-            .style('right', '20px')
-            .style('bottom', '361px')
+            .style('right', '2%') // Cambiado a porcentaje
+            .style('bottom', '87%') // Cambiado a porcentaje
             .style('display', 'flex')
             .style('align-items', 'center')
             .style('gap', '5px')
             .style('background-color', 'rgba(255, 255, 255, 0.8)')
             .style('padding', '5px')
             .style('border-radius', '4px');
+        
         // Añadir el checkbox
         aqiCheckboxContainer.append('input')
             .attr('type', 'checkbox')
             .attr('id', 'aqi-size-toggle')
             .style('cursor', 'pointer');
-
+    
         // Añadir la etiqueta
         aqiCheckboxContainer.append('label')
             .attr('for', 'aqi-size-toggle')
@@ -1221,6 +1222,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             .style('cursor', 'pointer')
             .style('user-select', 'none');
     }
+    
     // Obtener el checkbox
     
     const aqiCheckbox = document.querySelector('#aqi-size-toggle');
@@ -1238,7 +1240,53 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             .attr('r', isChecked ? 4 : 0);
     });
 
+    // Añadir contenedor para el checkbox LINE si no existe
+    let lineCheckboxContainer = container.select('#line-checkbox-container');
+
+    if (lineCheckboxContainer.empty()) {
+        lineCheckboxContainer = container.append('div')
+            .attr('id', 'line-checkbox-container')
+            .style('position', 'absolute')
+            .style('right', '1.35%') // Cambiado a porcentaje
+            .style('bottom', '80%') // Ajustado para que esté debajo de AQI (modificado según sea necesario)
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('gap', '5px')
+            .style('background-color', 'rgba(255, 255, 255, 0.8)')
+            .style('padding', '5px')
+            .style('border-radius', '4px');
+        
+        // Añadir el checkbox
+        lineCheckboxContainer.append('input')
+            .attr('type', 'checkbox')
+            .attr('id', 'line-size-toggle')
+            .style('cursor', 'pointer');
+        
+        // Añadir la etiqueta
+        lineCheckboxContainer.append('label')
+            .attr('for', 'line-size-toggle')
+            .text('Line')
+            .style('font-weight', 'bold')
+            .style('cursor', 'pointer')
+            .style('user-select', 'none');
+    }
+
+    // Obtener el checkbox
+    const lineCheckbox = document.querySelector('#line-size-toggle');
+    lineCheckbox.checked = true;
+
+    lineCheckbox.addEventListener('change', function () {
+        const isChecked = lineCheckbox.checked;
     
+        // Seleccionar todas las líneas y cambiar su visibilidad
+        d3.select('#serie-temporal')
+            .selectAll('path.line') // Seleccionar las líneas con clase "line"
+            .transition()
+            .duration(200) // Transición suave
+            .style('opacity', isChecked ? 0.7 : 0); // Mostrar u ocultar las líneas
+    });
+    
+
     const contaminantAttributes = ['PM2_5', 'PM10', 'SO2', 'NO2', 'CO', 'O3'];
     const meteorologicalAttributes = ['TEMP', 'PRES', 'DEWP', 'RAIN'];
     const dailyLimits = {
@@ -1554,7 +1602,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             if (lineData.length > 1) {
                 drawLine(chartSvg, lineData, attribute); // Pasa el atributo correspondiente
             }
-
+ 
             // Dibujar puntos válidos
             chartSvg.selectAll(`circle.${attribute}`)
                 .data(filteredNormalizedData)
