@@ -42,8 +42,8 @@ function initMap() {
         styles: mapStyles,
         disableDefaultUI: false,
         zoomControl: false, // Desactiva el control de zoom (+ y -)
-        mapTypeControl: true, // Desactiva el control para cambiar a vista de satélite
-        streetViewControl: true // Desactiva el muñequito de Street View
+        mapTypeControl: false, // Desactiva el control para cambiar a vista de satélite
+        streetViewControl: false // Desactiva el muñequito de Street View
     });
 
     const stationsByCity = {};
@@ -80,7 +80,7 @@ function initMap() {
                 const marker = new google.maps.Marker({
                     position: position,
                     map: map,
-                    title: station.stationId,
+                    // title: station.stationId,
                     icon: {
                         url: iconUrl,
                         scaledSize: new google.maps.Size(25, 25)
@@ -95,6 +95,38 @@ function initMap() {
                     // selectCityCheckbox(station.stationId);
 
                 });
+                // Crear un elemento div para el tooltip
+                const tooltipDiv = document.createElement('div');
+                tooltipDiv.style.position = 'absolute';
+                tooltipDiv.style.background = '#ffffff';
+                tooltipDiv.style.color = '#333';
+                tooltipDiv.style.border = '1px solid #ccc';
+                tooltipDiv.style.borderRadius = '5px';
+                tooltipDiv.style.padding = '5px 10px';
+                tooltipDiv.style.fontSize = '12px';
+                tooltipDiv.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+                tooltipDiv.style.display = 'none'; // Inicialmente oculto
+                document.body.appendChild(tooltipDiv);
+
+                // Evento de mouseover para mostrar el tooltip
+                marker.addListener("mouseover", (e) => {
+                    tooltipDiv.style.display = 'block';
+                    tooltipDiv.innerHTML = `<strong>${station.stationId.charAt(0).toUpperCase() + station.stationId.slice(1)}</strong>`;
+                    tooltipDiv.style.left = `${e.domEvent.pageX + 10}px`; // Posicionar cerca del mouse
+                    tooltipDiv.style.top = `${e.domEvent.pageY + 10}px`;
+                });
+
+                // Evento de mousemove para actualizar la posición del tooltip
+                marker.addListener("mousemove", (e) => {
+                    tooltipDiv.style.left = `${e.domEvent.pageX + 10}px`;
+                    tooltipDiv.style.top = `${e.domEvent.pageY + 10}px`;
+                });
+
+                // Evento de mouseout para ocultar el tooltip
+                marker.addListener("mouseout", () => {
+                    tooltipDiv.style.display = 'none';
+                });
+
 
                 // Asignar la estación al objeto de estaciones por ciudad
                 if (!stationsByCity[station.city]) {
@@ -183,10 +215,20 @@ function updateInfoWindowContent(infoWindow, station, map, marker) {
     console.log(averageAQI)
     ColorAqiglobal = averageAQI
     console.log(ColorAqiglobal)
+    console.log(station.stationId)
+    selectCityCheckbox(station.stationId)
     infoWindow.setContent(content);
     openInfoWindow(map, marker, infoWindow);
 }
-
+function selectCityCheckbox(city) {
+    const newCity = `Data_${city.charAt(0).toUpperCase() + city.slice(1)}.csv`;
+    console.log(newCity);
+    const checkbox = document.querySelector(`input[name="city"][value="${newCity}"]`);
+    if (checkbox) {
+        checkbox.checked = true;
+        checkbox.dispatchEvent(new Event('change'));
+    }
+}
 
 // Función para calcular los promedios de AQI, WSPM y WD en un rango de fechas
 function calculateAverages(station, fechaInicio, fechaFin) {
@@ -326,7 +368,7 @@ document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(checkb
     checkbox.addEventListener('change', updateChart);
 });
 
-// Escuchar cambios en los checkboxes de atributos para la gráfica radial
+// Escuchar cambios en los checkboxes 
 document.querySelectorAll('.options-chek input[type="checkbox"]').forEach(checkbox => {
     checkbox.addEventListener('change', updateChart);
 });
@@ -342,6 +384,11 @@ document.getElementById('visualizar-todo').addEventListener('change', function (
     updateChart();
     document.getElementById('fecha-rango').innerText = isChecked ? "Visualizando todos los datos." : "";
 });
+
+// Asegúrate de que el estado del checkbox se refleje correctamente al cargar la página
+document.getElementById('visualizar-todo').checked = true; // Marca el checkbox
+document.getElementById('visualizar-todo').dispatchEvent(new Event('change')); // Llama al evento para aplicar los cambios
+
 
 // Modificar la función updateChart para la gráfica radial
 function updateChart() {
@@ -904,7 +951,7 @@ function updateCorrelationMatrix() {
     // Obtener el rango de fechas si no es "visualizar todo"
     const startDate = document.getElementById('fecha-inicio').value;
     const endDate = document.getElementById('fecha-fin').value;
-    const visualizarTodo = document.getElementById('visualizar-todo').checked;
+    const visualizarTodo = document.getElementById('visualizar-todo').value;
 
     selectedCities.forEach(selectedCity => {
         // console.log(`Generando la matriz de correlación para la ciudad: ${selectedCity}`);
@@ -2030,6 +2077,39 @@ function plotUMAP(data) {
     // Limpiar el gráfico anterior
     d3.select("#umap-plot").selectAll("*").remove();
 
+    function updateFilterOpacity(activeFilterId) {
+        const filters = ["station-filter", "year-filter", "month-filter"];
+        filters.forEach((filterId) => {
+            const filterElement = document.getElementById(filterId);
+            if (filterId === activeFilterId) {
+                filterElement.classList.remove("dimmed");
+            } else {
+                filterElement.classList.add("dimmed");
+            }
+        });
+    }
+
+    // Evento para la estación del año
+    document.getElementById('station-filter').addEventListener('change', (event) => {
+        const selectedSeason = event.target.value;
+        highlightSeason(selectedSeason, data, svg, xScale, yScale);
+        updateFilterOpacity('station-filter');
+    });
+
+    // Evento para el año
+    document.getElementById('year-filter').addEventListener('change', (event) => {
+        const selectedYear = parseInt(event.target.value);
+        highlightYear(selectedYear, data, svg, xScale, yScale);
+        updateFilterOpacity('year-filter');
+    });
+
+    // Evento para el mes
+    document.getElementById('month-filter').addEventListener('change', (event) => {
+        const selectedMonth = event.target.value;
+        highlightMonth(selectedMonth, data, svg, xScale, yScale);
+        updateFilterOpacity('month-filter');
+    });
+
     // Dimensiones del contenedor
     const container = d3.select("#umap-plot");
     const width = container.node().clientWidth || 800; // Default width
@@ -2083,6 +2163,8 @@ function plotUMAP(data) {
         .attr("fill", d => colorScale(d.AQI))
         .attr("opacity", 1)
         .attr("stroke", "none")  // Sin borde inicialmente
+            // Agregar manejador para el filtro de estación
+
         .on("mouseover", (event, d) => {
             tooltip.style("visibility", "visible")
                 .html(`
@@ -2105,7 +2187,76 @@ function plotUMAP(data) {
                 .attr("r", 6)  // Restaurar el radio original
                 .attr("stroke", "none");  // Quitar el borde
         });
-
+        
+        function highlightSeason(season, data, svg, xScale, yScale) {
+            // Definir rangos de fechas para cada estación
+            const seasonRanges = {
+                Primavera: { start: { month: 3, day: 20 }, end: { month: 6, day: 21 } },
+                Verano: { start: { month: 6, day: 21 }, end: { month: 9, day: 22 } },
+                Otoño: { start: { month: 9, day: 22 }, end: { month: 12, day: 21 } },
+                Invierno: { start: { month: 12, day: 21 }, end: { month: 3, day: 20 } },
+            };
+        
+            const range = seasonRanges[season];
+            if (!range) return;
+        
+            function isInSeason(d) {
+                const start = new Date(d.year, range.start.month - 1, range.start.day);
+                const end = new Date(d.year, range.end.month - 1, range.end.day);
+                const date = new Date(d.year, d.month - 1, d.day);
+        
+                if (season === 'Invierno') {
+                    return (
+                        (date >= start && d.month >= 12) || 
+                        (d.month <= 3 && date <= end)
+                    );
+                }
+        
+                return date >= start && date <= end;
+            }
+        
+            svg.selectAll("circle")
+                .attr("stroke", "none")
+                .attr("r", 6);
+        
+            svg.selectAll("circle")
+                .filter(d => isInSeason(d))
+                .attr("stroke", "blue")
+                .attr("stroke-width", 2)
+                .attr("r", 8);
+        }
+        
+        function highlightYear(year, data, svg, xScale, yScale) {
+            svg.selectAll("circle")
+                .attr("stroke", "none")
+                .attr("r", 6);
+        
+            svg.selectAll("circle")
+                .filter(d => d.year === year)
+                .attr("stroke", "blue")
+                .attr("stroke-width", 2)
+                .attr("r", 8);
+        }
+        
+        function highlightMonth(month, data, svg, xScale, yScale) {
+            const months = {
+                Enero: 1, Febrero: 2, Marzo: 3, Abril: 4, Mayo: 5, Junio: 6,
+                Julio: 7, Agosto: 8, Septiembre: 9, Octubre: 10, Noviembre: 11, Diciembre: 12
+            };
+        
+            const monthNumber = months[month];
+            if (!monthNumber) return;
+        
+            svg.selectAll("circle")
+                .attr("stroke", "none")
+                .attr("r", 6);
+        
+            svg.selectAll("circle")
+                .filter(d => d.month === monthNumber)
+                .attr("stroke", "blue")
+                .attr("stroke-width", 2)
+                .attr("r", 8);
+        }
     // Variables para la selección
     let isDrawing = false;
     let points = [];
@@ -2119,7 +2270,7 @@ function plotUMAP(data) {
         });
 
     svg.call(zoom);
-    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 9.5).scale(0.8);
+    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 20).scale(0.79);
     svg.call(zoom).call(zoom.transform, initialTransform);
 
     svg.on("mousedown", (event) => {
@@ -2213,7 +2364,7 @@ function plotUMAP(data) {
                     const cy = parseFloat(this.getAttribute("cy"));
                     return cx === x && cy === y;
                 })
-                .attr("r", 10)  // Cambiar el tamaño del radio
+                .attr("r", 8)  // Cambiar el tamaño del radio
                 .attr("stroke", "blue")  // Agregar borde azul
                 .attr("stroke-width", 3);  // Establecer el grosor del borde
         });

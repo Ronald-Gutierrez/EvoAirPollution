@@ -376,3 +376,38 @@ label#checkbox-container {
     stroke: rgb(255, 0, 0);
     stroke-width: 3;
 }
+
+
+
+/* PARA MIS DATOS TEMPORALES FILTROS */
+
+
+.filter-container {
+    display: flex;
+    justify-content: flex-start; /* Alinea los filtros a la izquierda dentro de su contenedor */
+    margin-left: 190px; /* Aumenta el valor para mover los filtros más a la derecha */
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column; /* Organiza la etiqueta arriba del selector */
+    margin-right: 20px; /* Espacio entre los filtros */
+}
+
+.filter-item label {
+    font-weight: bold;
+    font-size: 11px; /* Tamaño de fuente más pequeño */
+}
+
+.filter-item select {
+    padding: 2px 4px; /* Padding más pequeño */
+    font-size: 12px; /* Tamaño de fuente más pequeño */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    width: 90px; /* Ancho más pequeño de los selectores */
+}
+.dimmed {
+    opacity: 0.5; 
+}
+
