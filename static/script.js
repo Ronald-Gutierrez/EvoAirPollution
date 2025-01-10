@@ -2078,7 +2078,7 @@ document.getElementById('visualizar-todo').addEventListener('change', function (
 });
 
 async function fetchData(selectedCity) {
-    const response = await fetch(`UMAP_AQI/${selectedCity}`);
+    const response = await fetch(`UMAP_AQI_NEW/${selectedCity}`);
     const data = await response.text();
     return d3.csvParse(data, d => ({
         year: +d.year,
