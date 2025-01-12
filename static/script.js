@@ -458,7 +458,7 @@ function drawRadialChart(data, attributes) {
                   .append('g')
                   .attr('transform', `translate(${width / 2}, ${height / 2})`);
 
-    const angleScale = d3.scaleLinear().domain([0, data.length]).range([0, 2 * Math.PI]);
+    const angleScale = d3.scaleLinear().domain([0, data.length]).range([0, -2 * Math.PI]);
     const maxValues = attributes.map(attr => d3.max(data, d => d[attr]));
     const centralHoleRadius = 30;
     const ringWidth = (radius - centralHoleRadius) / attributes.length;
@@ -660,7 +660,7 @@ function drawRadialChart2(data, attributes) {
     const fullDateRange = d3.timeDay.range(dateExtent[0], d3.timeDay.offset(dateExtent[1], 1));
 
     // Escala angular para cubrir todas las fechas
-    const angleScale = d3.scaleTime().domain(dateExtent).range([0, 2 * Math.PI]);
+    const angleScale = d3.scaleTime().domain(dateExtent).range([0, -2 * Math.PI]);
 
     // Dibujar fondo por estaciones
     const generateSeasonRanges = (year) => [
@@ -1200,8 +1200,8 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         aqiCheckboxContainer = container.append('div')
             .attr('id', 'aqi-checkbox-container')
             .style('position', 'absolute')
-            .style('right', '2%') // Cambiado a porcentaje
-            .style('bottom', '87%') // Cambiado a porcentaje
+            .style('right', '2%') 
+            .style('bottom', '87%') 
             .style('display', 'flex')
             .style('align-items', 'center')
             .style('gap', '5px')
@@ -1669,7 +1669,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                     const point = d3.select(this);
                     point.transition()
                         .duration(200)
-                        .attr('r', 2)
+                        .attr('r', 4)
                         .style('stroke', 'none')
                         .style('stroke-width', 0);
                 
@@ -1871,9 +1871,11 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             
                         selectedContaminants.forEach(contaminant => {
                             const line = d3.line()
-                                .defined(d => !isNaN(d[contaminant]))
-                                .x(d => xMiniScale(d.hour))
-                                .y(d => yMiniScale(d[contaminant]));
+                            .defined(d => !isNaN(d[contaminant]))
+                            .x(d => xMiniScale(d.hour))
+                            .y(d => yMiniScale(d[contaminant]))
+                            .curve(d3.curveMonotoneX); 
+                        
             
                             miniSvg.append('path')
                                 .datum(normalizedData)
@@ -1952,43 +1954,46 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 
         });
 
-        // Función para dibujar las líneas con el color correspondiente
-        function drawLine(chartSvg, points, attribute) {
-            chartSvg.append('path')
-                .data([points])  // Aseguramos de pasar un array de puntos
-                .attr('class', 'line')
-                .attr('d', d3.line().x(d => d.x).y(d => d.y)(points))  // Usamos 'points' en lugar de 'd'
-                .attr('fill', 'none')
-                .attr('stroke', attributeColors[attribute])  // Usar el color del atributo
-                .attr('stroke-width', 2)
-                .attr('opacity', 0.7)  // Agregar opacidad a la línea
-                .on('mouseover', function(event, d) {
-                    // Cambiar el estilo (ejemplo: aumentar el grosor de la línea)
-                    d3.select(this)
-                        .attr('stroke-width', 4);  // Aumenta el grosor de la línea en hover
-
-                    // Mostrar tooltip con el valor promedio o algún dato relevante
-                    chartSvg.append('text')
-                        .attr('id', 'tooltip')
-                        .attr('x', xScale(d[0].date) + 5)
-                        .attr('y', yScale(d3.mean(d, p => p.y)) - 10)  // Promedio de la Y de la línea
-                        .attr('font-size', '12px')
-                        .attr('fill', '#000')
-                        .text(`Attribute: ${attribute}`); // Cambiar a mostrar el atributo
-                })
-                .on('mouseout', function(event, d) {
-                    // Restaurar el estilo al salir
-                    d3.select(this)
-                        .attr('stroke-width', 2);  // Restaurar el grosor original
-
-                    // Eliminar el tooltip
-                    chartSvg.select('#tooltip').remove();
-                });
-        }
-                }
+    }
     
 }
+function drawLine(chartSvg, points, attribute) {
+    const lineGenerator = d3.line()
+        .x(d => d.x)
+        .y(d => d.y)
+        .curve(d3.curveMonotoneX); // Suaviza las líneas
 
+    chartSvg.append('path')
+        .data([points]) // Aseguramos pasar un array de puntos
+        .attr('class', 'line')
+        .attr('d', lineGenerator(points)) // Usamos el generador de líneas suavizado
+        .attr('fill', 'none')
+        .attr('stroke', attributeColors[attribute]) // Usar el color del atributo
+        .attr('stroke-width', 2)
+        .attr('opacity', 0.7) // Agregar opacidad a la línea
+        .on('mouseover', function(event, d) {
+            // Cambiar el estilo (ejemplo: aumentar el grosor de la línea)
+            d3.select(this)
+                .attr('stroke-width', 4); // Aumenta el grosor de la línea en hover
+
+            // Mostrar tooltip con el valor promedio o algún dato relevante
+            chartSvg.append('text')
+                .attr('id', 'tooltip')
+                .attr('x', points[0].x + 5) // Usamos el primer punto como referencia
+                .attr('y', d3.mean(points, p => p.y) - 10) // Promedio de las coordenadas Y
+                .attr('font-size', '12px')
+                .attr('fill', '#000')
+                // .text(`Attribute: ${attribute}`); // Cambiar a mostrar el atributo
+        })
+        .on('mouseout', function(event, d) {
+            // Restaurar el estilo al salir
+            d3.select(this)
+                .attr('stroke-width', 2); // Restaurar el grosor original
+
+            // Eliminar el tooltip
+            chartSvg.select('#tooltip').remove();
+        });
+}
 
 
 // Variable global para almacenar el contaminante seleccionado actualmente
