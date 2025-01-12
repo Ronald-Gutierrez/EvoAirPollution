@@ -867,12 +867,11 @@ document.querySelectorAll('.options-chek-correlation input[type="checkbox"]').fo
 // Escuchar cambios en el rango de fechas
 document.getElementById('fecha-inicio').addEventListener('change', updateCorrelationMatrix);
 document.getElementById('fecha-fin').addEventListener('change', updateCorrelationMatrix);
-
 // Función para calcular la matriz de correlación
 function calculateCorrelationMatrix(data, selectedAttributes) {
     const matrix = [];
 
-    // Normalizar datos
+    // Normalizar los datos
     const normalizedData = normalizeData(data, selectedAttributes);
 
     // Iterar sobre cada par de atributos seleccionados
@@ -893,12 +892,26 @@ function calculateCorrelationMatrix(data, selectedAttributes) {
 
 // Función para normalizar los datos (z-score)
 function normalizeData(data, selectedAttributes) {
+    const means = {};
+    const stdDevs = {};
+
+    // Calcular media y desviación estándar para cada atributo
+    selectedAttributes.forEach(attr => {
+        const values = data.map(d => +d[attr]); // Convertir a números
+        const mean = d3.mean(values);
+        const stdDev = Math.sqrt(d3.mean(values.map(v => Math.pow(v - mean, 2)))); // Desviación estándar
+        means[attr] = mean;
+        stdDevs[attr] = stdDev;
+    });
+
+    // Normalizar cada registro
     return data.map(d => {
         const normalizedEntry = {};
         selectedAttributes.forEach(attr => {
-            const mean = d3.mean(data, d => +d[attr]);
-            const stdDev = Math.sqrt(d3.mean(data, d => Math.pow(+d[attr] - mean, 2))); // desviación estándar
-            normalizedEntry[attr] = (+d[attr] - mean) / stdDev;
+            const mean = means[attr];
+            const stdDev = stdDevs[attr];
+            // Evitar divisiones por cero si la desviación estándar es 0
+            normalizedEntry[attr] = stdDev === 0 ? 0 : (+d[attr] - mean) / stdDev;
         });
         return normalizedEntry;
     });
@@ -907,6 +920,10 @@ function normalizeData(data, selectedAttributes) {
 // Función para calcular la correlación entre dos atributos en los datos normalizados
 function calculateCorrelation(data, attr1, attr2) {
     const n = data.length;
+
+    // Manejar casos con menos de 2 registros
+    if (n < 2) return 0;
+
     const mean1 = d3.mean(data, d => d[attr1]);
     const mean2 = d3.mean(data, d => d[attr2]);
     let numerator = 0;
@@ -921,16 +938,20 @@ function calculateCorrelation(data, attr1, attr2) {
         denominator2 += y * y;
     });
 
+    // Evitar divisiones por cero si los denominadores son 0
+    if (denominator1 === 0 || denominator2 === 0) return 0;
+
     return numerator / Math.sqrt(denominator1 * denominator2);
 }
 
-
+// Función para calcular la matriz de distancias (de acuerdo a la correlación)
 function calculateDistanceMatrix(correlationMatrix) {
     const numAttributes = correlationMatrix.length;
     const distanceMatrix = Array.from({ length: numAttributes }, () => Array(numAttributes).fill(0));
 
     for (let i = 0; i < numAttributes; i++) {
         for (let j = 0; j < numAttributes; j++) {
+            // Convertir correlación a distancia usando la fórmula (1 - correlación)
             distanceMatrix[i][j] = Math.sqrt(2 * (1 - correlationMatrix[i][j]));
         }
     }
@@ -979,6 +1000,7 @@ function updateCorrelationMatrix() {
             const correlationMatrix = calculateCorrelationMatrix(parsedData, selectedAttributes);
             const matrizdistancia = calculateDistanceMatrix(correlationMatrix);
             const hierarchyData = buildHierarchy(selectedAttributes, matrizdistancia);
+            // console.log(hierarchyData);
 
             // Crear o actualizar el dendrograma radial con los rangos de fecha y la ciudad
             createRadialDendrogram(hierarchyData, selectedAttributes, matrizdistancia, selectedCity, visualizarTodo ? 'Todos los datos' : `${startDate} a ${endDate}`);
@@ -2390,11 +2412,11 @@ function plotUMAP(data) {
 
         // Obtener el archivo de la ciudad seleccionada
         const cityFile = selectionData[0].city;
-        console.log("Puntos seleccionados:");
-        console.log(`Ciudad: ${selectionData[0].city}`);
-        selectionData.forEach(d => {
-            console.log(`Fecha: ${d.day}/${d.month}/${d.year}`);
-        });
+        // console.log("Puntos seleccionados:");
+        // console.log(`Ciudad: ${selectionData[0].city}`);
+        // selectionData.forEach(d => {
+        //     console.log(`Fecha: ${d.day}/${d.month}/${d.year}`);
+        // });
 
         // Llamar a las funciones con las fechas seleccionadas
         updateTimeSeriesChart(cityFile, null, null, selectedDates);
@@ -2469,6 +2491,7 @@ function plotUMAP(data) {
 }
 
 function updateCorrelationMatrixnew(dates) {
+    console.log(dates);
     const selectedAttributes = Array.from(document.querySelectorAll('.options-chek-correlation input[type="checkbox"]:checked'))
                                     .map(cb => cb.value);
 
@@ -2498,11 +2521,12 @@ function updateCorrelationMatrixnew(dates) {
                 });
                 return avg;
             });
-
+            console.log(parsedData);
             const correlationMatrix = calculateCorrelationMatrix(parsedData, selectedAttributes);
             const matrizdistancia = calculateDistanceMatrix(correlationMatrix);
             const hierarchyData = buildHierarchy(selectedAttributes, matrizdistancia);
-
+            console.log(correlationMatrix);
+            
             // Crear o actualizar el dendrograma radial
             createRadialDendrogram(hierarchyData, selectedAttributes, matrizdistancia, selectedCity, dates.join(', '));
         });
