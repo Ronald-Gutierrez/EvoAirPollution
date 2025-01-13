@@ -574,7 +574,7 @@ function drawRadialChart(data, attributes) {
 
 // GRAFICAS PAR RADIAL PERO QUE SEA POR LA SELECCION DEL UMAPO
 
-function updateRadialChartWithSelection(selectionData) {
+function updateRadialChartWithSelection(selectionData, fechaInicio, fechaFin) {
     if (selectionData.length === 0) return;
 
     const selectedCity = selectionData[0].city; // Nombre de la ciudad seleccionada
@@ -602,11 +602,11 @@ function updateRadialChartWithSelection(selectionData) {
         });
 
         // Llamar a la nueva función para dibujar la gráfica radial
-        drawRadialChart2(aggregatedData, attributes);
+        drawRadialChart2(aggregatedData, attributes, fechaInicio, fechaFin);
     });
 }
 
-function drawRadialChart2(data, attributes) {
+function drawRadialChart2(data, attributes, fechaInicio, fechaFin) {
     d3.select('#chart-view-radial').html(""); // Limpia el gráfico existente
 
     const width = 450;
@@ -715,7 +715,7 @@ function drawRadialChart2(data, attributes) {
                 const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
 
                 // Actualizar la gráfica de series temporales con las fechas seleccionadas
-                updateTimeSeriesChart(selectedCity, null, null, selectedDates);
+                updateTimeSeriesChart(selectedCity, fechaInicio , fechaFin, selectedDates);
            });
     });
 
@@ -2372,7 +2372,7 @@ function plotUMAP(data,fechaInicio, fechaFin) {
         updateTimeSeriesChart(cityFile, fechaInicio, fechaFin, selectedDates);
         updateCorrelationMatrixnew(selectedDates);
         drawThemeRiver(cityFile, selectedDates);
-        updateRadialChartWithSelection(selectionData);
+        updateRadialChartWithSelection(selectionData, fechaInicio, fechaFin);
 
         // Restaurar todos los puntos a su estado original antes de aplicar cambios a los puntos seleccionados
         svg.selectAll("circle")
