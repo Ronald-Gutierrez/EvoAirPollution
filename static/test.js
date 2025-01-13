@@ -1,4 +1,5 @@
 
+
 function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates = null) {
     const container = d3.select('#serie-temporal');
 
@@ -136,15 +137,6 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             return 'Winter';
         }
     }
-    const legendData = [
-        { color: '#00E400', label: 'Bueno' },
-        { color: '#FFFF00', label: 'Moderado' },
-        { color: '#FF7E00', label: 'Insalubre' },
-        { color: '#FF0000', label: 'Muy Insalubre' },
-        { color: '#99004c', label: 'Malo' },
-        { color: '#800000', label: 'Severo' }
-    ];
-    
 
     
     function normalizeValue(value, min, max) {
@@ -168,20 +160,19 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
     d3.csv(`data/${selectedCity}`).then(data => {
         const attributes = [...contaminantAttributes, ...meteorologicalAttributes];
 
-        // Establece los atributos que estarán seleccionados por defecto
         let selectedAttributes = JSON.parse(localStorage.getItem('selectedAttributes')) || ["PM2_5"];
 
         const attributeColors = {
-            'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
-            'PM10': '#FF9900', // Naranja brillante para particulado
-            'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
-            'NO2': '#d500f1', // Verde neón para contaminación visible
-            'CO': '#00CED1', // Turquesa vibrante para gas incoloro
-            'O3': '#0000FF', // Azul intenso para ozono
-            'TEMP': '#008000', // Rosa fuerte para variación térmica
-            'PRES': '#8B0000', // Rojo oscuro para presión atmosférica
-            'DEWP': '#4B0082', // Indigo para representar humedad
-            'RAIN': '#1E90FF'  // Azul cielo para lluvia
+            'PM2_5': '#FF0000', 
+            'PM10': '#FF9900', 
+            'SO2': '#FFD700', 
+            'NO2': '#d500f1', 
+            'CO': '#00CED1', 
+            'O3': '#0000FF', 
+            'TEMP': '#008000', 
+            'PRES': '#8B0000', 
+            'DEWP': '#4B0082', 
+            'RAIN': '#1E90FF'  
         };
         let checkboxContainer = container.select('#checkbox-container');
         if (checkboxContainer.empty()) {
@@ -190,7 +181,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .style('display', 'flex')
                 .style('gap', '10px')
                 .style('flex-wrap', 'wrap')
-                .style('font-weight', 'bold')  // Hacer el texto en negrita
+                .style('font-weight', 'bold') 
                 .style('margin', '30px 0 10px 50px');
         } else {
             checkboxContainer.selectAll('*').remove();
@@ -200,17 +191,15 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             .data(attributes)
             .join('div')
             .style('display', 'flex')
-            .style('align-items', 'center')  // Asegura que los elementos estén alineados verticalmente
-            .style('gap', '5px')  // Espacio entre el checkbox y el label
+            .style('align-items', 'center')  
+            .style('gap', '5px') 
             .each(function (attribute) {
                 const div = d3.select(this);
-        
                 div.append('input')
                     .attr('type', 'checkbox')
                     .attr('value', attribute)
-                    .property('checked', selectedAttributes.includes(attribute))  // Usa el estado guardado
+                    .property('checked', selectedAttributes.includes(attribute))  
                     .on('change', function () {
-                        // Actualiza los atributos seleccionados y guarda el estado
                         selectedAttributes = d3.selectAll('#checkbox-container input:checked')
                             .nodes()
                             .map(node => node.value);
@@ -225,13 +214,11 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 div.append('label')
                     .text(attribute)
                     .style('cursor', 'pointer')
-                    .style('color', attributeColors[attribute])  // Aplicar color a la etiqueta
-                    .style('margin', '0')  // Elimina el margen del label para que se alinee mejor
-                    .style('vertical-align', 'middle');  // Asegura que el texto se alinee verticalmente con el checkbox
+                    .style('color', attributeColors[attribute])  
+                    .style('margin', '0')  
+                    .style('vertical-align', 'middle'); 
             });
-        
-        // Llama a drawChart inicialmente con los atributos seleccionados por defecto
-        drawChart(selectedAttributes, data, startDate, endDate, selectedDates);
+            drawChart(selectedAttributes, data, startDate, endDate, selectedDates);
     });
 
     
@@ -482,7 +469,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                     const point = d3.select(this);
                     point.transition()
                         .duration(200)
-                        .attr('r', 2)
+                        .attr('r', 4)
                         .style('stroke', 'none')
                         .style('stroke-width', 0);
                 
@@ -684,9 +671,11 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             
                         selectedContaminants.forEach(contaminant => {
                             const line = d3.line()
-                                .defined(d => !isNaN(d[contaminant]))
-                                .x(d => xMiniScale(d.hour))
-                                .y(d => yMiniScale(d[contaminant]));
+                            .defined(d => !isNaN(d[contaminant]))
+                            .x(d => xMiniScale(d.hour))
+                            .y(d => yMiniScale(d[contaminant]))
+                            .curve(d3.curveMonotoneX); 
+                        
             
                             miniSvg.append('path')
                                 .datum(normalizedData)
@@ -765,39 +754,45 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 
         });
 
-        // Función para dibujar las líneas con el color correspondiente
-        function drawLine(chartSvg, points, attribute) {
-            chartSvg.append('path')
-                .data([points])  // Aseguramos de pasar un array de puntos
-                .attr('class', 'line')
-                .attr('d', d3.line().x(d => d.x).y(d => d.y)(points))  // Usamos 'points' en lugar de 'd'
-                .attr('fill', 'none')
-                .attr('stroke', attributeColors[attribute])  // Usar el color del atributo
-                .attr('stroke-width', 2)
-                .attr('opacity', 0.7)  // Agregar opacidad a la línea
-                .on('mouseover', function(event, d) {
-                    // Cambiar el estilo (ejemplo: aumentar el grosor de la línea)
-                    d3.select(this)
-                        .attr('stroke-width', 4);  // Aumenta el grosor de la línea en hover
-
-                    // Mostrar tooltip con el valor promedio o algún dato relevante
-                    chartSvg.append('text')
-                        .attr('id', 'tooltip')
-                        .attr('x', xScale(d[0].date) + 5)
-                        .attr('y', yScale(d3.mean(d, p => p.y)) - 10)  // Promedio de la Y de la línea
-                        .attr('font-size', '12px')
-                        .attr('fill', '#000')
-                        .text(`Attribute: ${attribute}`); // Cambiar a mostrar el atributo
-                })
-                .on('mouseout', function(event, d) {
-                    // Restaurar el estilo al salir
-                    d3.select(this)
-                        .attr('stroke-width', 2);  // Restaurar el grosor original
-
-                    // Eliminar el tooltip
-                    chartSvg.select('#tooltip').remove();
-                });
-        }
-                }
+    }
     
+}
+
+
+function drawLine(chartSvg, points, attribute) {
+    const lineGenerator = d3.line()
+        .x(d => d.x)
+        .y(d => d.y)
+        .curve(d3.curveMonotoneX); // Suaviza las líneas
+
+    chartSvg.append('path')
+        .data([points]) // Aseguramos pasar un array de puntos
+        .attr('class', 'line')
+        .attr('d', lineGenerator(points)) // Usamos el generador de líneas suavizado
+        .attr('fill', 'none')
+        .attr('stroke', attributeColors[attribute]) // Usar el color del atributo
+        .attr('stroke-width', 2)
+        .attr('opacity', 0.7) // Agregar opacidad a la línea
+        .on('mouseover', function(event, d) {
+            // Cambiar el estilo (ejemplo: aumentar el grosor de la línea)
+            d3.select(this)
+                .attr('stroke-width', 4); // Aumenta el grosor de la línea en hover
+
+            // Mostrar tooltip con el valor promedio o algún dato relevante
+            chartSvg.append('text')
+                .attr('id', 'tooltip')
+                .attr('x', points[0].x + 5) // Usamos el primer punto como referencia
+                .attr('y', d3.mean(points, p => p.y) - 10) // Promedio de las coordenadas Y
+                .attr('font-size', '12px')
+                .attr('fill', '#000')
+                // .text(`Attribute: ${attribute}`); // Cambiar a mostrar el atributo
+        })
+        .on('mouseout', function(event, d) {
+            // Restaurar el estilo al salir
+            d3.select(this)
+                .attr('stroke-width', 2); // Restaurar el grosor original
+
+            // Eliminar el tooltip
+            chartSvg.select('#tooltip').remove();
+        });
 }

@@ -1210,20 +1210,18 @@ function isMeteorologicalAttribute(attribute) {
 
 function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates = null) {
     const container = d3.select('#serie-temporal');
-
     const margin = { top: 20, right: 10, bottom: 60, left: 50 };
     const width = 830 - margin.left - margin.right;
     const height = 360 - margin.top - margin.bottom;
-
-    // Añadir contenedor para el checkbox AQI si no existe
+    console.log(startDate, endDate,);
+    // Añadir y configurar el checkbox AQI
     let aqiCheckboxContainer = container.select('#aqi-checkbox-container');
-    
     if (aqiCheckboxContainer.empty()) {
         aqiCheckboxContainer = container.append('div')
             .attr('id', 'aqi-checkbox-container')
             .style('position', 'absolute')
-            .style('right', '2%') 
-            .style('bottom', '87%') 
+            .style('right', '2%')
+            .style('bottom', '87%')
             .style('display', 'flex')
             .style('align-items', 'center')
             .style('gap', '5px')
@@ -1231,13 +1229,11 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             .style('padding', '5px')
             .style('border-radius', '4px');
         
-        // Añadir el checkbox
         aqiCheckboxContainer.append('input')
             .attr('type', 'checkbox')
             .attr('id', 'aqi-size-toggle')
             .style('cursor', 'pointer');
-    
-        // Añadir la etiqueta
+        
         aqiCheckboxContainer.append('label')
             .attr('for', 'aqi-size-toggle')
             .text('AQI')
@@ -1245,33 +1241,28 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             .style('cursor', 'pointer')
             .style('user-select', 'none');
     }
-    
-    // Obtener el checkbox
-    
-    const aqiCheckbox = document.querySelector('#aqi-size-toggle');
 
-    // Modificar el listener del checkbox AQI
+    const aqiCheckbox = document.querySelector('#aqi-size-toggle');
+    const savedAqiState = localStorage.getItem('aqiCheckboxState');
+    aqiCheckbox.checked = savedAqiState === 'true'; // Restaurar el estado
+
     aqiCheckbox.addEventListener('change', function () {
-        const isChecked = aqiCheckbox.checked;
-        // console.log(isChecked ? 'AQI seleccionado' : 'AQI no seleccionado');
-        
-        // Actualizar el radio de todos los círculos existentes
+        localStorage.setItem('aqiCheckboxState', aqiCheckbox.checked); // Guardar el estado
         d3.select('#serie-temporal')
             .selectAll('circle')
             .transition()
-            .duration(200)  // Añadir una transición suave de 200ms
-            .attr('r', isChecked ? 4 : 0);
+            .duration(200)
+            .attr('r', aqiCheckbox.checked ? 4 : 0);
     });
 
-    // Añadir contenedor para el checkbox LINE si no existe
+    // Añadir y configurar el checkbox Line
     let lineCheckboxContainer = container.select('#line-checkbox-container');
-
     if (lineCheckboxContainer.empty()) {
         lineCheckboxContainer = container.append('div')
             .attr('id', 'line-checkbox-container')
             .style('position', 'absolute')
-            .style('right', '1.35%') // Cambiado a porcentaje
-            .style('bottom', '80%') // Ajustado para que esté debajo de AQI (modificado según sea necesario)
+            .style('right', '1.35%')
+            .style('bottom', '80%')
             .style('display', 'flex')
             .style('align-items', 'center')
             .style('gap', '5px')
@@ -1279,13 +1270,11 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             .style('padding', '5px')
             .style('border-radius', '4px');
         
-        // Añadir el checkbox
         lineCheckboxContainer.append('input')
             .attr('type', 'checkbox')
             .attr('id', 'line-size-toggle')
             .style('cursor', 'pointer');
         
-        // Añadir la etiqueta
         lineCheckboxContainer.append('label')
             .attr('for', 'line-size-toggle')
             .text('Line')
@@ -1294,20 +1283,25 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             .style('user-select', 'none');
     }
 
-    // Obtener el checkbox
     const lineCheckbox = document.querySelector('#line-size-toggle');
-    lineCheckbox.checked = true;
+    const savedLineState = localStorage.getItem('lineCheckboxState');
+    lineCheckbox.checked = savedLineState === 'true'; // Restaurar el estado
 
     lineCheckbox.addEventListener('change', function () {
-        const isChecked = lineCheckbox.checked;
+        localStorage.setItem('lineCheckboxState', lineCheckbox.checked); // Guardar el estado
     
-        // Seleccionar todas las líneas y cambiar su visibilidad
+        // Actualizar opacidades de las líneas según el estado del checkbox
         d3.select('#serie-temporal')
-            .selectAll('path.line') // Seleccionar las líneas con clase "line"
+            .selectAll('path.line')
             .transition()
-            .duration(200) // Transición suave
-            .style('opacity', isChecked ? 0.7 : 0); // Mostrar u ocultar las líneas
+            .duration(200)
+            .style('opacity', function () {
+                const pathElement = d3.select(this);
+                const isSelected = pathElement.classed('selected');
+                return lineCheckbox.checked ? (isSelected ? 1 : 0.1) : 0;
+            });
     });
+    
     
 
     const contaminantAttributes = ['PM2_5', 'PM10', 'SO2', 'NO2', 'CO', 'O3'];
@@ -1345,15 +1339,6 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             return 'Winter';
         }
     }
-    const legendData = [
-        { color: '#00E400', label: 'Bueno' },
-        { color: '#FFFF00', label: 'Moderado' },
-        { color: '#FF7E00', label: 'Insalubre' },
-        { color: '#FF0000', label: 'Muy Insalubre' },
-        { color: '#99004c', label: 'Malo' },
-        { color: '#800000', label: 'Severo' }
-    ];
-    
 
     
     function normalizeValue(value, min, max) {
@@ -1377,20 +1362,19 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
     d3.csv(`data/${selectedCity}`).then(data => {
         const attributes = [...contaminantAttributes, ...meteorologicalAttributes];
 
-        // Establece los atributos que estarán seleccionados por defecto
         let selectedAttributes = JSON.parse(localStorage.getItem('selectedAttributes')) || ["PM2_5"];
 
         const attributeColors = {
-            'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
-            'PM10': '#FF9900', // Naranja brillante para particulado
-            'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
-            'NO2': '#d500f1', // Verde neón para contaminación visible
-            'CO': '#00CED1', // Turquesa vibrante para gas incoloro
-            'O3': '#0000FF', // Azul intenso para ozono
-            'TEMP': '#008000', // Rosa fuerte para variación térmica
-            'PRES': '#8B0000', // Rojo oscuro para presión atmosférica
-            'DEWP': '#4B0082', // Indigo para representar humedad
-            'RAIN': '#1E90FF'  // Azul cielo para lluvia
+            'PM2_5': '#FF0000', 
+            'PM10': '#FF9900', 
+            'SO2': '#FFD700', 
+            'NO2': '#d500f1', 
+            'CO': '#00CED1', 
+            'O3': '#0000FF', 
+            'TEMP': '#008000', 
+            'PRES': '#8B0000', 
+            'DEWP': '#4B0082', 
+            'RAIN': '#1E90FF'  
         };
         let checkboxContainer = container.select('#checkbox-container');
         if (checkboxContainer.empty()) {
@@ -1399,7 +1383,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .style('display', 'flex')
                 .style('gap', '10px')
                 .style('flex-wrap', 'wrap')
-                .style('font-weight', 'bold')  // Hacer el texto en negrita
+                .style('font-weight', 'bold') 
                 .style('margin', '30px 0 10px 50px');
         } else {
             checkboxContainer.selectAll('*').remove();
@@ -1409,17 +1393,15 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             .data(attributes)
             .join('div')
             .style('display', 'flex')
-            .style('align-items', 'center')  // Asegura que los elementos estén alineados verticalmente
-            .style('gap', '5px')  // Espacio entre el checkbox y el label
+            .style('align-items', 'center')  
+            .style('gap', '5px') 
             .each(function (attribute) {
                 const div = d3.select(this);
-        
                 div.append('input')
                     .attr('type', 'checkbox')
                     .attr('value', attribute)
-                    .property('checked', selectedAttributes.includes(attribute))  // Usa el estado guardado
+                    .property('checked', selectedAttributes.includes(attribute))  
                     .on('change', function () {
-                        // Actualiza los atributos seleccionados y guarda el estado
                         selectedAttributes = d3.selectAll('#checkbox-container input:checked')
                             .nodes()
                             .map(node => node.value);
@@ -1434,58 +1416,50 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 div.append('label')
                     .text(attribute)
                     .style('cursor', 'pointer')
-                    .style('color', attributeColors[attribute])  // Aplicar color a la etiqueta
-                    .style('margin', '0')  // Elimina el margen del label para que se alinee mejor
-                    .style('vertical-align', 'middle');  // Asegura que el texto se alinee verticalmente con el checkbox
+                    .style('color', attributeColors[attribute])  
+                    .style('margin', '0')  
+                    .style('vertical-align', 'middle'); 
             });
-        
-        // Llama a drawChart inicialmente con los atributos seleccionados por defecto
-        drawChart(selectedAttributes, data, startDate, endDate, selectedDates);
+            drawChart(selectedAttributes, data, startDate, endDate, selectedDates);
     });
 
     
     function drawChart(selectedAttributes, data, startDate, endDate, selectedDates) {
         const containerId = 'chart-container';
         let chartContainer = container.select(`#${containerId}`);
-    
+        
         if (chartContainer.empty()) {
             chartContainer = container.append('div')
                 .attr('id', containerId)
                 .style('margin-bottom', '30px');
         }
-    
-        // Filtrar y transformar los datos
+        // Filtrar datos si startDate y endDate están definidos
         let filteredData = data.map(d => ({
             date: new Date(`${d.year}-${d.month}-${d.day}`),
             value: selectedAttributes.reduce((acc, attribute) => {
                 acc[attribute] = +d[attribute.replace('.', '_')];
                 return acc;
             }, {})
-        }));
+        }))
     
-        // Filtrar los datos según las fechas seleccionadas (si hay fechas específicas)
-        if (selectedDates && selectedDates.length > 0) {
-            const selectedDateSet = new Set(selectedDates.map(d => new Date(d).toISOString().split('T')[0]));
-            filteredData = filteredData.filter(d => {
-                const dateStr = d.date.toISOString().split('T')[0]; // Convertimos la fecha a "YYYY-MM-DD"
-                return selectedDateSet.has(dateStr);
-            });
-        } else {
-            let internalStartDate = startDate || d3.min(filteredData, d => d.date);
-            let internalEndDate = endDate || d3.max(filteredData, d => d.date);
-    
-            filteredData = filteredData.filter(d =>
-                d.date >= new Date(internalStartDate) && d.date <= new Date(internalEndDate)
-            );
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            filteredData = filteredData.filter(d => d.date >= start && d.date <= end);
         }
-    
+
+        const selectedDateSet = selectedDates 
+            ? new Set(selectedDates.map(d => new Date(d).toISOString().split('T')[0])) 
+            : null;
+
         const averagedData = d3.groups(filteredData, d => d.date)
             .map(([date, values]) => ({
                 date: date,
                 value: selectedAttributes.reduce((acc, attribute) => {
                     acc[attribute] = d3.mean(values, v => v.value[attribute]);
                     return acc;
-                }, {})
+                }, {}),
+                isSelected: selectedDateSet ? selectedDateSet.has(date.toISOString().split('T')[0]) : true
             }));
     
         const minValues = {};
@@ -1518,9 +1492,9 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             .attr('height', height + margin.top + margin.bottom)
             .append('g')
             .attr('transform', `translate(${margin.left}, ${margin.top})`);
-            
-            const xScale = d3.scaleTime()
-            .domain(d3.extent(normalizedData, d => d.date)) // Asegúrate de que 'date' sea un objeto Date
+    
+        const xScale = d3.scaleTime()
+            .domain(d3.extent(normalizedData, d => d.date))
             .range([0, width]);
     
         const yExtent = d3.extent(
@@ -1530,21 +1504,20 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             .domain([Math.min(0, yExtent[0]), Math.max(1, yExtent[1])])
             .range([height, 0]);
     
-        // Crear el eje X
-        const xAxis = d3.axisBottom(xScale)
-            .tickFormat(d3.timeFormat("%d-%m-%Y")); // Formato de fecha "día/mes/año"
-            const yAxis = d3.axisLeft(yScale);
-            chartSvg.append('g')
+        const xAxis = d3.axisBottom(xScale).tickFormat(d3.timeFormat("%d-%m-%Y"));
+        const yAxis = d3.axisLeft(yScale);
+    
+        chartSvg.append('g')
             .attr('class', 'x-axis')
-            .attr('transform', `translate(0, ${height})`) // Colocar el eje en la parte inferior
+            .attr('transform', `translate(0, ${height})`)
             .call(xAxis)
             .selectAll("text")
-            .style("text-anchor", "middle") // Centrar el texto
+            .style("text-anchor", "middle")
             .style('font-size', '10px')
-            .attr("dx", "-34px") // Ajustar la posición del texto
+            .attr("dx", "-34px")
             .attr("dy", "0px")
-            .attr("transform", "rotate(-30)"); // Rotar 
-        
+            .attr("transform", "rotate(-30)");
+    
         chartSvg.append('g')
             .attr('class', 'y-axis')
             .call(yAxis)
@@ -1552,18 +1525,50 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
     
         // Agregar los rectángulos de fondo para las estaciones
         normalizedData.forEach(d => {
-            const month = d.date.getMonth() + 1; // Enero = 0, por lo que sumamos 1
+            const month = d.date.getMonth() + 1;
             const day = d.date.getDate();
             const season = getSeason(month, day);
     
             chartSvg.append('rect')
                 .attr('x', xScale(d.date))
                 .attr('y', 0)
-                .attr('width', xScale(new Date(d.date.getTime() + 86400000)) - xScale(d.date)) // Ancho de 1 día
+                .attr('width', xScale(new Date(d.date.getTime() + 86400000)) - xScale(d.date))
                 .attr('height', height)
                 .attr('fill', seasonColors[season])
                 .attr('opacity', 0.3);
         });
+    
+        const lineCheckbox = document.querySelector('#line-size-toggle');
+    
+         // Dibujar las líneas si el checkbox "Line" está activado
+         if (lineCheckbox && lineCheckbox.checked) {
+            selectedAttributes.forEach(attribute => {
+                const lineData = normalizedData.filter(d => !isNaN(d.normalizedValues[attribute]));
+
+                // Crear datos separados para las líneas seleccionadas
+                const selectedLineData = lineData.filter(d => d.isSelected).map(d => ({
+                    x: xScale(d.date),
+                    y: yScale(d.normalizedValues[attribute])
+                }));
+
+                // Crear datos separados para las líneas no seleccionadas
+                const nonSelectedLineData = lineData.filter(d => !d.isSelected).map(d => ({
+                    x: xScale(d.date),
+                    y: yScale(d.normalizedValues[attribute])
+                }));
+
+                // Llama a drawLine para dibujar la línea seleccionada con el color del atributo
+                if (selectedLineData.length > 1) { // Asegúrate de que haya suficientes puntos para dibujar una línea
+                    drawLine(chartSvg, selectedLineData, attribute, attributeColors[attribute]);
+                }
+
+                // Llama a drawLine para dibujar la línea no seleccionada con menor opacidad
+                if (nonSelectedLineData.length > 1) {
+                    drawLine(chartSvg, nonSelectedLineData, attribute, attributeColors[attribute], 0.1);
+                }
+            });
+        }
+
         const tooltip = d3.select("body").append("div")
         .attr("class", "tooltip")
         .style("position", "absolute")
@@ -1574,67 +1579,25 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         .style("box-shadow", "0px 2px 10px rgba(0, 0, 0, 0.2)")
         .style("pointer-events", "none")
         .style("opacity", 0);
+        
     
-        // Agrupar los puntos consecutivos de la misma estación y dibujar líneas
+        // Dibujar los puntos
         selectedAttributes.forEach(attribute => {
-            const filteredNormalizedData = normalizedData.filter(d => {
-                const value = d.value[attribute];
-                const aqiColor = getAQIColor(value, attribute);
-                return aqiColor !== '#7e0023'; // Filtrar puntos con color negro (fuera de rango)
-            });
-
-            let previousPoint = null;
-            let lineData = [];
-            let currentSeason = null;
-
-            // Procesar y dibujar líneas y puntos válidos
-            filteredNormalizedData.forEach((d, i) => {
-                const currentPoint = { 
-                    x: xScale(d.date), 
-                    y: yScale(d.normalizedValues[attribute]), 
-                    index: i,
-                    date: d.date,
-                    value: d.value[attribute]
-                };
-                const season = getSeason(d.date.getMonth() + 1, d.date.getDate());
-
-                // Verificar si el valor es undefined
-                if (d.value[attribute] === undefined) {
-                    // Si el valor es undefined, no unir con el punto anterior
-                    previousPoint = null; // Reiniciar previousPoint
-                    return; // Salir de la iteración actual
-                }
-
-                if (previousPoint && season === currentSeason) {
-                    lineData.push(previousPoint);
-                    lineData.push(currentPoint);
-                } else {
-                    if (lineData.length > 1) {
-                        drawLine(chartSvg, lineData, attribute); // Pasa el atributo correspondiente
-                    }
-                    lineData = [currentPoint];
-                }
-                previousPoint = currentPoint;
-                currentSeason = season;
-            });
-
-            // Dibujar la última línea si es necesario
-            if (lineData.length > 1) {
-                drawLine(chartSvg, lineData, attribute); // Pasa el atributo correspondiente
-            }
- 
-            // Dibujar puntos válidos
+            const lineData = normalizedData.filter(d => !isNaN(d.normalizedValues[attribute]));
+    
             chartSvg.selectAll(`circle.${attribute}`)
-                .data(filteredNormalizedData)
+                .data(lineData)
                 .join('circle')
                 .attr('class', attribute)
                 .attr('cx', d => xScale(d.date))
                 .attr('cy', d => yScale(d.normalizedValues[attribute]))
                 .attr('r', () => {
                     const aqiCheckbox = document.querySelector('#aqi-size-toggle');
-                    return aqiCheckbox.checked ? 4 : 0;
+                    return aqiCheckbox && aqiCheckbox.checked ? 4 : 0;
                 })
                 .attr('fill', d => getAQIColor(d.value[attribute], attribute))
+                .attr('stroke-width', 1.5)
+                .attr('opacity', d => d.isSelected ? 1 : 0.3)
                 .on('mouseover', function(event, d) {
                     const [mouseX, mouseY] = d3.pointer(event);
                 
@@ -1973,47 +1936,34 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             
                 updateChart();
             })
-                
         });
-
     }
     
+    
+    
 }
-function drawLine(chartSvg, points, attribute) {
+
+function drawLine(chartSvg, points, attribute, color, opacity = 1, isSelected = false) {
     const lineGenerator = d3.line()
         .x(d => d.x)
         .y(d => d.y)
-        .curve(d3.curveMonotoneX); // Suaviza las líneas
+        .curve(d3.curveMonotoneX);
 
     chartSvg.append('path')
-        .data([points]) // Aseguramos pasar un array de puntos
-        .attr('class', 'line')
-        .attr('d', lineGenerator(points)) // Usamos el generador de líneas suavizado
+        .data([points])
+        .attr('class', `line ${attribute} ${isSelected ? 'selected' : 'not-selected'}`)
+        .attr('d', lineGenerator(points))
         .attr('fill', 'none')
-        .attr('stroke', attributeColors[attribute]) // Usar el color del atributo
+        .attr('stroke', color)
         .attr('stroke-width', 2)
-        .attr('opacity', 0.7) // Agregar opacidad a la línea
-        .on('mouseover', function(event, d) {
-            // Cambiar el estilo (ejemplo: aumentar el grosor de la línea)
+        .attr('opacity', opacity)
+        .on('mouseover', function () {
             d3.select(this)
-                .attr('stroke-width', 4); // Aumenta el grosor de la línea en hover
-
-            // Mostrar tooltip con el valor promedio o algún dato relevante
-            chartSvg.append('text')
-                .attr('id', 'tooltip')
-                .attr('x', points[0].x + 5) // Usamos el primer punto como referencia
-                .attr('y', d3.mean(points, p => p.y) - 10) // Promedio de las coordenadas Y
-                .attr('font-size', '12px')
-                .attr('fill', '#000')
-                // .text(`Attribute: ${attribute}`); // Cambiar a mostrar el atributo
+                .attr('stroke-width', 4);
         })
-        .on('mouseout', function(event, d) {
-            // Restaurar el estilo al salir
+        .on('mouseout', function () {
             d3.select(this)
-                .attr('stroke-width', 2); // Restaurar el grosor original
-
-            // Eliminar el tooltip
-            chartSvg.select('#tooltip').remove();
+                .attr('stroke-width', 2);
         });
 }
 
@@ -2146,13 +2096,13 @@ async function updateUMAP() {
     const filteredData = filterData(data, fechaInicio, fechaFin);
 
     // Crear el gráfico
-    plotUMAP(filteredData);
+    plotUMAP(filteredData, fechaInicio, fechaFin);
 }
 
-function plotUMAP(data) {
+function plotUMAP(data,fechaInicio, fechaFin) {
     // Limpiar el gráfico anterior
     d3.select("#umap-plot").selectAll("*").remove();
-
+    console.log(fechaInicio, fechaFin);
     function updateFilterOpacity(activeFilterId) {
         const filters = ["station-filter", "year-filter", "month-filter"];
         filters.forEach((filterId) => {
@@ -2419,7 +2369,7 @@ function plotUMAP(data) {
         // });
 
         // Llamar a las funciones con las fechas seleccionadas
-        updateTimeSeriesChart(cityFile, null, null, selectedDates);
+        updateTimeSeriesChart(cityFile, fechaInicio, fechaFin, selectedDates);
         updateCorrelationMatrixnew(selectedDates);
         drawThemeRiver(cityFile, selectedDates);
         updateRadialChartWithSelection(selectionData);
