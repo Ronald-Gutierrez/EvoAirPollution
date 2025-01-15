@@ -383,7 +383,7 @@ document.getElementById('visualizar-todo').addEventListener('change', function (
     document.getElementById('fecha-fin').disabled = isChecked;
     updateChart();
     document.getElementById('fecha-rango').innerText = isChecked ? "Visualizando todos los datos." : "";
-    
+
 });
 
 // Asegúrate de que el estado del checkbox se refleje correctamente al cargar la página
@@ -1597,7 +1597,33 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         .style("pointer-events", "none")
         .style("opacity", 0);
         
-    
+        // Brush setup
+        const brush = d3.brushX()
+            .extent([[0, 0], [width, height]])
+            .on("end", brushended);
+
+        chartSvg.append("g")
+            .attr("class", "brush")
+            .call(brush);
+
+        function brushended(event) {
+            if (!event.selection) return; // Si no se ha seleccionado nada, no hacer nada
+
+            const [x0, x1] = event.selection;
+            const newDomain = [xScale.invert(x0), xScale.invert(x1)];
+
+            // Actualizar las escalas y el gráfico
+            xScale.domain(newDomain);
+
+            // Llamar nuevamente a drawChart con los datos filtrados según el área seleccionada
+            drawChart(selectedAttributes, data, newDomain[0], newDomain[1], selectedDates);
+        }
+
+        // Reset the chart on double-click
+        chartSvg.on("dblclick", function() {
+            xScale.domain(d3.extent(normalizedData, d => d.date)); // Restablecer dominio de la escala X
+            drawChart(selectedAttributes, data, null, null, selectedDates); // Volver a cargar los datos completos
+        });
         // Dibujar los puntos
         selectedAttributes.forEach(attribute => {
             const lineData = normalizedData.filter(d => !isNaN(d.normalizedValues[attribute]));
@@ -2005,6 +2031,7 @@ document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(radio 
         updateCorrelationMatrix();
         // updateUMAP();
         updateTimeSeriesChart(selectedCity, startDate, endDate);
+
     });
 });
 
@@ -2116,10 +2143,12 @@ async function updateUMAP() {
     plotUMAP(filteredData, fechaInicio, fechaFin);
 }
 
-function plotUMAP(data,fechaInicio, fechaFin) {
+function plotUMAP(data, fechaInicio, fechaFin) {
     // Limpiar el gráfico anterior
     d3.select("#umap-plot").selectAll("*").remove();
-    console.log(fechaInicio, fechaFin);
+    console.log("Fechas de entrada:", fechaInicio, fechaFin);
+
+    // Función para actualizar la opacidad de los filtros
     function updateFilterOpacity(activeFilterId) {
         const filters = ["station-filter", "year-filter", "month-filter"];
         filters.forEach((filterId) => {
@@ -2135,23 +2164,82 @@ function plotUMAP(data,fechaInicio, fechaFin) {
     // Evento para la estación del año
     document.getElementById('station-filter').addEventListener('change', (event) => {
         const selectedSeason = event.target.value;
+        const filteredData = filterDataBySeason(selectedSeason, data);
+        const selectedDates = filteredData.map(d => `${d.year}-${d.month}-${d.day}`);
         highlightSeason(selectedSeason, data, svg, xScale, yScale);
+
+        handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin);
         updateFilterOpacity('station-filter');
     });
 
     // Evento para el año
     document.getElementById('year-filter').addEventListener('change', (event) => {
-        const selectedYear = parseInt(event.target.value);
+        const selectedYear = parseInt(event.target.value, 10);
+        const filteredData = data.filter(d => d.year === selectedYear);
+        const selectedDates = filteredData.map(d => `${d.year}-${d.month}-${d.day}`);
         highlightYear(selectedYear, data, svg, xScale, yScale);
+        handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin);
         updateFilterOpacity('year-filter');
     });
 
     // Evento para el mes
     document.getElementById('month-filter').addEventListener('change', (event) => {
         const selectedMonth = event.target.value;
+        const filteredData = filterDataByMonth(selectedMonth, data);
+        const selectedDates = filteredData.map(d => `${d.year}-${d.month}-${d.day}`);
         highlightMonth(selectedMonth, data, svg, xScale, yScale);
+        handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin);
         updateFilterOpacity('month-filter');
     });
+
+    // Función para manejar la actualización de gráficos
+    function handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin) {
+        if (selectedDates.length === 0) {
+            console.warn("No hay fechas válidas seleccionadas.");
+            return;
+        }
+
+        console.log("Actualizando gráficos con fechas seleccionadas:", selectedDates);
+        const cityFile = filteredData.length > 0 ? filteredData[0].city : null;
+
+        updateTimeSeriesChart(cityFile, fechaInicio, fechaFin, selectedDates);
+        updateCorrelationMatrixnew(selectedDates);
+        drawThemeRiver(cityFile, selectedDates);
+        updateRadialChartWithSelection(filteredData, fechaInicio, fechaFin);
+    }
+
+    // Función para filtrar datos por estación
+    function filterDataBySeason(season, data) {
+        const seasonRanges = {
+            Primavera: { start: { month: 3, day: 20 }, end: { month: 6, day: 21 } },
+            Verano: { start: { month: 6, day: 21 }, end: { month: 9, day: 22 } },
+            Otoño: { start: { month: 9, day: 22 }, end: { month: 12, day: 21 } },
+            Invierno: { start: { month: 12, day: 21 }, end: { month: 3, day: 20 } }
+        };
+
+        const range = seasonRanges[season];
+        if (!range) return [];
+
+        return data.filter(d => {
+            const start = new Date(d.year, range.start.month - 1, range.start.day);
+            const end = new Date(d.year, range.end.month - 1, range.end.day);
+            const date = new Date(d.year, d.month - 1, d.day);
+
+            return season === 'Invierno'
+                ? (date >= start || date <= end)
+                : (date >= start && date <= end);
+        });
+    }
+
+    // Función para filtrar datos por mes
+    function filterDataByMonth(month, data) {
+        const monthMapping = {
+            Enero: 1, Febrero: 2, Marzo: 3, Abril: 4, Mayo: 5, Junio: 6,
+            Julio: 7, Agosto: 8, Septiembre: 9, Octubre: 10, Noviembre: 11, Diciembre: 12
+        };
+        const monthNumber = monthMapping[month];
+        return data.filter(d => d.month === monthNumber);
+    }
 
     // Dimensiones del contenedor
     const container = d3.select("#umap-plot");
@@ -2525,10 +2613,10 @@ async function drawThemeRiver(cityFile, dates) {
     const selectedDatesSet = new Set(dates.map(date => new Date(date).getTime()));
     const filteredData = data.filter(d => selectedDatesSet.has(d.date.getTime()));
 
-    if (filteredData.length === 0) {
-        alert("No se encontraron datos para las fechas seleccionadas.");
-        return;
-    }
+    // if (filteredData.length === 0) {
+    //     alert("No se encontraron datos para las fechas seleccionadas.");
+    //     return;
+    // }
 
     const contaminantAttributes = ["O3", "CO", "NO2", "SO2", "PM10", "PM2_5"];
     const meteorologicalAttributes = ["RAIN", "DEWP", "PRES", "TEMP"];
