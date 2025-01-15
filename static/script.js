@@ -1535,39 +1535,56 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .attr('width', xScale(new Date(d.date.getTime() + 86400000)) - xScale(d.date))
                 .attr('height', height)
                 .attr('fill', seasonColors[season])
-                .attr('opacity', 0.3);
+                .attr('opacity', 0.15);
         });
     
         const lineCheckbox = document.querySelector('#line-size-toggle');
     
-         // Dibujar las líneas si el checkbox "Line" está activado
-         if (lineCheckbox && lineCheckbox.checked) {
+        if (lineCheckbox && lineCheckbox.checked) {
             selectedAttributes.forEach(attribute => {
                 const lineData = normalizedData.filter(d => !isNaN(d.normalizedValues[attribute]));
-
+                
                 // Crear datos separados para las líneas seleccionadas
                 const selectedLineData = lineData.filter(d => d.isSelected).map(d => ({
                     x: xScale(d.date),
-                    y: yScale(d.normalizedValues[attribute])
+                    y: yScale(d.normalizedValues[attribute]),
+                    date: d.date
                 }));
-
-                // Crear datos separados para las líneas no seleccionadas
-                const nonSelectedLineData = lineData.filter(d => !d.isSelected).map(d => ({
-                    x: xScale(d.date),
-                    y: yScale(d.normalizedValues[attribute])
-                }));
-
-                // Llama a drawLine para dibujar la línea seleccionada con el color del atributo
-                if (selectedLineData.length > 1) { // Asegúrate de que haya suficientes puntos para dibujar una línea
-                    drawLine(chartSvg, selectedLineData, attribute, attributeColors[attribute]);
+        
+                // Umbral de continuidad (por ejemplo, 7 días)
+                const continuityThreshold = 1 * 24 * 60 * 60 * 1000; // 1 día en milisegundos
+        
+                // Dividir en segmentos continuos
+                const segments = [];
+                let currentSegment = [];
+        
+                for (let i = 0; i < selectedLineData.length; i++) {
+                    if (currentSegment.length === 0) {
+                        currentSegment.push(selectedLineData[i]);
+                    } else {
+                        const lastPoint = currentSegment[currentSegment.length - 1];
+                        const currentPoint = selectedLineData[i];
+                        if (currentPoint.date - lastPoint.date <= continuityThreshold) {
+                            currentSegment.push(currentPoint);
+                        } else {
+                            segments.push(currentSegment);
+                            currentSegment = [currentPoint];
+                        }
+                    }
                 }
-
-                // Llama a drawLine para dibujar la línea no seleccionada con menor opacidad
-                if (nonSelectedLineData.length > 1) {
-                    drawLine(chartSvg, nonSelectedLineData, attribute, attributeColors[attribute], 0.1);
+                if (currentSegment.length > 0) {
+                    segments.push(currentSegment);
                 }
+        
+                // Dibujar las líneas para cada segmento
+                segments.forEach(segment => {
+                    if (segment.length > 1) { // Asegúrate de que haya suficientes puntos para una línea
+                        drawLine(chartSvg, segment, attribute, attributeColors[attribute]);
+                    }
+                });
             });
         }
+        
 
         const tooltip = d3.select("body").append("div")
         .attr("class", "tooltip")
@@ -1597,7 +1614,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 })
                 .attr('fill', d => getAQIColor(d.value[attribute], attribute))
                 .attr('stroke-width', 1.5)
-                .attr('opacity', d => d.isSelected ? 1 : 0.3)
+                .attr('opacity', d => d.isSelected ? 1 : 0.08)
                 .on('mouseover', function(event, d) {
                     const [mouseX, mouseY] = d3.pointer(event);
                 
@@ -2483,21 +2500,12 @@ function updateCorrelationMatrixnew(dates) {
     });
 }
 
-
-
-//////////
-///GRAFICA PARA MI FLUIO DE EVOLCUION D ETHEME RIVER
-////////
-
-
 async function drawThemeRiver(cityFile, dates) {
-    // Añadir la fecha siguiente al último dato en el arreglo
     const lastDate = new Date(dates[dates.length - 1]);
     const nextDate = new Date(lastDate);
     nextDate.setDate(lastDate.getDate() + 1);
     dates.push(nextDate.toISOString());
 
-    // Cargar los datos desde el archivo CSV
     const response = await fetch(`data/${cityFile}`);
     const csvData = await response.text();
     const data = d3.csvParse(csvData, d => ({
@@ -2538,23 +2546,30 @@ async function drawThemeRiver(cityFile, dates) {
             const { min, max } = attributeStats[attr];
             normalized[attr] = d[attr] !== null && max > min
                 ? (d[attr] - min) / (max - min)
-                : 0.5; // Normalizar valores faltantes como punto neutro
+                : 0.5;
         });
         return normalized;
     });
 
-    const margin = { top: 50, right: 30, bottom: 50, left: 20 };
+    const margin = { top: 100, right: 30, bottom: 80, left: 20 };
     const width = 600 - margin.left - margin.right;
     const height = 400 - margin.top - margin.bottom;
 
     const container = d3.select("#evolution-plot");
     container.selectAll("*").remove();
 
+    // Crear contenedor SVG
     const svg = container.append("svg")
         .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
+        .attr("height", height + margin.top + margin.bottom);
+
+    // Contenedor para el gráfico principal
+    const chartGroup = svg.append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Contenedor para etiquetas
+    const labelsGroup = svg.append("g")
+        .attr("transform", `translate(${margin.left}, 20)`);
 
     const stack = d3.stack()
         .keys(attributes)
@@ -2563,7 +2578,6 @@ async function drawThemeRiver(cityFile, dates) {
         .offset(d3.stackOffsetWiggle);
 
     const series = stack(normalizedData);
-    const xExtent = d3.extent(normalizedData, d => d.date); // Obtener el rango de fechas
 
     const x = d3.scaleLinear()
         .domain([0, normalizedData.length - 1])
@@ -2576,113 +2590,157 @@ async function drawThemeRiver(cityFile, dates) {
         ])
         .range([height, 0]);
 
-    // Colores definidos para cada atributo
     const attributeColors = {
-        'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
-        'PM10': '#FF9900', // Naranja brillante para particulado
-        'SO2': '#FFD700', // Amarillo intenso para gases tóxicos
-        'NO2': '#d500f1', // Verde neón para contaminación visible
-        'CO': '#00CED1', // Turquesa vibrante para gas incoloro
-        'O3': '#0000FF', // Azul intenso para ozono
-        'TEMP': '#008000', // Rosa fuerte para variación térmica
-        'PRES': '#8B0000', // Rojo oscuro para presión atmosférica
-        'DEWP': '#4B0082', // Indigo para representar humedad
-        'RAIN': '#1E90FF'  // Azul cielo para lluvia
+        'PM2_5': '#FF0000',
+        'PM10': '#FF9900',
+        'SO2': '#FFD700',
+        'NO2': '#d500f1',
+        'CO': '#00CED1',
+        'O3': '#0000FF',
+        'TEMP': '#008000',
+        'PRES': '#8B0000',
+        'DEWP': '#4B0082',
+        'RAIN': '#1E90FF'
     };
 
-    svg.append("g")
+    const area = d3.area()
+        .x((d, i) => x(i))
+        .y0(d => y(d[0]))
+        .y1(d => y(d[1]));
+
+    chartGroup.append("g")
         .selectAll("path")
         .data(series)
         .join("path")
-        .attr("fill", d => attributeColors[d.key]) // Usar los colores definidos para cada atributo
-        .attr("d", d3.area()
-            .x((d, i) => x(i))
-            .y0(d => y(d[0]))
-            .y1(d => y(d[1])));
+        .attr("fill", d => attributeColors[d.key])
+        .attr("d", area);
 
-    const minHeightThreshold = 5;
-
-    series.forEach(layer => {
-        const totalLength = layer.length;
-        const proportionalPositions = [
-            { index: 0, anchor: "start" },
-            { index: totalLength - 1, anchor: "end" }
+        const labelOrder = [
+            "PM2_5", "PM10", "SO2", "NO2", "CO", "O3", "TEMP", "PRES", "DEWP", "RAIN"
         ];
-
-        proportionalPositions.forEach(({ index, anchor }) => {
-            const point = layer[index];
-            const height = y(point[0]) - y(point[1]);
-            if (Math.abs(height) > minHeightThreshold) {
-                svg.append("text")
-                    .attr("x", x(index))
-                    .attr("y", y((point[0] + point[1]) / 2))
-                    .text(layer.key)
-                    .attr("fill", "black")
-                    .attr("font-size", "12px")
-                    .attr("font-weight", "bold")
-                    .attr("text-anchor", anchor)
-                    .attr("alignment-baseline", "middle");
-            }
+        
+        labelOrder.forEach((attr, index) => {
+            labelsGroup.append("text")
+                .attr("x", (index % 5) * 120)
+                .attr("y", Math.floor(index / 5) * 20)
+                .attr("transform", `translate(${margin.left}, 40)`)
+                .text(attr)
+                .style("fill", attributeColors[attr])
+                .style("font-size", "14px")
+                .style("font-weight", "bold");
         });
-    });
+        
 
-    // Limitar a 15 fechas si hay más de 30 puntos
-    const showDateEveryNPoints = normalizedData.length > 30 ? Math.floor(normalizedData.length / 25) : 1;
+    const brush = d3.brushX()
+        .extent([[0, 0], [width, height]])
+        .on("end", brushended);
 
-    // Mostrar las fechas distribuidas uniformemente
-    const displayedDates = [];
-    for (let i = 0; i < normalizedData.length; i++) {
-        if (i % showDateEveryNPoints === 0) {
-            const currentDate = normalizedData[i].date;
-            displayedDates.push({ date: currentDate, index: i });
+    chartGroup.append("g")
+        .attr("class", "brush")
+        .call(brush);
 
-            // Dibujar líneas de separación solo si la diferencia entre las fechas es mayor a un día
-            if (i > 0) {
-                const prevDate = normalizedData[i - 1].date;
-                if ((currentDate - prevDate) > 24 * 60 * 60 * 1000) {
-                    svg.append("line")
-                        .attr("x1", x(i))
-                        .attr("x2", x(i))
-                        .attr("y1", 0)
-                        .attr("y2", height)
-                        .attr("stroke", "black")
-                        .attr("stroke-dasharray", "4,4")
-                        .attr("stroke-width", 1);
-                }
-            }
+    chartGroup.on("dblclick", () => drawThemeRiver(cityFile, dates));
+
+    addDates(chartGroup, normalizedData, x, height, 25);
+
+    function brushended({ selection }) {
+        if (!selection) return;
+
+        const [x0, x1] = selection.map(x.invert);
+        const startIndex = Math.floor(x0);
+        const endIndex = Math.ceil(x1);
+        const newFilteredData = normalizedData.slice(startIndex, endIndex);
+
+        if (newFilteredData.length > 0) {
+            drawZoomedData(newFilteredData);
         }
     }
 
-    // Mostrar las fechas seleccionadas
-    displayedDates.forEach(({ date, index }) => {
-        svg.append("text")
-            .attr("x", x(index))
-            .attr("y", height + 30)
-            .text(d3.timeFormat("%d-%m-%Y")(date))
-            .attr("fill", "black")
-            .attr("font-size", "10px")
-            .attr("text-anchor", "middle")
-            .attr("transform", "rotate(-45 " + x(index) + "," + (height + 20) + ")");
-    });
+    function drawZoomedData(filteredZoomedData) {
+        container.selectAll("*").remove();
 
-    const xAxis = d3.axisBottom(x)
-        .ticks(d3.timeDay.every(1))
-        .tickFormat(d3.timeFormat("%d-%m-%Y"))
-        .tickSize(6);
+        const zoomSvg = container.append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom);
 
-    const yAxis = d3.axisLeft(y)
-        .ticks(5)
-        .tickSize(6);
+        const zoomedChartGroup = zoomSvg.append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // Ejes X con rotación de 45 grados
-    svg.append("g")
-        .attr("transform", `translate(0,${height})`)
-        .call(xAxis)
-        .selectAll("text")
-        .attr("transform", "rotate(-45)")  // Rotar etiquetas de las fechas
-        .style("text-anchor", "end");  // Alineación de las etiquetas rotadas
+        const zoomedLabelsGroup = zoomSvg.append("g")
+            .attr("transform", `translate(${margin.left}, 20)`);
 
-    svg.append("g")
-        .call(yAxis);
+        const zoomedX = d3.scaleLinear()
+            .domain([0, filteredZoomedData.length - 1])
+            .range([0, width]);
+
+        const zoomedY = d3.scaleLinear()
+            .domain([
+                d3.min(series.flat(), d => d[0]),
+                d3.max(series.flat(), d => d[1])
+            ])
+            .range([height, 0]);
+
+        const zoomedArea = d3.area()
+            .x((d, i) => zoomedX(i))
+            .y0(d => zoomedY(d[0]))
+            .y1(d => zoomedY(d[1]));
+
+        zoomedChartGroup.append("g")
+            .selectAll("path")
+            .data(stack(filteredZoomedData))
+            .join("path")
+            .attr("fill", d => attributeColors[d.key])
+            .attr("d", zoomedArea);
+
+        zoomedChartGroup.append("g")
+            .attr("class", "brush")
+            .call(brush);
+
+        zoomedChartGroup.on("dblclick", () => drawThemeRiver(cityFile, dates));
+
+        addDates(zoomedChartGroup, filteredZoomedData, zoomedX, height, 30);
+
+        // Reagregar etiquetas en el gráfico de zoom
+        const labelOrder = [
+            "PM2_5", "PM10", "SO2", "NO2", "CO", "O3", "TEMP", "PRES", "DEWP", "RAIN"
+        ];
+
+        labelOrder.forEach((attr, index) => {
+            zoomedLabelsGroup.append("text")
+                .attr("x", (index % 5) * 120)
+                .attr("y", Math.floor(index / 5) * 20)
+                .attr("transform", `translate(${margin.left}, 40)`) // Asegurarse de que las etiquetas se alineen correctamente
+                .text(attr)
+                .style("fill", attributeColors[attr])
+                .style("font-size", "14px")
+                .style("font-weight", "bold");
+        });
+
+    }
+
+    function addDates(svg, data, xScale, height, maxLabels) {
+        const formatDate = d3.timeFormat("%d-%m-%Y");
+        const step = Math.max(1, Math.floor(data.length / maxLabels));
+
+        data.forEach((d, i) => {
+            if (i % step === 0) {
+                svg.append("line")
+                    .attr("x1", xScale(i))
+                    .attr("x2", xScale(i))
+                    .attr("y1", 0)
+                    .attr("y2", height)
+                    .attr("stroke", "black")
+                    .attr("opacity", 0.1);
+
+                svg.append("text")
+                    .attr("x", xScale(i))
+                    .attr("y", height + 40)
+                    .text(formatDate(d.date))
+                    .attr("fill", "black")
+                    .attr("font-size", "10px")
+                    .attr("text-anchor", "middle")
+                    .attr("transform", `rotate(-45 ${xScale(i)},${height + 40})`);
+            }
+        });
+    }
 }
-

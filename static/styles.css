@@ -43,7 +43,7 @@ h4{
 }
 .city-checkboxes label {
     display: block; /* Asegura que cada etiqueta esté en una nueva línea */
-    margin-bottom: -5px; /* Reduce el espacio entre las etiquetas */
+    margin-bottom: -7px; /* Reduce el espacio entre las etiquetas */
     margin-left: 5px;
 }
 
