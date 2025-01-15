@@ -444,26 +444,30 @@ const attributeColors = {
     'RAIN': '#1E90FF'  // Azul cielo para lluvia
 };
 
-
-// Función para generar la gráfica radial
 function drawRadialChart(data, attributes) {
     d3.select('#chart-view-radial').html("");
     const width = 450;
     const height = 450;
     const radius = Math.min(width, height) / 2 - 40;
+
+    // Crear el SVG y el grupo principal
     const svg = d3.select('#chart-view-radial')
                   .append('svg')
                   .attr('width', width)
-                  .attr('height', height)
-                  .append('g')
-                  .attr('transform', `translate(${width / 2}, ${height / 2})`);
+                  .attr('height', height);
 
+    const chartGroup = svg.append('g')
+                          .attr('transform', `translate(${width / 2}, ${height / 2})`);
+
+    // Escala para los ángulos
     const angleScale = d3.scaleLinear().domain([0, data.length]).range([0, -2 * Math.PI]);
+
+    // Obtener los valores máximos de cada atributo
     const maxValues = attributes.map(attr => d3.max(data, d => d[attr]));
     const centralHoleRadius = 30;
     const ringWidth = (radius - centralHoleRadius) / attributes.length;
 
-    // Define colors for each season
+    // Definir los colores para las estaciones
     const seasonColors = {
         'Spring': '#2ca25f',
         'Summer': '#d95f0e',
@@ -472,7 +476,7 @@ function drawRadialChart(data, attributes) {
         'YearRound': '#6a3d9a'
     };
 
-    // Function to get season based on date
+    // Función para obtener la estación en base a la fecha
     function getSeason(month, day) {
         if ((month === 3 && day >= 20) || (month > 3 && month < 6) || (month === 6 && day <= 21)) {
             return 'Spring';
@@ -488,32 +492,32 @@ function drawRadialChart(data, attributes) {
     attributes.forEach((attr, index) => {
         const radialScale = d3.scaleLinear().domain([0, maxValues[index]]).range([centralHoleRadius + index * ringWidth, centralHoleRadius + (index + 1) * ringWidth]);
 
-        svg.append("circle").attr("cx", 0).attr("cy", 0)
-           .attr("r", radialScale(maxValues[index])).attr("fill", "none")
-           .attr("stroke", "#000").attr("stroke-width", 1)
-           .attr("stroke-dasharray", "3,3");
+        chartGroup.append("circle").attr("cx", 0).attr("cy", 0)
+                  .attr("r", radialScale(maxValues[index])).attr("fill", "none")
+                  .attr("stroke", "#000").attr("stroke-width", 1)
+                  .attr("stroke-dasharray", "3,3");
 
         const line = d3.lineRadial()
                       .angle((d, j) => angleScale(j))
                       .radius(d => radialScale(d[attr]) || 0);
 
-        // Utiliza el color definido en `attributeColors` para cada serie
-        const lineColor = attributeColors[attr] || '#000';  // Por si no está definido, asigna un color por defecto
+        // Color para la línea
+        const lineColor = attributeColors[attr] || '#000';  // Si no está definido, asigna un color por defecto
 
-        svg.append('path').datum(data)
-           .attr('fill', 'none')
-           .attr('stroke', lineColor)
-           .attr('stroke-width', 1.5)
-           .attr('d', line);
+        chartGroup.append('path').datum(data)
+                  .attr('fill', 'none')
+                  .attr('stroke', lineColor)
+                  .attr('stroke-width', 1.5)
+                  .attr('d', line);
 
-        svg.append('text')
-           .attr('x', 0)
-           .attr('y', -radialScale(maxValues[index]) - 10)
-           .attr('dy', '-0.5em')
-           .attr('text-anchor', 'middle')
-           .attr('font-size', '14px')
-           .attr('font-weight', 'bold')
-           .text(attr);
+        chartGroup.append('text')
+                  .attr('x', 0)
+                  .attr('y', -radialScale(maxValues[index]) - 10)
+                  .attr('dy', '-0.5em')
+                  .attr('text-anchor', 'middle')
+                  .attr('font-size', '14px')
+                  .attr('font-weight', 'bold')
+                  .text(attr);
 
         data.forEach((d, i) => {
             const season = getSeason(+d.month, +d.day);
@@ -526,12 +530,21 @@ function drawRadialChart(data, attributes) {
                               .startAngle(startAngle)
                               .endAngle(endAngle);
 
-            svg.append('path')
-               .attr('d', pathArc)
-               .attr('fill', seasonColor)
-               .attr('opacity', 0.3);
+            chartGroup.append('path')
+                      .attr('d', pathArc)
+                      .attr('fill', seasonColor)
+                      .attr('opacity', 0.3);
         });
     });
+
+    // Funcionalidad de zoom
+    const zoom = d3.zoom()
+                  .scaleExtent([0.5, 5])  // Rango de escala permitido
+                  .on('zoom', (event) => {
+                      chartGroup.attr('transform', event.transform);
+                  });
+
+    svg.call(zoom);  // Aplica el zoom al SVG
 
     // Agregar etiquetas dinámicas de tiempo (meses o días)
     const timeSpan = (new Date(data[data.length - 1].date) - new Date(data[0].date)) / (1000 * 60 * 60 * 24);
@@ -560,17 +573,18 @@ function drawRadialChart(data, attributes) {
 
         // Mostrar solo si la etiqueta aún no se ha agregado
         if (!displayedLabels.has(labelKey)) {
-            svg.append('text')
-               .attr('x', x)
-               .attr('y', y)
-               .attr('dy', '0.35em')
-               .attr('text-anchor', 'middle')
-               .attr('font-size', '10px')
-               .text(label);
+            chartGroup.append('text')
+                      .attr('x', x)
+                      .attr('y', y)
+                      .attr('dy', '0.35em')
+                      .attr('text-anchor', 'middle')
+                      .attr('font-size', '10px')
+                      .text(label);
             displayedLabels.add(labelKey);  // Marca la etiqueta como mostrada
         }
     });
 }
+
 
 // GRAFICAS PAR RADIAL PERO QUE SEA POR LA SELECCION DEL UMAPO
 
@@ -605,6 +619,7 @@ function updateRadialChartWithSelection(selectionData, fechaInicio, fechaFin) {
         drawRadialChart2(aggregatedData, attributes, fechaInicio, fechaFin);
     });
 }
+
 
 function drawRadialChart2(data, attributes, fechaInicio, fechaFin) {
     d3.select('#chart-view-radial').html(""); // Limpia el gráfico existente
@@ -830,7 +845,17 @@ function drawRadialChart2(data, attributes, fechaInicio, fechaFin) {
            .attr('font-size', '10px')
            .text(label);
     });
+
+    // Agregar la funcionalidad de zoom
+    const zoom = d3.zoom()
+                   .scaleExtent([0.5, 5])  // Definir el rango de zoom
+                   .on('zoom', function(event) {
+                       svg.attr('transform', event.transform);  // Aplicar el zoom
+                   });
+
+    svg.call(zoom);  // Llamar a la función de zoom
 }
+
 
 
 
