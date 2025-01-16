@@ -446,8 +446,8 @@ const attributeColors = {
 
 function drawRadialChart(data, attributes) {
     d3.select('#chart-view-radial').html("");
-    const width = 450;
-    const height = 450;
+    const width = 500;
+    const height = 490;
     const radius = Math.min(width, height) / 2 - 40;
 
     // Crear el SVG y el grupo principal
@@ -537,14 +537,14 @@ function drawRadialChart(data, attributes) {
         });
     });
 
-    // Funcionalidad de zoom
-    const zoom = d3.zoom()
-                  .scaleExtent([0.5, 5])  // Rango de escala permitido
-                  .on('zoom', (event) => {
-                      chartGroup.attr('transform', event.transform);
-                  });
+    // // Funcionalidad de zoom
+    // const zoom = d3.zoom()
+    //               .scaleExtent([0.5, 5])  // Rango de escala permitido
+    //               .on('zoom', (event) => {
+    //                   chartGroup.attr('transform', event.transform);
+    //               });
 
-    svg.call(zoom);  // Aplica el zoom al SVG
+    // svg.call(zoom);  // Aplica el zoom al SVG
 
     // Agregar etiquetas dinámicas de tiempo (meses o días)
     const timeSpan = (new Date(data[data.length - 1].date) - new Date(data[0].date)) / (1000 * 60 * 60 * 24);
@@ -622,10 +622,9 @@ function updateRadialChartWithSelection(selectionData, fechaInicio, fechaFin) {
 
 
 function drawRadialChart2(data, attributes, fechaInicio, fechaFin) {
-    d3.select('#chart-view-radial').html(""); // Limpia el gráfico existente
-
-    const width = 450;
-    const height = 450;
+    d3.select('#chart-view-radial').html("");
+    const width = 500;
+    const height = 490;
     const radius = Math.min(width, height) / 2 - 40;
     const svg = d3.select('#chart-view-radial')
                   .append('svg')
@@ -846,14 +845,14 @@ function drawRadialChart2(data, attributes, fechaInicio, fechaFin) {
            .text(label);
     });
 
-    // Agregar la funcionalidad de zoom
-    const zoom = d3.zoom()
-                   .scaleExtent([0.5, 5])  // Definir el rango de zoom
-                   .on('zoom', function(event) {
-                       svg.attr('transform', event.transform);  // Aplicar el zoom
-                   });
+    // // Agregar la funcionalidad de zoom
+    // const zoom = d3.zoom()
+    //                .scaleExtent([0.5, 5])  // Definir el rango de zoom
+    //                .on('zoom', function(event) {
+    //                    svg.attr('transform', event.transform);  // Aplicar el zoom
+    //                });
 
-    svg.call(zoom);  // Llamar a la función de zoom
+    // svg.call(zoom);  // Llamar a la función de zoom
 }
 
 
@@ -1569,46 +1568,67 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             selectedAttributes.forEach(attribute => {
                 const lineData = normalizedData.filter(d => !isNaN(d.normalizedValues[attribute]));
                 
-                // Crear datos separados para las líneas seleccionadas
+                // Crear datos separados para las líneas seleccionadas y no seleccionadas
                 const selectedLineData = lineData.filter(d => d.isSelected).map(d => ({
                     x: xScale(d.date),
                     y: yScale(d.normalizedValues[attribute]),
                     date: d.date
                 }));
         
-                // Umbral de continuidad (por ejemplo, 7 días)
+                const unselectedLineData = lineData.filter(d => !d.isSelected).map(d => ({
+                    x: xScale(d.date),
+                    y: yScale(d.normalizedValues[attribute]),
+                    date: d.date
+                }));
+        
+                // Umbral de continuidad (por ejemplo, 1 día)
                 const continuityThreshold = 1 * 24 * 60 * 60 * 1000; // 1 día en milisegundos
         
-                // Dividir en segmentos continuos
-                const segments = [];
-                let currentSegment = [];
+                // Función para dividir en segmentos continuos
+                const divideIntoSegments = data => {
+                    const segments = [];
+                    let currentSegment = [];
         
-                for (let i = 0; i < selectedLineData.length; i++) {
-                    if (currentSegment.length === 0) {
-                        currentSegment.push(selectedLineData[i]);
-                    } else {
-                        const lastPoint = currentSegment[currentSegment.length - 1];
-                        const currentPoint = selectedLineData[i];
-                        if (currentPoint.date - lastPoint.date <= continuityThreshold) {
-                            currentSegment.push(currentPoint);
+                    for (let i = 0; i < data.length; i++) {
+                        if (currentSegment.length === 0) {
+                            currentSegment.push(data[i]);
                         } else {
-                            segments.push(currentSegment);
-                            currentSegment = [currentPoint];
+                            const lastPoint = currentSegment[currentSegment.length - 1];
+                            const currentPoint = data[i];
+                            if (currentPoint.date - lastPoint.date <= continuityThreshold) {
+                                currentSegment.push(currentPoint);
+                            } else {
+                                segments.push(currentSegment);
+                                currentSegment = [currentPoint];
+                            }
                         }
                     }
-                }
-                if (currentSegment.length > 0) {
-                    segments.push(currentSegment);
-                }
+                    if (currentSegment.length > 0) {
+                        segments.push(currentSegment);
+                    }
+                    return segments;
+                };
         
-                // Dibujar las líneas para cada segmento
-                segments.forEach(segment => {
+                // Dividir datos seleccionados y no seleccionados en segmentos
+                const selectedSegments = divideIntoSegments(selectedLineData);
+                const unselectedSegments = divideIntoSegments(unselectedLineData);
+        
+                // Dibujar las líneas para los segmentos seleccionados
+                selectedSegments.forEach(segment => {
                     if (segment.length > 1) { // Asegúrate de que haya suficientes puntos para una línea
-                        drawLine(chartSvg, segment, attribute, attributeColors[attribute]);
+                        drawLine(chartSvg, segment, attribute, attributeColors[attribute], 1); // Opacidad completa
+                    }
+                });
+        
+                // Dibujar las líneas para los segmentos no seleccionados con menor opacidad
+                unselectedSegments.forEach(segment => {
+                    if (segment.length > 1) {
+                        drawLine(chartSvg, segment, attribute, attributeColors[attribute], 0.3); // Opacidad 0.3
                     }
                 });
             });
         }
+        
         
 
         const tooltip = d3.select("body").append("div")

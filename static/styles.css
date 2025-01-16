@@ -248,20 +248,24 @@ label#checkbox-container {
     display: none !important; /* Forzar ocultación */
 }
 
+
 #legend {
-    display: flex; /* Usar flexbox para alinear los elementos en fila */
-    margin-top: 100px; /* Espacio superior para separar de otros elementos */
-    margin-left: 160px;
+    display: flex;
+    flex-direction: column; /* Asegura que los elementos estén en una columna */
     font-family: Arial, sans-serif; /* Fuente de la leyenda */
     color: #000000; /* Color más suave para los checkboxes */
-    font-size: 0.8em; /* Aumenta el tamaño de la letra */
+    align-items: flex-start; /* Alinea todo el contenido hacia la izquierda */
+    margin-left: 0; /* Asegura que esté lo más a la izquierda posible */
+    font-size: 0.9em; /* Aumenta el tamaño de la letra */
+    margin-top: 20px;
+
 
 }
-
 .legend-item {
     display: flex; /* Usar flexbox para alinear el cuadro de color y el texto */
     align-items: center; /* Centrar verticalmente el contenido */
-    margin-right: 20px; /* Espacio a la derecha de cada elemento */
+    margin-left: 10px; /* Espacio a la derecha de cada elemento */
+    margin-top: 5px;
 }
 
 .color-box {
