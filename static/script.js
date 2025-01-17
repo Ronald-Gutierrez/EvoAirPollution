@@ -1457,7 +1457,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                         localStorage.setItem('selectedAttributes', JSON.stringify(selectedAttributes));
         
                         // Llama a drawChart para actualizar el gráfico
-                        drawChart(selectedAttributes, data, startDate, endDate, selectedDates);
+                        drawChart(selectedAttributes, data, startDate, endDate, selectedDates, dailyData);
                     });
         
                 div.append('label')
