@@ -212,17 +212,17 @@ function updateInfoWindowContent(infoWindow, station, map, marker) {
         <p style="margin: 3px 0;"><strong>Fecha Fin:</strong> ${formatDate(fechaFin)}</p>
     </div>`;
 
-    console.log(averageAQI)
+    // console.log(averageAQI)
     ColorAqiglobal = averageAQI
-    console.log(ColorAqiglobal)
-    console.log(station.stationId)
+    // console.log(ColorAqiglobal)
+    // console.log(station.stationId)
     selectCityCheckbox(station.stationId)
     infoWindow.setContent(content);
     openInfoWindow(map, marker, infoWindow);
 }
 function selectCityCheckbox(city) {
     const newCity = `Data_${city.charAt(0).toUpperCase() + city.slice(1)}.csv`;
-    console.log(newCity);
+    // console.log(newCity);
     const checkbox = document.querySelector(`input[name="city"][value="${newCity}"]`);
     if (checkbox) {
         checkbox.checked = true;
@@ -320,7 +320,7 @@ function openInfoWindow(map, marker, infoWindow) {
 // Función para seleccionar el checkbox de la ciudad correspondiente
 function selectCityCheckbox(city) {
     const newCity = `Data_${city.charAt(0).toUpperCase() + city.slice(1)}.csv`;
-    console.log(newCity);
+    // console.log(newCity);
     const checkbox = document.querySelector(`input[name="city"][value="${newCity}"]`);
     if (checkbox) {
         checkbox.checked = true;
@@ -713,11 +713,11 @@ function drawRadialChart2(data, attributes, fechaInicio, fechaFin) {
                 
                 // Verificar si hay fechas seleccionadas
                 if (selectedDates.length === 0) {
-                    console.log(`No hay datos para la estación ${clickedSeason}.`);
+                    // console.log(`No hay datos para la estación ${clickedSeason}.`);
                     return; // No hacer nada si no hay datos
                 }
 
-                console.log(`Fechas en la estación ${clickedSeason}:`, selectedDates);
+                // console.log(`Fechas en la estación ${clickedSeason}:`, selectedDates);
 
                 // Limpiar selecciones previas
                 svg.selectAll('path').classed('selected', false);
@@ -1196,9 +1196,9 @@ function createRadialDendrogram(hierarchyData, selectedAttributes, distanceMatri
             const endDate = dateRange.split(' a ')[1];
 
             // Mostrar los datos en consola
-            console.log(`Ciudad: ${selectedCity}`);
-            console.log(`Contaminante: ${contaminant}`);
-            console.log(`Rango de fechas: ${startDate} a ${endDate}`);
+            // console.log(`Ciudad: ${selectedCity}`);
+            // console.log(`Contaminante: ${contaminant}`);
+            // console.log(`Rango de fechas: ${startDate} a ${endDate}`);
             // updateTimeSeriesChart(selectedCity, startDate, endDate);
             
         });
@@ -1237,7 +1237,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
     const margin = { top: 20, right: 10, bottom: 60, left: 50 };
     const width = 830 - margin.left - margin.right;
     const height = 360 - margin.top - margin.bottom;
-    console.log(startDate, endDate,);
+    // console.log(startDate, endDate,);
     // Añadir y configurar el checkbox AQI
     let aqiCheckboxContainer = container.select('#aqi-checkbox-container');
     if (aqiCheckboxContainer.empty()) {
@@ -1400,6 +1400,29 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             'DEWP': '#4B0082', 
             'RAIN': '#1E90FF'  
         };
+        // Paso 1: Procesar los datos y calcular promedio de WSPM por día
+        const parsedData = d3.group(
+            data,
+            d => d3.timeFormat("%Y-%m-%d")(new Date(d.year, d.month - 1, d.day)) // Agrupar por día
+        );
+
+        const dailyData = Array.from(parsedData, ([date, values]) => {
+            const WSPMValues = values.map(v => +v.WSPM).filter(v => !isNaN(v)); // Obtener valores numéricos de WSPM
+
+            // Calcular el promedio de WSPM para el día
+            const averageWSPM = WSPMValues.length > 0
+                ? WSPMValues.reduce((acc, val) => acc + val, 0) / WSPMValues.length
+                : null;
+
+            return {
+                date: new Date(date),
+                WSPMValues, // Todos los valores de WSPM del día
+                averageWSPM, // Promedio de WSPM del día
+            };
+        });
+
+        console.log("Datos de velocidad del viento por día con promedio:", dailyData);
+
         let checkboxContainer = container.select('#checkbox-container');
         if (checkboxContainer.empty()) {
             checkboxContainer = container.append('div')
@@ -1444,11 +1467,11 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                     .style('margin', '0')  
                     .style('vertical-align', 'middle'); 
             });
-            drawChart(selectedAttributes, data, startDate, endDate, selectedDates);
+            drawChart(selectedAttributes, data, startDate, endDate, selectedDates, dailyData);
     });
 
     
-    function drawChart(selectedAttributes, data, startDate, endDate, selectedDates) {
+    function drawChart(selectedAttributes, data, startDate, endDate, selectedDates,dailyData) {
         const containerId = 'chart-container';
         let chartContainer = container.select(`#${containerId}`);
         
@@ -1661,13 +1684,13 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             xScale.domain(newDomain);
 
             // Llamar nuevamente a drawChart con los datos filtrados según el área seleccionada
-            drawChart(selectedAttributes, data, newDomain[0], newDomain[1], selectedDates);
+            drawChart(selectedAttributes, data, newDomain[0], newDomain[1], selectedDates, dailyData);
         }
 
         // Reset the chart on double-click
         chartSvg.on("dblclick", function() {
             xScale.domain(d3.extent(normalizedData, d => d.date)); // Restablecer dominio de la escala X
-            drawChart(selectedAttributes, data, null, null, selectedDates); // Volver a cargar los datos completos
+            drawChart(selectedAttributes, data, null, null, selectedDates, dailyData); // Volver a cargar los datos completos
         });
         // Dibujar los puntos
         selectedAttributes.forEach(attribute => {
@@ -1688,56 +1711,75 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .attr('opacity', d => d.isSelected ? 1 : 0.08)
                 .on('mouseover', function(event, d) {
                     const [mouseX, mouseY] = d3.pointer(event);
-                
-                    // Transición para agrandar el punto seleccionado
                     const point = d3.select(this);
+                    
+                    // Sumar un día a la fecha
+                    const modifiedDate = d3.timeDay.offset(d.date, -1);
+                    const pointDate = d3.timeFormat("%Y-%m-%d")(modifiedDate);
+                    
+                    // Filtrar los registros de dailyData para la fecha modificada
+                    const matchingRecords = dailyData.filter(record => d3.timeFormat("%Y-%m-%d")(record.date) === pointDate);
+                    
+                    // Calcular el promedio de WSPMValues
+                    const windSpeed = matchingRecords.length > 0 
+                        ? (matchingRecords.reduce((sum, record) => {
+                            // Sumar todos los valores en WSPMValues
+                            const totalWSPM = record.WSPMValues.reduce((acc, value) => acc + value, 0);
+                            // Calcular el promedio
+                            return sum + (totalWSPM / record.WSPMValues.length);
+                        }, 0) / matchingRecords.length).toFixed(2)
+                        : 'No disponible';
+                    
+                    // Transición para agrandar el punto seleccionado
                     point.transition()
                         .duration(200)
                         .attr('r', 10)
                         .style('stroke', 'cyan')
                         .style('stroke-width', 3);
-                
+                    
                     // Actualiza el contenido del tooltip
                     tooltip.transition()
                         .duration(200)
                         .style('opacity', 1);
-                
+                    
                     const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
                     tooltip.html(`
                         <strong>Ciudad:</strong> ${selectedCity.replace('Data_', '').replace('.csv', '')}<br>
                         <strong>Contaminante:</strong> ${attribute}<br>
                         <strong>Fecha:</strong> ${d3.timeFormat("%d/%m/%Y")(d.date)}<br>
                         <strong>Concentración:</strong> ${d.value[attribute]?.toFixed(2)}<br>
+                        <strong>Velocidad del viento:</strong> ${windSpeed} m/s<br>
                     `);
-
+                
                     // Obtener dimensiones del tooltip
                     const tooltipNode = tooltip.node();
                     const tooltipWidth = tooltipNode.offsetWidth;
                     const tooltipHeight = tooltipNode.offsetHeight;
-
+                
                     // Calcular posición limitada dentro de los márgenes de la gráfica
                     let tooltipX = event.pageX;
                     let tooltipY = event.pageY;
-
+                
                     // Limitar X dentro del área visible
                     if (tooltipX + tooltipWidth > width + margin.left) {
                         tooltipX = tooltipX - tooltipWidth - 10; // 10px de offset
                     }
-
+                
                     // Limitar Y dentro del área visible
                     if (tooltipY + tooltipHeight > height + margin.top) {
                         tooltipY = tooltipY - tooltipHeight - 10; // 10px de offset
                     }
-
+                
                     // Asegurar que no se salga por la izquierda o arriba
                     tooltipX = Math.max(margin.left, tooltipX);
                     tooltipY = Math.max(margin.top, tooltipY);
-
+                
                     // Aplicar la posición calculada
                     tooltip.style('left', `${tooltipX}px`)
                         .style('top', `${tooltipY}px`)
                         .style('color', 'black');
                 })
+                
                 .on('mouseout', function() {
                     const point = d3.select(this);
                     point.transition()
@@ -1756,7 +1798,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                     if (!floatingWindow.empty()) {
                         floatingWindow.remove();
                     }
-                
+                    console.log("velocidades VIENTOOOO" , dailyData)
                     // Obtener las coordenadas del mouse
                     const [mouseX, mouseY] = d3.pointer(event, svg.node());
                 
@@ -2191,7 +2233,7 @@ async function updateUMAP() {
 function plotUMAP(data, fechaInicio, fechaFin) {
     // Limpiar el gráfico anterior
     d3.select("#umap-plot").selectAll("*").remove();
-    console.log("Fechas de entrada:", fechaInicio, fechaFin);
+    // console.log("Fechas de entrada:", fechaInicio, fechaFin);
 
     // Función para actualizar la opacidad de los filtros
     function updateFilterOpacity(activeFilterId) {
@@ -2244,7 +2286,7 @@ function plotUMAP(data, fechaInicio, fechaFin) {
             return;
         }
 
-        console.log("Actualizando gráficos con fechas seleccionadas:", selectedDates);
+        // console.log("Actualizando gráficos con fechas seleccionadas:", selectedDates);
         const cityFile = filteredData.length > 0 ? filteredData[0].city : null;
 
         updateTimeSeriesChart(cityFile, fechaInicio, fechaFin, selectedDates);
@@ -2591,7 +2633,7 @@ function plotUMAP(data, fechaInicio, fechaFin) {
 }
 
 function updateCorrelationMatrixnew(dates) {
-    console.log(dates);
+    // console.log(dates);
     const selectedAttributes = Array.from(document.querySelectorAll('.options-chek-correlation input[type="checkbox"]:checked'))
                                     .map(cb => cb.value);
 
@@ -2621,11 +2663,11 @@ function updateCorrelationMatrixnew(dates) {
                 });
                 return avg;
             });
-            console.log(parsedData);
+            // console.log(parsedData);
             const correlationMatrix = calculateCorrelationMatrix(parsedData, selectedAttributes);
             const matrizdistancia = calculateDistanceMatrix(correlationMatrix);
             const hierarchyData = buildHierarchy(selectedAttributes, matrizdistancia);
-            console.log(correlationMatrix);
+            // console.log(correlationMatrix);
             
             // Crear o actualizar el dendrograma radial
             createRadialDendrogram(hierarchyData, selectedAttributes, matrizdistancia, selectedCity, dates.join(', '));
