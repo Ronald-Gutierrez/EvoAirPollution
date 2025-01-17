@@ -2613,46 +2613,118 @@ function plotUMAP(data, fechaInicio, fechaFin) {
         });
     });
 
-    // Agregar la leyenda
-    const legendData = [
-        { color: '#00E400', label: 'Bueno' },
-        { color: '#FFFF00', label: 'Moderado' },
-        { color: '#FF7E00', label: 'Insalubre' },
-        { color: '#FF0000', label: 'Muy Insalubre' },
-        { color: '#99004c', label: 'Malo' },
-        { color: '#800000', label: 'Severo' }
-    ];
+    // Agregar la leyenda como botones
+const legendData = [
+    { color: '#00E400', label: 'Bueno', AQI: 1 },
+    { color: '#FFFF00', label: 'Moderado', AQI: 2 },
+    { color: '#FF7E00', label: 'Insalubre', AQI: 3 },
+    { color: '#FF0000', label: 'Muy Insalubre', AQI: 4 },
+    { color: '#99004c', label: 'Malo', AQI: 5 },
+    { color: '#800000', label: 'Severo', AQI: 6 },
+];
 
-    // Verificar si la leyenda ya existe para evitar duplicados
-    if (container.select('.legend-pca').empty()) {
-        // Crear la leyenda solo si no existe
-        const legend = container.insert('div', ':first-child')
-            .attr('class', 'legend-pca')
-            .style('display', 'flex')
-            .style('justify-content', 'center')
-            .style('position', 'absolute')
-            .style('top', '93%')  // Coloca la leyenda al final del contenedor
-            .style('width', '96%')  // Asegura que ocupe todo el ancho disponible
-            .style('height', '5%')  // Asegura que ocupe todo el ancho disponible
-            .style('font-family', 'Arial, sans-serif')
-            .style('font-weight', 'bold');
-    
-        legendData.forEach(item => {
-            const legendItem = legend.append('div')
-                .attr('class', 'legend-item-pca')
-                .style('background-color', item.color)
-                .style('padding', '3px 12px')  // Reducir el padding para hacer los items más compactos
-                .style('margin', '0 2px')  // Aumentar el margen entre los elementos
-                .style('border-radius', '5px')  // Bordes redondeados para un diseño más suave
-                .style('color', 'black')  // Establecer color de texto por defecto
-                .style('text-align', 'center')  // Centrar el texto
-                .style('font-size', '14px')  // Hacer el texto más pequeño
-                .text(item.label);
+// Crear la leyenda como botones, asegurando que esté delante de otros elementos
+if (container.select('.legend-pca').empty()) {
+    const legend = container.insert('div', ':first-child')
+        .attr('class', 'legend-pca')
+        .style('display', 'flex')
+        .style('justify-content', 'center')
+        .style('align-items', 'center')
+        .style('position', 'absolute')
+        .style('bottom', '-1%') // Coloca la leyenda en la parte inferior del contenedor
+        .style('left', '2%')
+        .style('width', '96%') // Ajusta el ancho disponible
+        .style('height', 'auto')
+        .style('font-family', 'Arial, sans-serif')
+        .style('font-weight', 'bold')
+        .style('z-index', '1000') // Asegura que esté encima de cualquier cosa
+        .style('pointer-events', 'all') // Permite interacciones con los botones
+        .style('border-radius', '10px')
+        .style('padding', '10px') // Espaciado interno para los botones
+        .style('text-align', 'center');  // Centrar el texto
 
-            // Cambiar color de texto a blanco para "Malo" y "Severo"
-            if (item.label === 'Malo' || item.label === 'Severo') {
-                legendItem.style('color', 'white');
-            }
+    legendData.forEach((item, index) => {
+        const legendButton = legend.append('button')
+            .attr('class', 'legend-item-pca')
+            .style('background-color', item.color)
+            .style('padding', '3px 10px')
+            .style('margin', '0 4px')
+            .style('border-radius', '5px')
+            .style('color', index > 3 ? 'white' : 'black') // Texto blanco para "Malo" y "Severo"
+            .style('border', 'none')
+            .style('cursor', 'pointer')
+            .style('font-weight', 'bold')
+            .style('text-align', 'center')  // Centrar el texto
+            .style('font-size', '12px')
+            .style('box-shadow', '0px 2px 5px rgba(0, 0, 0, 0.3)') // Sombra para resaltar los botones
+            .text(item.label);
+
+        // Cambiar la opacidad y agregar borde en hover
+        legendButton
+            .on('mouseover', () => {
+                legendButton.style('box-shadow', '0px 0px 5px 2px rgba(0,0,0,0.5)');
+            })
+            .on('mouseout', () => {
+                if (!legendButton.classed('selected')) {
+                    legendButton.style('box-shadow', 'none');
+                }
+            });
+
+        // Filtrar puntos al hacer clic
+        legendButton.on('click', () => {
+            // Quitar la sombra de todos los botones
+            legend.selectAll('button').style('box-shadow', 'none').style('transform', 'scale(1)').classed('selected', false);
+            
+            // Agregar la clase 'selected' al botón clickeado para aplicar la sombra
+            legendButton.style('box-shadow', '0px 0px 5px 2px rgba(0,0,0,0.5)')
+                .style('transform', 'scale(1.1)') // Hacer que el botón crezca un poco
+                .classed('selected', true);
+
+            const selectedAQI = index + 1; // AQI corresponde al índice + 1
+
+            // Filtrar puntos en el gráfico UMAP
+            svg.selectAll('circle')
+                .attr('opacity', d => (d.AQI === selectedAQI ? 1 : 0.1));
+
+            // Filtrar datos para otras visualizaciones
+            const selectedData = data.filter(d => d.AQI === selectedAQI);
+            const selectedDates = selectedData.map(d => `${d.year}-${d.month}-${d.day}`);
+
+            // Actualizar otras gráficas con los datos seleccionados
+            updateTimeSeriesChart(selectedData[0]?.city, fechaInicio, fechaFin, selectedDates);
+            updateCorrelationMatrixnew(selectedDates);
+            drawThemeRiver(selectedData[0]?.city, selectedDates);
+            updateRadialChartWithSelection(selectedData, fechaInicio, fechaFin);
+        });
+    });
+
+    // Agregar un botón para resetear el filtro
+    legend.append('button')
+        .attr('class', 'reset-button-pca')
+        .style('background-color', '#ccc')
+        .style('padding', '5px 15px')
+        .style('margin', '0 5px')
+        .style('border-radius', '5px')
+        .style('color', 'black')
+        .style('border', 'none')
+        .style('cursor', 'pointer')
+        .style('font-size', '12px')
+        .style('font-weight', 'bold')
+        .style('box-shadow', '0px 2px 5px rgba(0, 0, 0, 0.3)') // Sombra para resaltar el botón
+        .text('Resetear')
+        .on('mouseover', function () {
+            d3.select(this).style('box-shadow', '0px 0px 5px 2px rgba(0,0,0,0.5)');
+        })
+        .on('mouseout', function () {
+            d3.select(this).style('box-shadow', 'none');
+        })
+        .on('click', () => {
+            // Resetear opacidad de todos los puntos
+            svg.selectAll('circle')
+                .attr('opacity', 1);
+
+            // Eliminar la sombra de todos los botones y quitar la clase 'selected'
+            legend.selectAll('button').style('box-shadow', 'none').style('transform', 'scale(1)').classed('selected', false);
         });
     }
 }
