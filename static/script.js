@@ -1798,7 +1798,6 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                     if (!floatingWindow.empty()) {
                         floatingWindow.remove();
                     }
-                    console.log("velocidades VIENTOOOO" , dailyData)
                     // Obtener las coordenadas del mouse
                     const [mouseX, mouseY] = d3.pointer(event, svg.node());
                 
@@ -2040,26 +2039,52 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                                 const [mouseX, mouseY] = d3.pointer(event, this); // Obtener posición del mouse
                                 const hour = Math.round(xMiniScale.invert(mouseX)); // Hora más cercana
                                 const xPosition = xMiniScale(hour); // Posición exacta de la línea en el eje X
-                        
+                            
                                 // Actualizar posición de la línea vertical
                                 verticalLine.attr('x1', xPosition).attr('x2', xPosition).attr('visibility', 'visible');
-                        
-                                // Obtener datos de la hora correspondiente
+                            
+
+                                const modifiedDate2 = d3.timeDay.offset(d.date, -1);
+
+
+                                // Filtrar los datos de `dailyData` para encontrar la fecha seleccionada
+                                const selectedDate = d3.timeFormat("%Y-%m-%d")(modifiedDate2); // Formato de la fecha actual
+                                const matchingRecord = dailyData.find(record => {
+                                    const recordDate = d3.timeFormat("%Y-%m-%d")(record.date); // Formatear la fecha del registro
+                                    return recordDate === selectedDate;
+                                });
+                            
+                                // Extraer la velocidad del viento para la hora actual
+                                let windSpeed = 'No disponible';
+                                if (matchingRecord && matchingRecord.WSPMValues && matchingRecord.WSPMValues.length === 24) {
+                                    windSpeed = `${matchingRecord.WSPMValues[hour]?.toFixed(2)} m/s`; // Velocidad específica de la hora
+                                }
+                            
+                                // Obtener datos de contaminantes para la hora seleccionada en `selectedDayData`
                                 const hourData = selectedDayData.find(d => d.hour === hour);
-                        
+                            
                                 if (hourData) {
                                     tooltip.style('visibility', 'visible')
                                         .style('left', `${xPosition + miniMargin.left}px`) // Ajustar al eje X del gráfico
                                         .style('top', `${yMiniScale(1) + miniMargin.top + 65}px`) // Justo encima del gráfico
-                                        .html(selectedContaminants.map(contaminant =>
-                                            `${contaminant}: ${hourData[contaminant]} ${units[contaminant]}`
-                                        ).join('<br>'));
+                                        .html(
+                                            selectedContaminants
+                                                .map(contaminant =>
+                                                    `${contaminant}: ${hourData[contaminant]} ${units[contaminant]}`
+                                                )
+                                                .join('<br>') +
+                                            `<br>Vel. del viento: ${windSpeed}` // Mostrar la velocidad del viento
+                                        );
+                                } else {
+                                    tooltip.style('visibility', 'hidden');
                                 }
                             })
                             .on('mouseout', () => {
                                 verticalLine.attr('visibility', 'hidden');
                                 tooltip.style('visibility', 'hidden');
                             });
+                            
+                            
                         
                     });
                 }
