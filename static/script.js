@@ -2858,7 +2858,6 @@ function updateCorrelationMatrixnew(dates) {
 }
 
 async function drawThemeRiver(cityFile, dates) {
-
     const lastDate = new Date(dates[dates.length - 1]);
     const nextDate = new Date(lastDate);
     nextDate.setDate(lastDate.getDate() + 1);
@@ -2883,10 +2882,10 @@ async function drawThemeRiver(cityFile, dates) {
     const selectedDatesSet = new Set(dates.map(date => new Date(date).getTime()));
     const filteredData = data.filter(d => selectedDatesSet.has(d.date.getTime()));
 
-    // if (filteredData.length === 0) {
-    //     alert("No se encontraron datos para las fechas seleccionadas.");
-    //     return;
-    // }
+    if (filteredData.length === 0) {
+        alert("No se encontraron datos para las fechas seleccionadas.");
+        return;
+    }
 
     const contaminantAttributes = ["O3", "CO", "NO2", "SO2", "PM10", "PM2_5"];
     const meteorologicalAttributes = ["RAIN", "DEWP", "PRES", "TEMP"];
@@ -2909,25 +2908,22 @@ async function drawThemeRiver(cityFile, dates) {
         return normalized;
     });
 
-    const margin = { top: 100, right: 30, bottom: 80, left: 20 };
+    const margin = { top: 100, right: 10, bottom: 70, left: 30 };
     const width = 600 - margin.left - margin.right;
-    const height = 400 - margin.top - margin.bottom;
+    const height = 420 - margin.top - margin.bottom;
 
     const container = d3.select("#evolution-plot");
     container.selectAll("*").remove();
 
-    // Crear contenedor SVG
     const svg = container.append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom);
 
-    // Contenedor para el gráfico principal
     const chartGroup = svg.append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // Contenedor para etiquetas
     const labelsGroup = svg.append("g")
-        .attr("transform", `translate(${margin.left}, 20)`);
+        .attr("transform", `translate(50, ${height + margin.top -295})`);
 
     const stack = d3.stack()
         .keys(attributes)
@@ -2966,6 +2962,60 @@ async function drawThemeRiver(cityFile, dates) {
         .y0(d => y(d[0]))
         .y1(d => y(d[1]));
 
+    const updateGraph = (xDomain) => {
+        x.domain([
+            Math.max(0, xDomain[0]),
+            Math.min(normalizedData.length - 1, xDomain[1])
+        ]);
+
+        chartGroup.selectAll("path")
+            .data(series)
+            .join("path")
+            .attr("fill", d => attributeColors[d.key])
+            .attr("d", area);
+
+        const maxTicks = 30; // Número máximo de fechas visibles
+        const totalVisibleDates = Math.round(x.domain()[1] - x.domain()[0]);
+        const tickStep = Math.ceil(totalVisibleDates / maxTicks);
+        const visibleDates = d3.range(
+            Math.round(x.domain()[0]),
+            Math.round(x.domain()[1]),
+            tickStep
+        );
+
+        const dateTicks = visibleDates.map(i => ({
+            index: i,
+            date: normalizedData[i].date
+        }));
+
+        const gridLines = chartGroup.selectAll(".grid-line")
+            .data(dateTicks, d => d.index);
+
+        gridLines.enter()
+            .append("line")
+            .attr("class", "grid-line")
+            .merge(gridLines)
+            .attr("x1", d => x(d.index))
+            .attr("x2", d => x(d.index))
+            .attr("y1", 0)
+            .attr("y2", height)
+            .attr("stroke", "#000")
+            .attr("stroke-opacity", 0.15)
+            .attr("stroke-width", 1);
+
+        gridLines.exit().remove();
+
+        chartGroup.select(".x-axis")
+            .call(
+                d3.axisBottom(x)
+                    .tickValues(visibleDates)
+                    .tickFormat(i => d3.timeFormat("%d-%m-%Y")(normalizedData[i].date))
+            )
+            .selectAll("text")
+            .attr("transform", `rotate(-45)`)
+            .style("text-anchor", "end");
+    };
+
     chartGroup.append("g")
         .selectAll("path")
         .data(series)
@@ -2973,132 +3023,57 @@ async function drawThemeRiver(cityFile, dates) {
         .attr("fill", d => attributeColors[d.key])
         .attr("d", area);
 
-        const labelOrder = [
-            "PM2_5", "PM10", "SO2", "NO2", "CO", "O3", "TEMP", "PRES", "DEWP", "RAIN"
-        ];
-        
-        labelOrder.forEach((attr, index) => {
-            labelsGroup.append("text")
-                .attr("x", (index % 5) * 120)
-                .attr("y", Math.floor(index / 5) * 20)
-                .attr("transform", `translate(${margin.left}, 40)`)
-                .text(attr)
-                .style("fill", attributeColors[attr])
-                .style("font-size", "14px")
-                .style("font-weight", "bold");
-        });
-        
+    chartGroup.append("g")
+        .attr("class", "x-axis")
+        .attr("transform", `translate(0,${height})`)
+        .call(
+            d3.axisBottom(x)
+                .ticks(20)
+                .tickFormat(i => d3.timeFormat("%d-%m-%Y")(normalizedData[Math.round(i)].date))
+        )
+        .selectAll("text")
+        .attr("transform", `rotate(-45)`)
+        .style("text-anchor", "end");
+
+    // Eliminamos o comentamos esta línea para ocultar el eje Y
+    // chartGroup.append("g")
+    //     .call(d3.axisLeft(y));
 
     const brush = d3.brushX()
         .extent([[0, 0], [width, height]])
-        .on("end", brushended);
+        .on("end", ({ selection }) => {
+            if (!selection) return;
+
+            const [x0, x1] = selection.map(x.invert);
+            const startIndex = Math.max(0, Math.floor(x0));
+            const endIndex = Math.min(normalizedData.length - 1, Math.ceil(x1));
+
+            updateGraph([startIndex, endIndex]);
+            chartGroup.select(".brush").call(brush.move, null);
+        });
 
     chartGroup.append("g")
         .attr("class", "brush")
         .call(brush);
 
-    chartGroup.on("dblclick", () => drawThemeRiver(cityFile, dates));
+    svg.on("dblclick", () => {
+        updateGraph([0, normalizedData.length - 1]);
+    });
 
-    addDates(chartGroup, normalizedData, x, height, 25);
+    const labelOrder = [
+        "PM2_5", "PM10", "SO2", "NO2", "CO", "O3", "TEMP", "PRES", "DEWP", "RAIN"
+    ];
 
-    function brushended({ selection }) {
-        if (!selection) return;
+    labelOrder.forEach((attr, index) => {
+        labelsGroup.append("text")
+            .attr("x", (index % 5) * 120)
+            .attr("y", Math.floor(index / 5) * 20)
+            .text(attr)
+            .style("fill", attributeColors[attr])
+            .style("font-size", "14px")
+            .style("font-weight", "bold");
+    });
 
-        const [x0, x1] = selection.map(x.invert);
-        const startIndex = Math.floor(x0);
-        const endIndex = Math.ceil(x1);
-        const newFilteredData = normalizedData.slice(startIndex, endIndex);
-
-        if (newFilteredData.length > 0) {
-            drawZoomedData(newFilteredData);
-        }
-    }
-
-    function drawZoomedData(filteredZoomedData) {
-        container.selectAll("*").remove();
-
-        const zoomSvg = container.append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom);
-
-        const zoomedChartGroup = zoomSvg.append("g")
-            .attr("transform", `translate(${margin.left},${margin.top})`);
-
-        const zoomedLabelsGroup = zoomSvg.append("g")
-            .attr("transform", `translate(${margin.left}, 20)`);
-
-        const zoomedX = d3.scaleLinear()
-            .domain([0, filteredZoomedData.length - 1])
-            .range([0, width]);
-
-        const zoomedY = d3.scaleLinear()
-            .domain([
-                d3.min(series.flat(), d => d[0]),
-                d3.max(series.flat(), d => d[1])
-            ])
-            .range([height, 0]);
-
-        const zoomedArea = d3.area()
-            .x((d, i) => zoomedX(i))
-            .y0(d => zoomedY(d[0]))
-            .y1(d => zoomedY(d[1]));
-
-        zoomedChartGroup.append("g")
-            .selectAll("path")
-            .data(stack(filteredZoomedData))
-            .join("path")
-            .attr("fill", d => attributeColors[d.key])
-            .attr("d", zoomedArea);
-
-        zoomedChartGroup.append("g")
-            .attr("class", "brush")
-            .call(brush);
-
-        zoomedChartGroup.on("dblclick", () => drawThemeRiver(cityFile, dates));
-
-        addDates(zoomedChartGroup, filteredZoomedData, zoomedX, height, 30);
-
-        // Reagregar etiquetas en el gráfico de zoom
-        const labelOrder = [
-            "PM2_5", "PM10", "SO2", "NO2", "CO", "O3", "TEMP", "PRES", "DEWP", "RAIN"
-        ];
-
-        labelOrder.forEach((attr, index) => {
-            zoomedLabelsGroup.append("text")
-                .attr("x", (index % 5) * 120)
-                .attr("y", Math.floor(index / 5) * 20)
-                .attr("transform", `translate(${margin.left}, 40)`) // Asegurarse de que las etiquetas se alineen correctamente
-                .text(attr)
-                .style("fill", attributeColors[attr])
-                .style("font-size", "14px")
-                .style("font-weight", "bold");
-        });
-
-    }
-
-    function addDates(svg, data, xScale, height, maxLabels) {
-        const formatDate = d3.timeFormat("%d-%m-%Y");
-        const step = Math.max(1, Math.floor(data.length / maxLabels));
-
-        data.forEach((d, i) => {
-            if (i % step === 0) {
-                svg.append("line")
-                    .attr("x1", xScale(i))
-                    .attr("x2", xScale(i))
-                    .attr("y1", 0)
-                    .attr("y2", height)
-                    .attr("stroke", "black")
-                    .attr("opacity", 0.1);
-
-                svg.append("text")
-                    .attr("x", xScale(i))
-                    .attr("y", height + 40)
-                    .text(formatDate(d.date))
-                    .attr("fill", "black")
-                    .attr("font-size", "10px")
-                    .attr("text-anchor", "middle")
-                    .attr("transform", `rotate(-45 ${xScale(i)},${height + 40})`);
-            }
-        });
-    }
+    // Llamada inicial para dibujar la gráfica con las fechas y las líneas
+    updateGraph([0, normalizedData.length - 1]);
 }
