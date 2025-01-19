@@ -384,6 +384,7 @@ document.getElementById('visualizar-todo').addEventListener('change', function (
     updateChart();
     document.getElementById('fecha-rango').innerText = isChecked ? "Visualizando todos los datos." : "";
 
+
 });
 
 // Asegúrate de que el estado del checkbox se refleje correctamente al cargar la página
@@ -730,6 +731,12 @@ function drawRadialChart2(data, attributes, fechaInicio, fechaFin) {
 
                 // Actualizar la gráfica de series temporales con las fechas seleccionadas
                 updateTimeSeriesChart(selectedCity, fechaInicio , fechaFin, selectedDates);
+                // console.log(selectedDates)
+                updateCorrelationMatrixnew(selectedDates);
+                drawThemeRiver(selectedCity, selectedDates); // Riverplot basado en fechas
+                // plotUMAP(filteredData, fechaInicio, fechaFin); // UMAP con datos filtrados
+
+                
            });
     });
 
@@ -982,8 +989,6 @@ function calculateDistanceMatrix(correlationMatrix) {
 
     return distanceMatrix;
 }
-
-// Función que se ejecuta al cambiar los checkboxes de correlación
 function updateCorrelationMatrix() {
     const selectedAttributes = Array.from(document.querySelectorAll('.options-chek-correlation input[type="checkbox"]:checked'))
                                    .map(cb => cb.value);
@@ -994,21 +999,20 @@ function updateCorrelationMatrix() {
     const selectedCities = Array.from(document.querySelectorAll('#city-checkboxes input[type="radio"]:checked'))
                                 .map(cb => cb.value);
 
-    // Obtener el rango de fechas si no es "visualizar todo"
+    // Verificar si "visualizar todo" está marcado
+    const visualizarTodo = document.getElementById('visualizar-todo').checked;
+
+    // Obtener el rango de fechas si "visualizar todo" no está seleccionado
     const startDate = document.getElementById('fecha-inicio').value;
     const endDate = document.getElementById('fecha-fin').value;
-    const visualizarTodo = document.getElementById('visualizar-todo').value;
 
     selectedCities.forEach(selectedCity => {
-        // console.log(`Generando la matriz de correlación para la ciudad: ${selectedCity}`);
-        // console.log(`Rango de fechas: ${visualizarTodo ? 'Todos los datos' : `${startDate} a ${endDate}`}`);
-
         d3.csv(`data/${selectedCity}`).then(data => {
-            // Filtrar los datos por fechas estrictamente dentro del rango
+            // Filtrar los datos por fechas si "visualizar todo" no está seleccionado
             if (!visualizarTodo && startDate && endDate) {
                 data = data.filter(d => {
                     const date = new Date(`${d.year}-${d.month}-${d.day}`);
-                    return date > new Date(startDate) && date < new Date(endDate); // Filtrar fechas dentro del rango
+                    return date >= new Date(startDate) && date <= new Date(endDate); // Incluir las fechas límite
                 });
             }
 
@@ -1024,13 +1028,14 @@ function updateCorrelationMatrix() {
             const correlationMatrix = calculateCorrelationMatrix(parsedData, selectedAttributes);
             const matrizdistancia = calculateDistanceMatrix(correlationMatrix);
             const hierarchyData = buildHierarchy(selectedAttributes, matrizdistancia);
-            // console.log(hierarchyData);
 
             // Crear o actualizar el dendrograma radial con los rangos de fecha y la ciudad
-            createRadialDendrogram(hierarchyData, selectedAttributes, matrizdistancia, selectedCity, visualizarTodo ? 'Todos los datos' : `${startDate} a ${endDate}`);
+            createRadialDendrogram(hierarchyData, selectedAttributes, matrizdistancia, selectedCity, 
+                visualizarTodo ? 'Todos los datos' : `${startDate} a ${endDate}`);
         });
     });
 }
+
 
 // Función para construir la jerarquía (usando la matriz de distancia)
 function buildHierarchy(attributes, distanceMatrix) {
@@ -1091,7 +1096,7 @@ function buildHierarchy(attributes, distanceMatrix) {
 function createRadialDendrogram(hierarchyData, selectedAttributes, distanceMatrix, selectedCity, dateRange) {
     // Verificar que los datos de entrada no sean undefined
     if (!hierarchyData || !selectedAttributes || !distanceMatrix || !selectedCity || !dateRange) {
-        console.error("Datos de entrada inválidos:", { hierarchyData, selectedAttributes, distanceMatrix, selectedCity, dateRange });
+        // console.error("Datos de entrada inválidos:", { hierarchyData, selectedAttributes, distanceMatrix, selectedCity, dateRange });
         return; // Salir de la función si los datos son inválidos
     }
 
@@ -1421,7 +1426,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
             };
         });
 
-        console.log("Datos de velocidad del viento por día con promedio:", dailyData);
+        // console.log("Datos de velocidad del viento por día con promedio:", dailyData);
 
         let checkboxContainer = container.select('#checkbox-container');
         if (checkboxContainer.empty()) {
@@ -2125,48 +2130,99 @@ function drawLine(chartSvg, points, attribute, color, opacity = 1, isSelected = 
 
 // Variable global para almacenar el contaminante seleccionado actualmente
 let currentContaminant = null;
-
+// Manejar cambios en los radio buttons
 document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-        const selectedCity = radio.value;
-
-        // Verificar si el checkbox 'visualizar-todo' está marcado
-        const isChecked = document.getElementById('visualizar-todo').checked;
-        const startDate = isChecked ? null : document.getElementById('fecha-inicio').value;
-        const endDate = isChecked ? null : document.getElementById('fecha-fin').value;
-        
-        // Establecer un contaminante por defecto (por ejemplo, PM2.5)
-        currentContaminant = currentContaminant || 'PM2_5';
-        
-        // Actualizar las gráficas
-        updateChart();
-        updateCorrelationMatrix();
-        // updateUMAP();
-        updateTimeSeriesChart(selectedCity, startDate, endDate);
-
-    });
+    radio.addEventListener('change', handleCityOrCheckboxChange);
 });
 
-// Escuchar cambios en el rango de fechas para la gráfica radial
-document.getElementById('fecha-inicio').addEventListener('change', () => {
-    updateChart();
-    if (currentContaminant) {
-        const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
+// Manejar cambios en el checkbox
+document.getElementById('visualizar-todo').addEventListener('change', handleCityOrCheckboxChange);
+
+async function handleCityOrCheckboxChange() {
+    // Ciudad seleccionada
+    const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked')?.value || null;
+
+    // Verificar si el checkbox 'visualizar-todo' está marcado
+    const isChecked = document.getElementById('visualizar-todo').checked;
+
+    let dateList = [];
+    if (isChecked) {
+        // Generar fechas desde el 1 de marzo de 2013 hasta el 28 de febrero de 2017
+        const start = new Date(2013, 2, 1); // Marzo es el mes 2 (0 indexado)
+        const end = new Date(2017, 1, 28); // Febrero es el mes 1 (0 indexado)
+        for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+            dateList.push(new Date(date).toISOString().split('T')[0]); // Formatear fecha en formato YYYY-MM-DD
+        }
+    } else {
+        // Usar las fechas seleccionadas en los inputs
         const startDate = document.getElementById('fecha-inicio').value;
         const endDate = document.getElementById('fecha-fin').value;
-        updateTimeSeriesChart(selectedCity, startDate, endDate);
-    }
-});
 
-document.getElementById('fecha-fin').addEventListener('change', () => {
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+                dateList.push(new Date(date).toISOString().split('T')[0]); // Formatear fecha en formato YYYY-MM-DD
+            }
+        } else {
+            console.warn("Por favor selecciona un rango de fechas válido.");
+        }
+    }
+
+    // Llamar a la función drawThemeRiver con la ciudad seleccionada y las fechas generadas
+    try {
+        await drawThemeRiver(selectedCity, dateList);
+    } catch (error) {
+        console.error("Error al ejecutar drawThemeRiver:", error);
+    }
+
+    // Establecer un contaminante por defecto (por ejemplo, PM2.5)
+    currentContaminant = currentContaminant || 'PM2_5';
+
+    // Actualizar las gráficas
+    updateChart();
+    updateCorrelationMatrix();
+    // updateUMAP();
+    updateTimeSeriesChart(selectedCity, isChecked ? null : document.getElementById('fecha-inicio').value, isChecked ? null : document.getElementById('fecha-fin').value);
+
+}
+// Escuchar cambios en el rango de fechas
+document.getElementById('fecha-inicio').addEventListener('change', handleDateChange);
+document.getElementById('fecha-fin').addEventListener('change', handleDateChange);
+
+async function handleDateChange() {
+    const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked')?.value || null;
+    const startDate = document.getElementById('fecha-inicio').value;
+    const endDate = document.getElementById('fecha-fin').value;
+
+    if (!startDate || !endDate) {
+        console.warn("Por favor selecciona un rango de fechas válido.");
+        return;
+    }
+
+    // Generar el rango de fechas
+    const dateList = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+        dateList.push(new Date(date).toISOString().split('T')[0]); // Formatear fecha en formato YYYY-MM-DD
+    }
+
+    // Llamar a drawThemeRiver
+    try {
+        await drawThemeRiver(selectedCity, dateList);
+    } catch (error) {
+        console.error("Error al ejecutar drawThemeRiver:", error);
+    }
+
+    // Actualizar las gráficas
     updateChart();
     if (currentContaminant) {
-        const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
-        const startDate = document.getElementById('fecha-inicio').value;
-        const endDate = document.getElementById('fecha-fin').value;
         updateTimeSeriesChart(selectedCity, startDate, endDate);
     }
-});
+
+}
+
 
 document.getElementById('visualizar-todo').addEventListener('change', function () {
     const isChecked = this.checked;
@@ -2253,6 +2309,7 @@ async function updateUMAP() {
 
     // Crear el gráfico
     plotUMAP(filteredData, fechaInicio, fechaFin);
+    
 }
 
 function plotUMAP(data, fechaInicio, fechaFin) {
@@ -2717,6 +2774,7 @@ function plotUMAP(data, fechaInicio, fechaFin) {
                 updateCorrelationMatrixnew(selectedDates);
                 drawThemeRiver(selectedData[0]?.city, selectedDates);
                 updateRadialChartWithSelection(selectedData, fechaInicio, fechaFin);
+
             });
         });
 
@@ -2800,6 +2858,7 @@ function updateCorrelationMatrixnew(dates) {
 }
 
 async function drawThemeRiver(cityFile, dates) {
+
     const lastDate = new Date(dates[dates.length - 1]);
     const nextDate = new Date(lastDate);
     nextDate.setDate(lastDate.getDate() + 1);
