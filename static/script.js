@@ -1,6 +1,132 @@
 // Variable para almacenar la última InfoWindow abierta
 let lastInfoWindow = null;
 
+function createArrowIcon(direction) {
+    return {
+        path: "M0,-1 L-2,-3 L-1,-3 L-1,-8 L1,-8 L1,-3 L2,-3 Z",
+        fillColor: "#FF0000",
+        fillOpacity: 1,
+        strokeColor: "#FFFFF", // Color del borde (debe coincidir con el color de la flecha si deseas que sea del mismo color)
+        strokeOpacity: 1, // Opacidad del borde
+        strokeWeight: 1, // Grosor del borde (ajustar según lo necesites)
+        scale: 3,
+        rotation: direction + 180, // Rotación según la dirección del viento
+        anchor: new google.maps.Point(0, -4), // Ajusta el punto de anclaje de la flecha
+    };
+}
+
+// Función para actualizar los datos y los marcadores
+function updateWindDirectionAndMarkers(station, map, position, iconUrl) {
+    // Definir las fechas predeterminadas
+    const fechaInicioPredeterminada = new Date(2013, 2, 1); 
+    const fechaFinPredeterminada = new Date(2017, 1, 28);
+
+    // Verificar el estado del checkbox
+    const visualizarTodo = document.getElementById('visualizar-todo').checked;
+
+    // Obtener las fechas seleccionadas o las predeterminadas
+    const fechaInicio = visualizarTodo 
+        ? fechaInicioPredeterminada 
+        : new Date(document.getElementById('fecha-inicio').value);
+    const fechaFin = visualizarTodo 
+        ? fechaFinPredeterminada 
+        : new Date(document.getElementById('fecha-fin').value);
+
+    console.log('Fecha Inicio: ', fechaInicio);
+    console.log('Fecha Fin: ', fechaFin);
+
+    // Filtrar los datos de la estación para el rango de fechas seleccionado
+    const filteredData = station.data.filter(entry => {
+        const entryDate = new Date(entry.year, entry.month - 1, entry.day);
+        return entryDate >= fechaInicio && entryDate <= fechaFin;
+    });
+
+    // Calcular el promedio de la dirección del viento
+    let totalWD = 0;
+    let count = 0;
+    filteredData.forEach(entry => {
+        const wd = parseFloat(entry.wd);
+        if (!isNaN(wd)) {
+            totalWD += wd;
+            count++;
+        }
+    });
+
+    const averageWD = count > 0 ? totalWD / count : 0; // Promedio de la dirección del viento
+    console.log('Promedio de Dirección del Viento: ', averageWD);
+
+    // Eliminar los marcadores previos de la estación (si existen)
+    if (station.marker) {
+        station.marker.setMap(null);
+        station.arrowMarker.setMap(null);
+    }
+
+    // Crear un nuevo marcador para la estación
+    const marker = new google.maps.Marker({
+        position: position,
+        map: map,
+        icon: {
+            url: iconUrl,
+            scaledSize: new google.maps.Size(25, 25)
+        }
+    });
+
+    // Crear el marcador de la flecha
+    const arrowPosition = {
+        lat: position.lat + 0.03, // Sin cambiar latitud
+        lng: position.lng - 0.0, // Ajuste en la longitud
+    };
+
+    const arrowMarker = new google.maps.Marker({
+        position: arrowPosition,
+        map: map,
+        icon: createArrowIcon(averageWD), // Usamos el promedio calculado
+    });
+
+    // Asociar eventos al nuevo marcador
+    const infoWindow = new google.maps.InfoWindow();
+    marker.addListener("click", () => {
+        updateInfoWindowContent(infoWindow, station, map, marker);
+    });
+
+    // Asociar eventos de tooltip al nuevo marcador
+    const tooltipDiv = document.createElement('div');
+    tooltipDiv.style.position = 'absolute';
+    tooltipDiv.style.background = '#ffffff';
+    tooltipDiv.style.color = '#333';
+    tooltipDiv.style.border = '1px solid #ccc';
+    tooltipDiv.style.borderRadius = '5px';
+    tooltipDiv.style.padding = '5px 10px';
+    tooltipDiv.style.fontSize = '12px';
+    tooltipDiv.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+    tooltipDiv.style.display = 'none'; // Inicialmente oculto
+    document.body.appendChild(tooltipDiv);
+
+    marker.addListener("mouseover", (e) => {
+        tooltipDiv.style.display = 'block';
+        tooltipDiv.innerHTML = `<strong>${station.stationId.charAt(0).toUpperCase() + station.stationId.slice(1)}</strong>`;
+        tooltipDiv.style.left = `${e.domEvent.pageX + 10}px`;
+        tooltipDiv.style.top = `${e.domEvent.pageY + 10}px`;
+    });
+
+    marker.addListener("mousemove", (e) => {
+        tooltipDiv.style.left = `${e.domEvent.pageX + 10}px`;
+        tooltipDiv.style.top = `${e.domEvent.pageY + 10}px`;
+    });
+
+    marker.addListener("mouseout", () => {
+        tooltipDiv.style.display = 'none';
+    });
+
+    // Asociar los nuevos marcadores con la estación
+    station.marker = marker;
+    station.arrowMarker = arrowMarker;
+    station.infoWindow = infoWindow; // Guardar referencia al InfoWindow
+}
+
+
+
+
 // Función para inicializar el mapa de Beijing con Google Maps
 function initMap() {
     // Establecer fechas aleatorias por defecto
@@ -21,6 +147,7 @@ function initMap() {
     // Establecer fechas por defecto en los inputs
     document.getElementById('fecha-inicio').value = formatDate(selectedDate);
     document.getElementById('fecha-fin').value = formatDate(new Date(selectedDate.getTime() + (300 * 24 * 60 * 60 * 1000))); // 7 días después
+    
 
     const beijing = { lat: 40.3, lng: 116.5074 }; // Coordenadas de Beijing
     
@@ -63,6 +190,7 @@ function initMap() {
                 });
                 district.setMap(map);
             });
+            
         })
         .catch(error => {
             console.error("Error al cargar el GeoJSON:", error);
@@ -76,19 +204,30 @@ function initMap() {
             stations.forEach(station => {
                 const position = { lat: parseFloat(station.latitude), lng: parseFloat(station.longitude) };
                 const iconUrl = createCustomIcon(station.Notes);
+                
 
+                // Función para actualizar los marcadores y datos de cada estación
+                const updateStationData = () => {
+                    updateWindDirectionAndMarkers(station, map, position, iconUrl);
+                };
+
+                // Escucha los cambios en las fechas y actualiza dinámicamente
+                document.getElementById('fecha-inicio').addEventListener('change', updateStationData);
+                document.getElementById('fecha-fin').addEventListener('change', updateStationData);
+                document.getElementById('visualizar-todo').addEventListener('change', updateStationData);
+
+                // Llama inicialmente para dibujar los datos
+                updateStationData();
+                // Crear un InfoWindow para mostrar información
+                const infoWindow = new google.maps.InfoWindow();
                 const marker = new google.maps.Marker({
                     position: position,
                     map: map,
-                    // title: station.stationId,
                     icon: {
                         url: iconUrl,
                         scaledSize: new google.maps.Size(25, 25)
                     }
                 });
-                // Crear un InfoWindow para mostrar información
-                const infoWindow = new google.maps.InfoWindow();
-
                 // Agregar un evento de clic al marcador
                 marker.addListener("click", () => {
                     updateInfoWindowContent(infoWindow, station, map, marker);
@@ -167,12 +306,34 @@ function initMap() {
 
 
 let  ColorAqiglobal = null;
+
+
 function updateInfoWindowContent(infoWindow, station, map, marker) {
-    const fechaInicio = new Date(document.getElementById('fecha-inicio').value);
+    // Definir las fechas predeterminadas
+    const fechaInicioPredeterminada = new Date(2013, 2, 1); 
+    const fechaFinPredeterminada = new Date(2017, 1, 28);
+
+    // Verificar el estado del checkbox
+    const visualizarTodo = document.getElementById('visualizar-todo').checked;
+
+    // Obtener las fechas seleccionadas o las predeterminadas
+    const fechaInicio = visualizarTodo 
+        ? fechaInicioPredeterminada 
+        : new Date(document.getElementById('fecha-inicio').value);
+    const fechaFin = visualizarTodo 
+        ? fechaFinPredeterminada 
+        : new Date(document.getElementById('fecha-fin').value);
+
+    // Ajustar las fechas (si es necesario)
     fechaInicio.setDate(fechaInicio.getDate() + 1);
-    const fechaFin = new Date(document.getElementById('fecha-fin').value);
     fechaFin.setDate(fechaFin.getDate());
-    const { averageAQI, averageWSPM, averageWD } = calculateAverages(station, fechaInicio.toISOString().split('T')[0], fechaFin.toISOString().split('T')[0]);
+
+    // Calcular los promedios
+    const { averageAQI, averageWSPM, averageWD } = calculateAverages(
+        station, 
+        fechaInicio.toISOString().split('T')[0], 
+        fechaFin.toISOString().split('T')[0]
+    );
 
 
     // Convertir la dirección del viento en grados a formato de texto
@@ -203,15 +364,15 @@ function updateInfoWindowContent(infoWindow, station, map, marker) {
         <p style="margin: 3px 0;"><strong>Velocidad del viento:</strong> ${averageWSPM.toFixed(2)} m/s</p>
         <p style="margin: 3px 0;">
             <strong>Dirección del viento:</strong> ${averageWD}° 
-            <div style="display: flex; justify-content: center; align-items: center; margin-top: 25px;">
-                ${windArrow}
-            </div>
+
         </p>
         <p style="margin: 3px 0;"><strong>Zona:</strong> ${station.Notes}</p>
         <p style="margin: 3px 0;"><strong>Fecha Inicio:</strong> ${formatDate(fechaInicio)}</p>
         <p style="margin: 3px 0;"><strong>Fecha Fin:</strong> ${formatDate(fechaFin)}</p>
     </div>`;
-
+    // <div style="display: flex; justify-content: center; align-items: center; margin-top: 25px;">
+    //     ${windArrow}
+    // </div>
     // console.log(averageAQI)
     ColorAqiglobal = averageAQI
     // console.log(ColorAqiglobal)
@@ -262,6 +423,7 @@ function calculateAverages(station, fechaInicio, fechaFin) {
         averageWD: totalWD || "N/A"
     };
 }
+
 function createCustomIcon(category) {
     const svg = d3.create("svg")
         .attr("xmlns", "http://www.w3.org/2000/svg")
@@ -296,6 +458,8 @@ function createCustomIcon(category) {
 // Escuchar cambios en el rango de fechas
 document.getElementById('fecha-inicio').addEventListener('change', updateStationInfoWindows);
 document.getElementById('fecha-fin').addEventListener('change', updateStationInfoWindows);
+document.getElementById('visualizar-todo').addEventListener('change', updateStationInfoWindows);
+
 
 function updateStationInfoWindows() {
     if (lastInfoWindow && lastInfoWindow.marker) {
@@ -358,7 +522,6 @@ function parseCSV(data) {
 
     return Object.values(stations);
 }
-
 
 ///////////////GRAFICA  RADIAL DE SERIE TEMPORAL.
 
@@ -2882,10 +3045,10 @@ async function drawThemeRiver(cityFile, dates) {
     const selectedDatesSet = new Set(dates.map(date => new Date(date).getTime()));
     const filteredData = data.filter(d => selectedDatesSet.has(d.date.getTime()));
 
-    if (filteredData.length === 0) {
-        alert("No se encontraron datos para las fechas seleccionadas.");
-        return;
-    }
+    // if (filteredData.length === 0) {
+    //     alert("No se encontraron datos para las fechas seleccionadas.");
+    //     return;
+    // }
 
     const contaminantAttributes = ["O3", "CO", "NO2", "SO2", "PM10", "PM2_5"];
     const meteorologicalAttributes = ["RAIN", "DEWP", "PRES", "TEMP"];
