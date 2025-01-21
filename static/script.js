@@ -15,8 +15,13 @@ function createArrowIcon(direction) {
     };
 }
 
+function CallupdateWindDirectionAndMarkers(SelectDate){
+    console.log(SelectDate);
+
+}
+
 // Función para actualizar los datos y los marcadores
-function updateWindDirectionAndMarkers(station, map, position, iconUrl) {
+function updateWindDirectionAndMarkers(station, map, position, iconUrl, selectedDate = null) {
     // Definir las fechas predeterminadas
     const fechaInicioPredeterminada = new Date(2013, 2, 1); 
     const fechaFinPredeterminada = new Date(2017, 1, 28);
@@ -24,16 +29,22 @@ function updateWindDirectionAndMarkers(station, map, position, iconUrl) {
     // Verificar el estado del checkbox
     const visualizarTodo = document.getElementById('visualizar-todo').checked;
 
-    // Obtener las fechas seleccionadas o las predeterminadas
-    const fechaInicio = visualizarTodo 
-        ? fechaInicioPredeterminada 
-        : new Date(document.getElementById('fecha-inicio').value);
-    const fechaFin = visualizarTodo 
-        ? fechaFinPredeterminada 
-        : new Date(document.getElementById('fecha-fin').value);
+    // Si se proporciona una fecha seleccionada, usarla para sobrescribir el rango de fechas
+    let fechaInicio, fechaFin;
+    if (selectedDate) {
+        fechaInicio = new Date(selectedDate);
+        fechaFin = new Date(selectedDate);
+    } else {
+        fechaInicio = visualizarTodo 
+            ? fechaInicioPredeterminada 
+            : new Date(document.getElementById('fecha-inicio').value);
+        fechaFin = visualizarTodo 
+            ? fechaFinPredeterminada 
+            : new Date(document.getElementById('fecha-fin').value);
+    }
 
-    console.log('Fecha Inicio: ', fechaInicio);
-    console.log('Fecha Fin: ', fechaFin);
+    // console.log('Fecha Inicio: ', fechaInicio);
+    // console.log('Fecha Fin: ', fechaFin);
 
     // Filtrar los datos de la estación para el rango de fechas seleccionado
     const filteredData = station.data.filter(entry => {
@@ -53,7 +64,7 @@ function updateWindDirectionAndMarkers(station, map, position, iconUrl) {
     });
 
     const averageWD = count > 0 ? totalWD / count : 0; // Promedio de la dirección del viento
-    console.log('Promedio de Dirección del Viento: ', averageWD);
+    // console.log('Promedio de Dirección del Viento: ', averageWD);
 
     // Eliminar los marcadores previos de la estación (si existen)
     if (station.marker) {
@@ -123,6 +134,7 @@ function updateWindDirectionAndMarkers(station, map, position, iconUrl) {
     station.arrowMarker = arrowMarker;
     station.infoWindow = infoWindow; // Guardar referencia al InfoWindow
 }
+
 
 
 
@@ -781,11 +793,13 @@ function updateRadialChartWithSelection(selectionData, fechaInicio, fechaFin) {
 
         // Llamar a la nueva función para dibujar la gráfica radial
         drawRadialChart2(aggregatedData, attributes, fechaInicio, fechaFin);
+        
     });
 }
 
 
 function drawRadialChart2(data, attributes, fechaInicio, fechaFin) {
+    
     d3.select('#chart-view-radial').html("");
     const width = 500;
     const height = 490;
@@ -898,6 +912,10 @@ function drawRadialChart2(data, attributes, fechaInicio, fechaFin) {
                 updateCorrelationMatrixnew(selectedDates);
                 drawThemeRiver(selectedCity, selectedDates); // Riverplot basado en fechas
                 // plotUMAP(filteredData, fechaInicio, fechaFin); // UMAP con datos filtrados
+                
+                // console.log("datos",selectedData)
+                console.log("Fecha incio",fechaInicio)
+                console.log("fecha fin", fechaFin)
 
                 
            });
@@ -1961,6 +1979,8 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                         .style('opacity', 0);
                 })
                 .on('click', function(event, d) {
+
+                    
                     // Eliminar la ventana flotante previa, si existe
                     let floatingWindow = d3.select('#floating-window');
                     if (!floatingWindow.empty()) {
@@ -2006,6 +2026,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                         .style('cursor', 'pointer')
                         .on('click', () => floatingWindow.remove());
                 
+
                     const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
                 
                     // Título de la ventana emergente
@@ -2015,7 +2036,9 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                         .style('font-weight', 'bold')
                         .style('margin-bottom', '10px')
                         .text(`Serie temporal por hora de la fecha ${d3.timeFormat("%d-%m-%Y")(d.date)} `);
-                
+                    
+
+
                     // Colores definidos para cada atributo
                     const attributeColors = {
                         'PM2_5': '#FF0000', // Rojo fuerte para reflejar peligro
@@ -2043,7 +2066,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                         'DEWP': '°C',
                         'RAIN': 'mm'
                     };
-                
+
                     // Crear checkboxes
                     const checkboxContainer = floatingWindow.append('div')
                         .style('display', 'flex')
@@ -2258,6 +2281,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 }
             
                 updateChart();
+
             })
         });
     }
@@ -2477,6 +2501,7 @@ async function updateUMAP() {
 
 function plotUMAP(data, fechaInicio, fechaFin) {
     // Limpiar el gráfico anterior
+    
     d3.select("#umap-plot").selectAll("*").remove();
     // console.log("Fechas de entrada:", fechaInicio, fechaFin);
 
@@ -2937,6 +2962,7 @@ function plotUMAP(data, fechaInicio, fechaFin) {
                 updateCorrelationMatrixnew(selectedDates);
                 drawThemeRiver(selectedData[0]?.city, selectedDates);
                 updateRadialChartWithSelection(selectedData, fechaInicio, fechaFin);
+                
 
             });
         });
