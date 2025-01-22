@@ -320,6 +320,25 @@ function initMap() {
 let  ColorAqiglobal = null;
 
 
+function getWindDirectionText(degrees) {
+    if (degrees >= 337.5 || degrees < 22.5) return "N (North)";
+    if (degrees >= 22.5 && degrees < 45) return "NNE (North-Northeast)";
+    if (degrees >= 45 && degrees < 67.5) return "NE (Northeast)";
+    if (degrees >= 67.5 && degrees < 90) return "ENE (East-Northeast)";
+    if (degrees >= 90 && degrees < 112.5) return "E (East)";
+    if (degrees >= 112.5 && degrees < 135) return "ESE (East-Southeast)";
+    if (degrees >= 135 && degrees < 157.5) return "SE (Southeast)";
+    if (degrees >= 157.5 && degrees < 180) return "SSE (South-Southeast)";
+    if (degrees >= 180 && degrees < 202.5) return "S (South)";
+    if (degrees >= 202.5 && degrees < 225) return "SSW (South-Southwest)";
+    if (degrees >= 225 && degrees < 247.5) return "SW (Southwest)";
+    if (degrees >= 247.5 && degrees < 270) return "WSW (West-Southwest)";
+    if (degrees >= 270 && degrees < 292.5) return "W (West)";
+    if (degrees >= 292.5 && degrees < 315) return "WNW (West-Northwest)";
+    if (degrees >= 315 && degrees < 337.5) return "NW (Northwest)";
+    return "NNW (North-Northwest)";
+}
+
 function updateInfoWindowContent(infoWindow, station, map, marker) {
     // Definir las fechas predeterminadas
     const fechaInicioPredeterminada = new Date(2013, 2, 1); 
@@ -347,17 +366,9 @@ function updateInfoWindowContent(infoWindow, station, map, marker) {
         fechaFin.toISOString().split('T')[0]
     );
 
-
     // Convertir la dirección del viento en grados a formato de texto
-    const windDirection = averageWD; // Se asume que averageWD es la dirección en grados (0-360)
+    const windDirectionText = getWindDirectionText(averageWD);
     
-    // Crear la flecha rotada con un div
-    const windArrow = `
-    <div style="position: relative; display: inline-block; width: 0; height: 0; transform: rotate(${windDirection}deg); margin: auto;">
-        <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 30px; background-color: #FF5733;"></div>
-        <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 10px solid #FF5733;"></div>
-    </div>`;
-
     // Formatear las fechas
     const formatDate = (date) => {
         const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -375,24 +386,21 @@ function updateInfoWindowContent(infoWindow, station, map, marker) {
         </p>
         <p style="margin: 3px 0;"><strong>Velocidad del viento:</strong> ${averageWSPM.toFixed(2)} m/s</p>
         <p style="margin: 3px 0;">
-            <strong>Dirección del viento:</strong> ${averageWD}° 
-
+            <strong>Dirección del viento:</strong> ${averageWD}° (${windDirectionText})
         </p>
         <p style="margin: 3px 0;"><strong>Zona:</strong> ${station.Notes}</p>
         <p style="margin: 3px 0;"><strong>Fecha Inicio:</strong> ${formatDate(fechaInicio)}</p>
         <p style="margin: 3px 0;"><strong>Fecha Fin:</strong> ${formatDate(fechaFin)}</p>
     </div>`;
-    // <div style="display: flex; justify-content: center; align-items: center; margin-top: 25px;">
-    //     ${windArrow}
-    // </div>
-    // console.log(averageAQI)
-    ColorAqiglobal = averageAQI
-    // console.log(ColorAqiglobal)
-    // console.log(station.stationId)
-    selectCityCheckbox(station.stationId)
+    
+    ColorAqiglobal = averageAQI;
+    selectCityCheckbox(station.stationId);
     infoWindow.setContent(content);
     openInfoWindow(map, marker, infoWindow);
 }
+
+
+
 function selectCityCheckbox(city) {
     const newCity = `Data_${city.charAt(0).toUpperCase() + city.slice(1)}.csv`;
     // console.log(newCity);
@@ -446,8 +454,11 @@ function createCustomIcon(category) {
     if (category === "Urban") {
         // Triángulo más pequeño
         svg.append("polygon")
-            .attr("points", "50,20 75,80 25,80") // Coordenadas ajustadas para reducir el tamaño
-            .attr("fill", "black");
+        .attr("points", "50,20 75,80 25,80") // Coordenadas ajustadas para reducir el tamaño
+        .attr("fill", "#2D6A4F") // Color de relleno
+        .attr("stroke", "black") // Color del borde
+        .attr("stroke-width", 3); // Grosor del borde
+    
         
     } else if (category === "Rural") {
         // Cuadrado
@@ -456,12 +467,17 @@ function createCustomIcon(category) {
             .attr("y", "20")
             .attr("width", "40")
             .attr("height", "40")
-            .attr("fill", "black");
+            .attr("fill", "blue")
+            .attr("stroke", "black") // Color del borde
+            .attr("stroke-width", 3); // Grosor del borde
     } else if (category === "Cross Reference") {
         // Estrella
         svg.append("polygon")
             .attr("points", "50,15 61,40 87,40 67,60 74,85 50,70 26,85 33,60 13,40 39,40")
-            .attr("fill", "black");
+            .attr("fill", "#FFB347")            
+            .attr("stroke", "black") // Color del borde
+            .attr("stroke-width", 3); // Grosor del borde
+            
     }
 
     // Convertir SVG a data URL
@@ -1868,7 +1884,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
 
             // Actualizar las escalas y el gráfico
             xScale.domain(newDomain);
-
+        
             // Llamar nuevamente a drawChart con los datos filtrados según el área seleccionada
             drawChart(selectedAttributes, data, newDomain[0], newDomain[1], selectedDates, dailyData);
         }
