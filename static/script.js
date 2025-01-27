@@ -1909,7 +1909,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         // Dibujar los puntos
         selectedAttributes.forEach(attribute => {
             const lineData = normalizedData.filter(d => !isNaN(d.normalizedValues[attribute]));
-    
+
             chartSvg.selectAll(`circle.${attribute}`)
                 .data(lineData)
                 .join('circle')
@@ -1926,14 +1926,14 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .on('mouseover', function(event, d) {
                     const [mouseX, mouseY] = d3.pointer(event);
                     const point = d3.select(this);
-                    
+
                     // Sumar un día a la fecha
                     const modifiedDate = d3.timeDay.offset(d.date, -1);
                     const pointDate = d3.timeFormat("%Y-%m-%d")(modifiedDate);
-                    
+
                     // Filtrar los registros de dailyData para la fecha modificada
                     const matchingRecords = dailyData.filter(record => d3.timeFormat("%Y-%m-%d")(record.date) === pointDate);
-                    
+
                     // Calcular el promedio de WSPMValues
                     const windSpeed = matchingRecords.length > 0 
                         ? (matchingRecords.reduce((sum, record) => {
@@ -1943,27 +1943,42 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                             return sum + (totalWSPM / record.WSPMValues.length);
                         }, 0) / matchingRecords.length).toFixed(2)
                         : 'No disponible';
-                    
+
                     // Transición para agrandar el punto seleccionado
                     point.transition()
                         .duration(200)
                         .attr('r', 10)
                         .style('stroke', 'cyan')
                         .style('stroke-width', 3);
-                    
+
                     // Actualiza el contenido del tooltip
                     tooltip.transition()
                         .duration(200)
                         .style('opacity', 1);
-                    
+
+                    // Mapeo de atributos a sus unidades
+                    const units = {
+                        'PM2_5': 'µg/m³',
+                        'PM10': 'µg/m³',
+                        'SO2': 'µg/m³',
+                        'NO2': 'µg/m³',
+                        'CO': 'mg/m³',
+                        'O3': 'µg/m³',
+                        'TEMP': '°C',
+                        'PRES': 'hPa',
+                        'DEWP': '°C',
+                        'RAIN': 'mm'
+                    };
+
                     const selectedCity = document.querySelector('#city-checkboxes input[type="radio"]:checked').value;
                     tooltip.html(`
                         <strong>Ciudad:</strong> ${selectedCity.replace('Data_', '').replace('.csv', '')}<br>
                         <strong>Contaminante:</strong> ${attribute}<br>
                         <strong>Fecha:</strong> ${d3.timeFormat("%d/%m/%Y")(d.date)}<br>
-                        <strong>Concentración:</strong> ${d.value[attribute]?.toFixed(2)}<br>
+                        <strong>Concentración:</strong> ${d.value[attribute]?.toFixed(2)} ${units[attribute] || ''}<br>
                         <strong>Velocidad del viento:</strong> ${windSpeed} m/s<br>
                     `);
+        
                 
                     // Obtener dimensiones del tooltip
                     const tooltipNode = tooltip.node();
