@@ -1541,7 +1541,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         'O3': 200
     };
 
-    const aqiRanges = [[0, 50], [50, 100], [100, 150], [150, 200], [200, 300], [300, 400], [400, 500]];
+    const aqiRanges = [[0, 50], [50, 100], [100, 150], [150, 200], [200, 300], [300, 400], [400, 600]];
     const aqiColors = ['#00e400', '#ff0', '#ff7e00', '#f00', '#99004c', '#7e0023'];
     const meteorologicalColor = 'blue';
 
