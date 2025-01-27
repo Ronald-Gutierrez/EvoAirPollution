@@ -1800,7 +1800,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                     date: d.date
                 }));
         
-                const unselectedLineData = lineData.filter(d => !d.isSelected).map(d => ({
+                const unselectedLineData = lineData.map(d => ({
                     x: xScale(d.date),
                     y: yScale(d.normalizedValues[attribute]),
                     date: d.date
@@ -1834,25 +1834,23 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                     return segments;
                 };
         
-                // Dividir datos seleccionados y no seleccionados en segmentos
+                // Dividir datos seleccionados en segmentos
                 const selectedSegments = divideIntoSegments(selectedLineData);
-                const unselectedSegments = divideIntoSegments(unselectedLineData);
         
-                // Dibujar las líneas para los segmentos seleccionados
+                // Dibujar la línea continua para los datos no seleccionados con menor opacidad
+                if (unselectedLineData.length > 1) {
+                    drawLine(chartSvg, unselectedLineData, attribute, attributeColors[attribute], 0.3); // Opacidad 0.3
+                }
+        
+                // Dibujar las líneas para los segmentos seleccionados con opacidad completa
                 selectedSegments.forEach(segment => {
                     if (segment.length > 1) { // Asegúrate de que haya suficientes puntos para una línea
                         drawLine(chartSvg, segment, attribute, attributeColors[attribute], 1); // Opacidad completa
                     }
                 });
-        
-                // Dibujar las líneas para los segmentos no seleccionados con menor opacidad
-                unselectedSegments.forEach(segment => {
-                    if (segment.length > 1) {
-                        drawLine(chartSvg, segment, attribute, attributeColors[attribute], 0.3); // Opacidad 0.3
-                    }
-                });
             });
         }
+        
         
         
 
