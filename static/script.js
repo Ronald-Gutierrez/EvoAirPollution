@@ -1553,13 +1553,15 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         'Winter': '#3498db'
     };
 
-    // Función para determinar la estación
-    function getSeason(month, day) {
-        if ((month === 3 && day >= 20) || month === 4 || month === 5 || (month === 6 && day <= 20)) {
+    function getSeason(date) {
+        const month = date.getMonth(); // Get month (0-11)
+        const day = date.getDate(); // Get day (1-31)
+        
+        if ((month === 2 && day >= 20) || (month > 2 && month < 5) || (month === 5 && day <= 21)) {
             return 'Spring';
-        } else if ((month === 6 && day >= 21) || month === 7 || month === 8 || (month === 9 && day <= 22)) {
+        } else if ((month === 5 && day >= 21) || (month > 5 && month < 8) || (month === 8 && day <= 22)) {
             return 'Summer';
-        } else if ((month === 9 && day >= 23) || month === 10 || month === 11 || (month === 12 && day <= 20)) {
+        } else if ((month === 8 && day >= 23) || (month > 8 && month < 11) || (month === 11 && day <= 21)) {
             return 'Autumn';
         } else {
             return 'Winter';
@@ -1673,7 +1675,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
     });
 
     
-    function drawChart(selectedAttributes, data, startDate, endDate, selectedDates,dailyData) {
+    function drawChart(selectedAttributes, data, startDate, endDate, selectedDates, dailyData) {
         const containerId = 'chart-container';
         let chartContainer = container.select(`#${containerId}`);
         
@@ -1682,6 +1684,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 .attr('id', containerId)
                 .style('margin-bottom', '30px');
         }
+    
         // Filtrar datos si startDate y endDate están definidos
         let filteredData = data.map(d => ({
             date: new Date(`${d.year}-${d.month}-${d.day}`),
@@ -1689,18 +1692,29 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 acc[attribute] = +d[attribute.replace('.', '_')];
                 return acc;
             }, {})
-        }))
+        }));
     
         if (startDate && endDate) {
             const start = new Date(startDate);
             const end = new Date(endDate);
             filteredData = filteredData.filter(d => d.date >= start && d.date <= end);
         }
-
+    
+        // Filtro para fechas duplicadas
+        const uniqueDates = new Set();
+        filteredData = filteredData.filter(d => {
+            const formattedDate = d3.timeFormat("%Y-%m-%d")(d.date);
+            if (uniqueDates.has(formattedDate)) {
+                return false; // Ignorar duplicados
+            }
+            uniqueDates.add(formattedDate);
+            return true; // Incluir fechas únicas
+        });
+    
         const selectedDateSet = selectedDates 
             ? new Set(selectedDates.map(d => new Date(d).toISOString().split('T')[0])) 
             : null;
-
+    
         const averagedData = d3.groups(filteredData, d => d.date)
             .map(([date, values]) => ({
                 date: date,
@@ -1710,7 +1724,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
                 }, {}),
                 isSelected: selectedDateSet ? selectedDateSet.has(date.toISOString().split('T')[0]) : true
             }));
-    
+            
         const minValues = {};
         const maxValues = {};
         selectedAttributes.forEach(attribute => {
@@ -1776,7 +1790,7 @@ function updateTimeSeriesChart(selectedCity, startDate, endDate, selectedDates =
         normalizedData.forEach(d => {
             const month = d.date.getMonth() + 1;
             const day = d.date.getDate();
-            const season = getSeason(month, day);
+            const season = getSeason(d.date);
     
             chartSvg.append('rect')
                 .attr('x', xScale(d.date))
