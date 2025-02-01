@@ -2,7 +2,7 @@ import pandas as pd
 
 # Cargar los archivos de datos
 data_file = 'data/Data_Wanshouxigong.csv'
-umap_file = 'UMAP_AQI/Data_Wanshouxigong.csv'
+umap_file = 'UMAP_FUSION_NEW/Data_Wanshouxigong.csv'
 
 # Leer los archivos CSV
 data_df = pd.read_csv(data_file)
@@ -24,10 +24,11 @@ umap_df['date'] = pd.to_datetime(umap_df[['year', 'month', 'day']])
 umap_df_filtered = umap_df[umap_df['date'].dt.strftime('%Y-%m-%d').isin(valid_dates)]
 
 # Seleccionar las columnas relevantes para la salida
-umap_df_filtered = umap_df_filtered[['year', 'month', 'day', 'UMAP1', 'UMAP2', 'AQI']]
+umap_df_filtered = umap_df_filtered[['year', 'month', 'day', 'UMAP1', 'UMAP2', 'AQI', 'Kmeans_4', 'Kmeans_6', 'PM2_5', 'PM10', 'SO2', 'NO2', 'CO', 'O3', 'TEMP', 'PRES', 'DEWP', 'RAIN', 'WSPM', 'station']]
+
 
 # Guardar el resultado en un nuevo archivo CSV
-output_file = 'UMAP_AQI_NEW/Data_Wanshouxigong.csv'
+output_file = 'UMAP_FUSION_NEW2/Data_Wanshouxigong.csv'
 umap_df_filtered.to_csv(output_file, index=False)
 
 print(f"Archivo filtrado guardado como {output_file}")

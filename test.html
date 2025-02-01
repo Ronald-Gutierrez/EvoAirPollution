@@ -3,145 +3,316 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contaminantes del Aire - Visualización Radial</title>
+    <title>Visualización AQI con D3.js</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
+            text-align: center;
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            justify-content: center;
         }
-        svg {
-            margin: 20px 0;
-            border: 1px solid #ccc;
+        .aqi-filter {
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 8px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            text-align: center;
+            transition: 0.3s;
+            color: white;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+            display: block;
         }
-        .checkbox-container {
-            margin: 20px 0;
+
+        .aqi-filter:hover {
+            transform: scale(1.1);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+        }
+        .chart-container {
+            margin-right: 50px;
+            position: relative;
+        }
+        .legend, .season-filter, .reset-button, .kmeans-filter {
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 8px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            text-align: center;
+            transition: 0.3s;
+            color: white;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+            display: block;
+        }
+        .legend:hover, .season-filter:hover, .reset-button:hover, .kmeans-filter:hover {
+            transform: scale(1.1);
+        }
+        .selected {
+            border: 3px solid black;
+        }
+        .reset-button {
+            background-color: #333;
+            color: white;
+        }
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 6px;
+            border-radius: 5px;
+            font-size: 14px;
+            pointer-events: none;
+            display: none;
+            transform: translate(-50%, -100%);
         }
     </style>
 </head>
 <body>
-    <h1>Contaminantes del Aire - Visualización Radial</h1>
-    <div class="checkbox-container">
-        <label><input type="checkbox" value="PM2.5" checked> PM2.5</label>
-        <label><input type="checkbox" value="PM10" checked> PM10</label>
-        <label><input type="checkbox" value="CO2" checked> CO2</label>
-        <label><input type="checkbox" value="NO2" checked> NO2</label>
+
+    <div class="container">
+        <div class="chart-container">
+            <h2>Distribución de Puntos AQI</h2>
+            <svg id="chart" width="800" height="600"></svg>
+            <div class="tooltip" id="tooltip"></div>
+        </div>
+
+        <div>
+            <h3>Filtros</h3>
+            <h4>Calidad del Aire</h4>
+            <div id="aqi-legend"></div>
+            <h4>Estaciones del Año</h4>
+            <div id="season-legend"></div>
+            <h4>K-Means</h4>
+            <div id="kmeans-legend"></div>
+            <h4>K-Means 5</h4>
+            <div id="kmeans5-legend"></div>
+            <h4>Opciones</h4>
+            <div id="reset-button" class="reset-button">🔄 Reiniciar Filtros</div>
+        </div>
     </div>
-    <svg id="radial-chart" width="500" height="500"></svg>
 
-    <script src="https://d3js.org/d3.v7.min.js"></script>
     <script>
-        // Función para generar un valor aleatorio en un rango específico
-        const getRandomInRange = (min, max) => Math.random() * (max - min) + min;
+        const width = 800, height = 600, margin = 50;
 
-        // Generar datos ficticios
-        const contaminants = ["PM2.5", "PM10", "CO2", "NO2"];
-        const days = Array.from({ length: 100 }, (_, i) => i + 1);
-        const data = contaminants.map(contaminant => {
-            let min, max;
-            switch (contaminant) {
-                case "PM2.5":
-                    min = 10; max = 20;
-                    break;
-                case "PM10":
-                    min = 20; max = 30;
-                    break;
-                case "CO2":
-                    min = 0; max = 5;
-                    break;
-                case "NO2":
-                    min = 5; max = 10;
-                    break;
+        const legendData = [
+            { color: '#00E400', label: 'Bueno', AQI: 1 },
+            { color: '#FFFF00', label: 'Moderado', AQI: 2 },
+            { color: '#FF7E00', label: 'Insalubre', AQI: 3 },
+            { color: '#FF0000', label: 'Muy Insalubre', AQI: 4 },
+            { color: '#99004c', label: 'Malo', AQI: 5 },
+            { color: '#800000', label: 'Severo', AQI: 6 },
+        ];
+
+        const seasonColors = {
+            'Primavera': '#2ca25f',
+            'Verano': '#d95f0e',
+            'Otoño': '#7570b3',
+            'Invierno': '#1f78b4',
+        };
+
+        const kmeans4Colors = {
+            0: '#66c2a5',
+            1: '#fc8d62',
+            2: '#8da0cb',
+            3: '#e78ac3',
+        };
+
+        const kmeans6Colors = {
+            0: '#fdae61',
+            1: '#fee08b',
+            2: '#d73027',
+            3: '#4575b4',
+            4: '#313695',
+            5: '#91bfdb',
+        };
+        const kmeans5Colors = {
+            0: '#fdae61',
+            1: '#fee08b',
+            2: '#d73027',
+            3: '#4575b4',
+            4: '#313695',
+            5: '#2ca25f',
+        };
+        // const kmeans5Colors = {
+        //     0: '#f1a340',  // Color for K-means 5 group 1
+        //     1: '#80b1d3',  // Color for K-means 5 group 2
+        //     2: '#df9e2f',  // Color for K-means 5 group 3
+        //     3: '#1b9e77',  // Color for K-means 5 group 4
+        //     4: '#9e4e9b',  // Color for K-means 5 group 5
+        // };
+
+        function getSeason(month, day) {
+            if ((month === 3 && day >= 20) || (month > 3 && month < 6) || (month === 6 && day <= 21)) {
+                return 'Primavera';
+            } else if ((month === 6 && day >= 21) || (month > 6 && month < 9) || (month === 9 && day <= 22)) {
+                return 'Verano';
+            } else if ((month === 9 && day >= 22) || (month > 9 && month < 12) || (month === 12 && day <= 21)) {
+                return 'Otoño';
+            } else {
+                return 'Invierno';
             }
-            return {
-                name: contaminant,
-                values: days.map(() => getRandomInRange(min, max).toFixed(2)) // Valores aleatorios en el rango específico
-            };
-        });
+        }
 
-        const svg = d3.select("#radial-chart");
-        const width = +svg.attr("width");
-        const height = +svg.attr("height");
-        const radius = Math.min(width, height) / 2 - 40;
+        const svg = d3.select("#chart")
+            .attr("width", width)
+            .attr("height", height);
 
-        const color = d3.scaleOrdinal(d3.schemeCategory10);
-        
-        const g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
+        const g = svg.append("g");
 
-        const xScale = d3.scaleBand()
-            .domain(days)
-            .range([0, 2 * Math.PI])
-            .padding(0.1); // Agregar un padding para evitar solapamientos
+        const tooltip = d3.select("#tooltip");
 
-        const yScale = d3.scaleLinear()
-            .domain([0, 30]) // Ajusta el rango máximo para que se acomode a PM10
-            .range([0, radius]);
+        d3.csv("horas_data.csv").then(data => {
+            data.forEach(d => {
+                d.UMAP1 = +d.UMAP1;
+                d.UMAP2 = +d.UMAP2;
+                d.AQI = +d.AQI;
+                d.Season = getSeason(+d.month, +d.day);
+                d.Kmeans_4 = +d.Kmeans_4;
+                d.Kmeans_5 = +d.Kmeans_5;
+                d.Kmeans_6 = +d.Kmeans_6;
+            });
 
-        // Dibuja las líneas guía radiales
-        const drawGuideLines = () => {
-            const ticks = yScale.ticks(5); // Crea 5 ticks para la escala y
-            ticks.forEach(tick => {
-                const lineAngle = (2 * Math.PI) / 30; // Distribuye la línea en cada día
-                for (let i = 0; i < 30; i++) {
-                    const angle = i * lineAngle;
-                    const x1 = Math.cos(angle) * yScale(tick);
-                    const y1 = Math.sin(angle) * yScale(tick);
-                    const x2 = Math.cos(angle) * radius;
-                    const y2 = Math.sin(angle) * radius;
+            const xScale = d3.scaleLinear()
+                .domain(d3.extent(data, d => d.UMAP1))
+                .range([margin, width - margin]);
 
-                    g.append("line")
-                        .attr("x1", x1)
-                        .attr("y1", y1)
-                        .attr("x2", x2)
-                        .attr("y2", y2)
-                        .attr("stroke", "#ccc")
-                        .attr("stroke-width", 1);
+            const yScale = d3.scaleLinear()
+                .domain(d3.extent(data, d => d.UMAP2))
+                .range([height - margin, margin]);
+
+            const circles = g.selectAll("circle")
+                .data(data)
+                .enter()
+                .append("circle")
+                .attr("cx", d => xScale(d.UMAP1))
+                .attr("cy", d => yScale(d.UMAP2))
+                .attr("r", 5)
+                .attr("fill", d => {
+                    const item = legendData.find(l => l.AQI === d.AQI);
+                    return item ? item.color : "#ccc";
+                })
+                .attr("stroke-width", 2)
+                .attr("opacity", 0.8)
+                .on("mouseover", function(event, d) {
+                    tooltip.style("display", "block")
+                        .html(`Fecha: ${d.year}-${d.month}-${d.day}<br>AQI: ${d.AQI}<br>Estación: ${d.Season}<br>K-Means 4: ${d.Kmeans_4}<br>K-Means 5: ${d.Kmeans_5}<br>K-Means 6: ${d.Kmeans_6}`)
+                        .style("left", `${xScale(d.UMAP1) + margin}px`)
+                        .style("top", `${yScale(d.UMAP2) + margin - 10}px`);
+                })
+                .on("mouseout", () => {
+                    tooltip.style("display", "none");
+                });
+
+                function applyFilter(aqiFilter = null, seasonFilter = null, kmeansFilter = null) {
+                    circles
+                        .attr("opacity", d => 
+                            (aqiFilter === null || d.AQI === aqiFilter) && 
+                            (seasonFilter === null || d.Season === seasonFilter) && 
+                            (kmeansFilter === null || (kmeansFilter === 4 ? kmeans4Colors[d.Kmeans_4] : 
+                                                     kmeansFilter === 5 ? kmeans5Colors[d.Kmeans_5] : 
+                                                     kmeans6Colors[d.Kmeans_6])) ? 1 : 0.2
+                        )
+                        .attr("fill", d => {
+                            if (kmeansFilter === 4) {
+                                return kmeans4Colors[d.Kmeans_4] || "#ccc";
+                            } else if (kmeansFilter === 5) {
+                                return kmeans5Colors[d.Kmeans_5] || "#ccc";
+                            } else if (kmeansFilter === 6) {
+                                return kmeans6Colors[d.Kmeans_6] || "#ccc";
+                            } else {
+                                const item = legendData.find(l => l.AQI === d.AQI);
+                                return item ? item.color : "#ccc";
+                            }
+                        })
+                        .attr("stroke", d => 
+                            (aqiFilter === null || d.AQI === aqiFilter) &&
+                            (seasonFilter === null || d.Season === seasonFilter) &&
+                            (kmeansFilter === null || (kmeansFilter === 4 ? kmeans4Colors[d.Kmeans_4] : 
+                                                     kmeansFilter === 5 ? kmeans5Colors[d.Kmeans_5] : 
+                                                     kmeansFilter === 6 ? kmeans6Colors[d.Kmeans_6] : false))
+                            ? "black" : "none"
+                        )
+                        .attr("stroke-width", d => 
+                            (aqiFilter === null || d.AQI === aqiFilter) &&
+                            (seasonFilter === null || d.Season === seasonFilter) &&
+                            (kmeansFilter === null || (kmeansFilter === 4 ? kmeans4Colors[d.Kmeans_4] : 
+                                                     kmeansFilter === 5 ? kmeans5Colors[d.Kmeans_5] : 
+                                                     kmeansFilter === 6 ? kmeans6Colors[d.Kmeans_6] : false))
+                            ? 1.5 : 0
+                        );
                 }
+
+            // Filtro de AQI
+            d3.select("#aqi-legend")
+                .selectAll(".aqi-filter")
+                .data(legendData)
+                .enter()
+                .append("div")
+                .attr("class", "aqi-filter")
+                .style("background", d => d.color)
+                .text(d => d.label)
+                .on("click", (event, d) => applyFilter(d.AQI));
+
+
+            // Filtro de estaciones
+            d3.select("#season-legend")
+                .selectAll(".season-filter")
+                .data(Object.keys(seasonColors))
+                .enter()
+                .append("div")
+                .attr("class", "season-filter")
+                .style("background", d => seasonColors[d])
+                .text(d => d)
+                .on("click", (event, d) => applyFilter(null, d));
+
+            // Filtro de K-means
+            d3.select("#kmeans-legend")
+                .selectAll(".kmeans-filter")
+                .data([4, 6])
+                .enter()
+                .append("div")
+                .attr("class", "kmeans-filter")
+                .style("background", d => d === 4 ? '#66c2a5' : '#fdae61')
+                .text(d => `K-Means ${d}`)
+                .on("click", (event, d) => applyFilter(null, null, d));
+
+            // Filtro de K-means 5
+            d3.select("#kmeans5-legend")
+                .selectAll(".kmeans5-filter")
+                .data([5])
+                .enter()
+                .append("div")
+                .attr("class", "kmeans-filter")
+                .style("background", d => '#f1a340')
+                .text(d => `K-Means 5`)
+                .on("click", (event, d) => applyFilter(null, null, 5));
+
+            // Reiniciar filtros
+            d3.select("#reset-button").on("click", () => {
+                applyFilter();
+                svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
             });
-        };
 
-        // Dibuja líneas circulares
-        const drawCircularLines = () => {
-            const ticks = yScale.ticks(5);
-            ticks.forEach(tick => {
-                g.append("circle")
-                    .attr("r", yScale(tick))
-                    .attr("fill", "none")
-                    .attr("stroke", "#ccc")
-                    .attr("stroke-width", 1);
-            });
-        };
+            function zoomed({ transform }) {
+                g.attr("transform", transform);
+                circles.attr("r", 5 / transform.k);
+                circles.attr("stroke-width", 2 / transform.k);
+            }
 
-        const drawRadialChart = () => {
-            g.selectAll("*").remove(); // Limpiar el gráfico antes de dibujar
-            drawCircularLines(); // Dibuja líneas circulares
-            drawGuideLines(); // Dibuja las líneas guía radiales
+            const zoom = d3.zoom()
+                .scaleExtent([0.5, 10])
+                .on("zoom", zoomed);
 
-            const checkedContaminants = Array.from(document.querySelectorAll(".checkbox-container input:checked"))
-                .map(input => input.value);
-
-            checkedContaminants.forEach((contaminant, i) => {
-                const values = data.find(d => d.name === contaminant).values;
-
-                const lineGenerator = d3.lineRadial()
-                    .angle((d, index) => xScale(index + 1)) // Usar index + 1 para alinear con el día
-                    .radius(d => yScale(d));
-
-                g.append("path")
-                    .datum(values)
-                    .attr("fill", "none")
-                    .attr("stroke", color(i))
-                    .attr("stroke-width", 2)
-                    .attr("d", lineGenerator);
-            });
-        };
-
-        drawRadialChart();
-
-        document.querySelectorAll(".checkbox-container input").forEach(input => {
-            input.addEventListener("change", drawRadialChart);
+            svg.call(zoom);
         });
     </script>
+
 </body>
 </html>
