@@ -198,10 +198,42 @@
         <div class="title-banner3">Serie de Tiempo</div>
     </div>
     <div id="umap-reduccion">
-        <!-- Filtros en la parte superior -->
-        <div class="filter-container">
+    <!-- Filtros en la parte superior -->
+    <div class="filter-container">
+        <!-- Primera fila: 4 Clusters -->
+        <div class="filter-row">
+            <div class="filter-item-cluster">
+                <button id="cluster-4-btn">4 Clusters</button>
+                <select id="cluster-4-select">
+                    <option value="" disabled selected>Elejir Cluster</option>
+                    <option value="Cluster 1">Cluster 1</option>
+                    <option value="Cluster 2">Cluster 2</option>
+                    <option value="Cluster 3">Cluster 3</option>
+                    <option value="Cluster 4">Cluster 4</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Segunda fila: 6 Clusters -->
+        <div class="filter-row">
+            <div class="filter-item-cluster">
+                <button id="cluster-6-btn">6 Clusters</button>
+                <select id="cluster-6-select">
+                    <option value="" disabled selected>Elejir Cluster</option>
+                    <option value="Cluster 1">Cluster 1</option>
+                    <option value="Cluster 2">Cluster 2</option>
+                    <option value="Cluster 3">Cluster 3</option>
+                    <option value="Cluster 4">Cluster 4</option>
+                    <option value="Cluster 5">Cluster 5</option>
+                    <option value="Cluster 6">Cluster 6</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Tercera fila: Filtros adicionales -->
+        <div class="filter-row">
             <div class="filter-item">
-                <label for="station-filter">Estación del año:</label>
+                <label for="station-filter">Estaciónes:</label>
                 <select id="station-filter">
                     <option value="" disabled selected>Seleccione una estación</option>
                     <option value="Primavera">Primavera</option>
@@ -210,7 +242,7 @@
                     <option value="Invierno">Invierno</option>
                 </select>
             </div>
-    
+
             <div class="filter-item">
                 <label for="year-filter">Año:</label>
                 <select id="year-filter">
@@ -222,7 +254,7 @@
                     <option value="2017">2017</option>
                 </select>
             </div>
-    
+
             <div class="filter-item">
                 <label for="month-filter">Mes:</label>
                 <select id="month-filter">
@@ -242,14 +274,16 @@
                 </select>
             </div>
         </div>
+    </div>
+
     
-        <!-- Título y gráfico -->
-        <div class="title-banner">Distribución temporal</div>
-            <div id="umap-plot">
-                <div id="umap-plot-contaminacion"></div>
-                <div id="umap-plot-meteorologia"></div>
-                <div id="umap-plot-fusion"></div>
-            </div>
+    <!-- Título y gráfico -->
+    <div class="title-banner">Distribución temporal</div>
+        <div id="umap-plot">
+            <div id="umap-plot-contaminacion"></div>
+            <div id="umap-plot-meteorologia"></div>
+            <div id="umap-plot-fusion"></div>
+        </div>
     </div>
     
     

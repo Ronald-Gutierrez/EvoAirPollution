@@ -382,37 +382,62 @@ label#checkbox-container {
 }
 
 
-
-/* PARA MIS DATOS TEMPORALES FILTROS */
-
-
 .filter-container {
     display: flex;
-    justify-content: flex-start; /* Alinea los filtros a la izquierda dentro de su contenedor */
-    margin-left: 10px; /* Aumenta el valor para mover los filtros más a la derecha */
-    margin-top: 30%;
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+    margin-left: 10px;
+    margin-top: 10%; /* Reducido para subir los filtros */
+}
+
+.filter-row {
+    display: flex;
+    gap: 5px;
+    align-items: center;
 }
 
 .filter-item {
     display: flex;
-    flex-direction: column; /* Organiza la etiqueta arriba del selector */
-    margin-right: 5px; /* Espacio entre los filtros */
+    flex-direction: column;
+    gap: 2px;
+}
+
+.filter-item-cluster {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    align-self: flex-start; /* Asegura que los botones suban */
 }
 
 .filter-item label {
     font-weight: bold;
-    font-size: 11px; /* Tamaño de fuente más pequeño */
+    font-size: 12px;
 }
 
 .filter-item select {
-    padding: 2px 4px; /* Padding más pequeño */
-    font-size: 10px; /* Tamaño de fuente más pequeño */
+    padding: 2px 4px;
+    font-size: 11px;
     border: 1px solid #ccc;
     border-radius: 4px;
     background-color: #f9f9f9;
-    width: 80px; /* Ancho más pequeño de los selectores */
-}
-.dimmed {
-    opacity: 0.5; 
+    width: 80px;
 }
 
+/* Unificación del estilo de los botones */
+button {
+    padding: 5px 10px;
+    font-size: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #e0e0e0;
+}
+
+.dimmed {
+    opacity: 0.5;
+}

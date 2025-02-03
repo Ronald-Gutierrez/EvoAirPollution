@@ -2597,6 +2597,23 @@ async function updateUMAP() {
 function plotUMAP(data, fechaInicio, fechaFin) {
     // Limpiar el gráfico anterior
     
+    document.getElementById("cluster-4-btn").addEventListener("click", function () {
+        document.getElementById("cluster-4-btn").classList.remove("dimmed");
+        document.getElementById("cluster-4-select").classList.remove("dimmed");
+    
+        document.getElementById("cluster-6-btn").classList.add("dimmed");
+        document.getElementById("cluster-6-select").classList.add("dimmed");
+    });
+    
+    document.getElementById("cluster-6-btn").addEventListener("click", function () {
+        document.getElementById("cluster-6-btn").classList.remove("dimmed");
+        document.getElementById("cluster-6-select").classList.remove("dimmed");
+    
+        document.getElementById("cluster-4-btn").classList.add("dimmed");
+        document.getElementById("cluster-4-select").classList.add("dimmed");
+    });
+    
+    
     d3.select("#umap-plot-fusion").selectAll("*").remove();
     // console.log("Fechas de entrada:", fechaInicio, fechaFin);
 
@@ -2716,7 +2733,7 @@ function plotUMAP(data, fechaInicio, fechaFin) {
     const height = container.node().clientHeight || 440; // Default height
         
     const svg = container.append("svg")
-        .attr("transform", "translate(280, -394)") // Desplazamiento hacia la derecha y abajo
+        .attr("transform", "translate(275, -375)") // Desplazamiento hacia la derecha y abajo
         .attr("width", "45%")
         .attr("height", "45%")
         .attr("viewBox", `0 0 ${width} ${height}`)
@@ -3224,7 +3241,7 @@ function plotUMAPmet(data, fechaInicio, fechaFin) {
     const height = container.node().clientHeight || 440; // Default height
         
     const svg = container.append("svg")
-        .attr("transform", "translate(20, -190)") // Desplazamiento hacia la derecha y abajo
+        .attr("transform", "translate(27, -170)") // Desplazamiento hacia la derecha y abajo
         .attr("width", "45%")
         .attr("height", "45%")
         .attr("viewBox", `0 0 ${width} ${height}`)
@@ -3603,7 +3620,7 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
     const height = container.node().clientHeight || 440; // Default height
         
     const svg = container.append("svg")
-        .attr("transform", "translate(280, -200)") // Desplazamiento hacia la derecha y abajo
+        .attr("transform", "translate(275, -175)") // Desplazamiento hacia la derecha y abajo
         .attr("width", "45%")
         .attr("height", "45%")
         .attr("viewBox", `0 0 ${width} ${height}`)
