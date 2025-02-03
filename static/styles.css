@@ -441,3 +441,31 @@ button:hover {
 .dimmed {
     opacity: 0.5;
 }
+
+#cluster-6-btn {
+    background-color: #66c2a5;
+    color: white; /* Texto en blanco para mejor contraste */
+    border: none;
+    padding: 5px 10px;
+    font-size: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#cluster-6-btn:hover {
+    background-color: #5aaf94; /* Un tono ligeramente más oscuro al pasar el mouse */
+}
+
+#cluster-4-btn {
+    background-color: #f1a340;
+    color: white; /* Texto en blanco para mejor contraste */
+    border: none;
+    padding: 5px 10px;
+    font-size: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#cluster-4-btn:hover {
+    background-color: #fdae61; /* Un tono ligeramente más oscuro al pasar el mouse */
+}

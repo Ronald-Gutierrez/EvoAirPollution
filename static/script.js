@@ -2733,7 +2733,7 @@ function plotUMAP(data, fechaInicio, fechaFin) {
     const height = container.node().clientHeight || 440; // Default height
         
     const svg = container.append("svg")
-        .attr("transform", "translate(275, -375)") // Desplazamiento hacia la derecha y abajo
+        .attr("transform", "translate(275, -370)") // Desplazamiento hacia la derecha y abajo
         .attr("width", "45%")
         .attr("height", "45%")
         .attr("viewBox", `0 0 ${width} ${height}`)
@@ -3241,7 +3241,7 @@ function plotUMAPmet(data, fechaInicio, fechaFin) {
     const height = container.node().clientHeight || 440; // Default height
         
     const svg = container.append("svg")
-        .attr("transform", "translate(27, -170)") // Desplazamiento hacia la derecha y abajo
+        .attr("transform", "translate(27, -165)") // Desplazamiento hacia la derecha y abajo
         .attr("width", "45%")
         .attr("height", "45%")
         .attr("viewBox", `0 0 ${width} ${height}`)
@@ -3620,7 +3620,7 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
     const height = container.node().clientHeight || 440; // Default height
         
     const svg = container.append("svg")
-        .attr("transform", "translate(275, -175)") // Desplazamiento hacia la derecha y abajo
+        .attr("transform", "translate(275, -170)") // Desplazamiento hacia la derecha y abajo
         .attr("width", "45%")
         .attr("height", "45%")
         .attr("viewBox", `0 0 ${width} ${height}`)
