@@ -389,13 +389,14 @@ label#checkbox-container {
 .filter-container {
     display: flex;
     justify-content: flex-start; /* Alinea los filtros a la izquierda dentro de su contenedor */
-    margin-left: 190px; /* Aumenta el valor para mover los filtros más a la derecha */
+    margin-left: 10px; /* Aumenta el valor para mover los filtros más a la derecha */
+    margin-top: 30%;
 }
 
 .filter-item {
     display: flex;
     flex-direction: column; /* Organiza la etiqueta arriba del selector */
-    margin-right: 20px; /* Espacio entre los filtros */
+    margin-right: 5px; /* Espacio entre los filtros */
 }
 
 .filter-item label {
@@ -405,11 +406,11 @@ label#checkbox-container {
 
 .filter-item select {
     padding: 2px 4px; /* Padding más pequeño */
-    font-size: 12px; /* Tamaño de fuente más pequeño */
+    font-size: 10px; /* Tamaño de fuente más pequeño */
     border: 1px solid #ccc;
     border-radius: 4px;
     background-color: #f9f9f9;
-    width: 90px; /* Ancho más pequeño de los selectores */
+    width: 80px; /* Ancho más pequeño de los selectores */
 }
 .dimmed {
     opacity: 0.5; 

@@ -2496,8 +2496,27 @@ document.getElementById('visualizar-todo').addEventListener('change', function (
     document.getElementById('fecha-rango').innerText = isChecked ? "Visualizando todos los datos." : "";
 });
 
+
+// Escuchar cambios en los radio buttons de DE CONTAMINATCION
+document.querySelectorAll('#city-checkboxes input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', updateUMAPcont);
+});
+
+// Escuchar cambios en el rango de fechas
+document.getElementById('fecha-inicio').addEventListener('change', updateUMAPcont);
+document.getElementById('fecha-fin').addEventListener('change', updateUMAPcont);
+
+// Manejar el checkbox de "Visualizar todo"
+document.getElementById('visualizar-todo').addEventListener('change', function () {
+    const isChecked = this.checked;
+    document.getElementById('fecha-inicio').disabled = isChecked;
+    document.getElementById('fecha-fin').disabled = isChecked;
+    updateUMAPcont();
+    document.getElementById('fecha-rango').innerText = isChecked ? "Visualizando todos los datos." : "";
+});
+
 async function fetchData(selectedCity) {
-    const response = await fetch(`UMAP_AQI_NEW/${selectedCity}`);
+    const response = await fetch(`UMAP_FUSION_NEW/${selectedCity}`);
     const data = await response.text();
     return d3.csvParse(data, d => ({
         year: +d.year,
@@ -2510,6 +2529,32 @@ async function fetchData(selectedCity) {
     }));
 }
 
+async function fetchDataCont(selectedCity) {
+    const response = await fetch(`UMAP_CONT_NEW/${selectedCity}`);
+    const data = await response.text();
+    return d3.csvParse(data, d => ({
+        year: +d.year,
+        month: +d.month,
+        day: +d.day,
+        UMAP1: +d.UMAP1,
+        UMAP2: +d.UMAP2,
+        AQI: +d.AQI,
+        city: selectedCity
+    }));
+}
+async function fetchDataMet(selectedCity) {
+    const response = await fetch(`UMAP_MET_NEW/${selectedCity}`);
+    const data = await response.text();
+    return d3.csvParse(data, d => ({
+        year: +d.year,
+        month: +d.month,
+        day: +d.day,
+        UMAP1: +d.UMAP1,
+        UMAP2: +d.UMAP2,
+        AQI: +d.AQI,
+        city: selectedCity
+    }));
+}
 function filterData(data, startDate, endDate) {
     if (!startDate || !endDate) return data;
     const start = new Date(startDate);
@@ -2535,17 +2580,24 @@ async function updateUMAP() {
 
     // Obtener y filtrar los datos
     const data = await fetchData(selectedCity);
+    const data_cont = await fetchDataCont(selectedCity);
+    const data_met = await fetchDataMet(selectedCity);
     const filteredData = filterData(data, fechaInicio, fechaFin);
+    const filteredDataCont = filterData(data_cont, fechaInicio, fechaFin);
+    const filteredDataMet = filterData(data_met, fechaInicio, fechaFin);
+
 
     // Crear el gráfico
     plotUMAP(filteredData, fechaInicio, fechaFin);
+    plotUMAPcont(filteredDataCont, fechaInicio, fechaFin);
+    plotUMAPmet(filteredDataMet, fechaInicio, fechaFin);
     
 }
 
 function plotUMAP(data, fechaInicio, fechaFin) {
     // Limpiar el gráfico anterior
     
-    d3.select("#umap-plot").selectAll("*").remove();
+    d3.select("#umap-plot-fusion").selectAll("*").remove();
     // console.log("Fechas de entrada:", fechaInicio, fechaFin);
 
     // Función para actualizar la opacidad de los filtros
@@ -2659,18 +2711,20 @@ function plotUMAP(data, fechaInicio, fechaFin) {
     }
 
     // Dimensiones del contenedor
-    const container = d3.select("#umap-plot");
+    const container = d3.select("#umap-plot-fusion");
     const width = container.node().clientWidth || 800; // Default width
     const height = container.node().clientHeight || 440; // Default height
         
-    // Crear SVG con fondo transparente
     const svg = container.append("svg")
-        .attr("transform", "translate(0, 0)")
-        .attr("width", "100%")
-        .attr("height", "100%")
+        .attr("transform", "translate(280, -394)") // Desplazamiento hacia la derecha y abajo
+        .attr("width", "45%")
+        .attr("height", "45%")
         .attr("viewBox", `0 0 ${width} ${height}`)
         .style("background", "none") // Fondo transparente
-        .on("contextmenu", (event) => event.preventDefault()); // Desactivar menú contextual del navegador
+        .style("position", "relative") // Asegura que el desplazamiento funcione correctamente
+        .style("border", "1px solid black") // Agrega un borde negro de 2px
+        .style("border-radius", "10px") // Bordes redondeados
+        .on("contextmenu", (event) => event.preventDefault());
 
     // Grupo para aplicar zoom
     const g = svg.append("g");
@@ -2937,8 +2991,8 @@ function plotUMAP(data, fechaInicio, fechaFin) {
             .style('align-items', 'center')
             .style('position', 'absolute')
             .style('bottom', '-1%') // Coloca la leyenda en la parte inferior del contenedor
-            .style('left', '2%')
-            .style('width', '96%') // Ajusta el ancho disponible
+            .style('left', '4%')
+            .style('width', '90%') // Ajusta el ancho disponible
             .style('height', 'auto')
             .style('font-family', 'Arial, sans-serif')
             .style('font-weight', 'bold')
@@ -2960,7 +3014,7 @@ function plotUMAP(data, fechaInicio, fechaFin) {
                 .style('cursor', 'pointer')
                 .style('font-weight', 'bold')
                 .style('text-align', 'center')  // Centrar el texto
-                .style('font-size', '12px')
+                .style('font-size', '11px')
                 .style('box-shadow', '0px 2px 5px rgba(0, 0, 0, 0.3)') // Sombra para resaltar los botones
                 .text(item.label);
 
@@ -3045,6 +3099,764 @@ function plotUMAP(data, fechaInicio, fechaFin) {
     }
 
 }
+
+
+
+function plotUMAPmet(data, fechaInicio, fechaFin) {
+    // Limpiar el gráfico anterior
+    
+    d3.select("#umap-plot-meteorologia").selectAll("*").remove();
+    // console.log("Fechas de entrada:", fechaInicio, fechaFin);
+
+    // Función para actualizar la opacidad de los filtros
+    function updateFilterOpacity(activeFilterId) {
+        const filters = ["station-filter", "year-filter", "month-filter"];
+        filters.forEach((filterId) => {
+            const filterElement = document.getElementById(filterId);
+            if (filterId === activeFilterId) {
+                filterElement.classList.remove("dimmed");
+            } else {
+                filterElement.classList.add("dimmed");
+            }
+        });
+    }
+
+        // Evento para la estación del año
+    document.getElementById('station-filter').addEventListener('change', (event) => {
+        const selectedSeason = event.target.value;
+        const filteredData = filterDataBySeason(selectedSeason, data);
+        const selectedDates = filteredData.map(d => `${d.year}-${d.month}-${d.day}`);
+        highlightSeason(selectedSeason, data, svg, xScale, yScale);
+
+        handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin);
+
+        // Ajustar la opacidad de los puntos
+        svg.selectAll('circle')
+            .attr('opacity', d => filteredData.includes(d) ? 1 : 0.3); // Establece opacidad a 0.3 para los puntos no seleccionados
+        
+        updateFilterOpacity('station-filter');
+    });
+
+    // Evento para el año
+    document.getElementById('year-filter').addEventListener('change', (event) => {
+        const selectedYear = parseInt(event.target.value, 10);
+        const filteredData = data.filter(d => d.year === selectedYear);
+        const selectedDates = filteredData.map(d => `${d.year}-${d.month}-${d.day}`);
+        highlightYear(selectedYear, data, svg, xScale, yScale);
+
+        handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin);
+
+        // Ajustar la opacidad de los puntos
+        svg.selectAll('circle')
+            .attr('opacity', d => filteredData.includes(d) ? 1 : 0.3); // Establece opacidad a 0.3 para los puntos no seleccionados
+
+        updateFilterOpacity('year-filter');
+    });
+
+    // Evento para el mes
+    document.getElementById('month-filter').addEventListener('change', (event) => {
+        const selectedMonth = event.target.value;
+        const filteredData = filterDataByMonth(selectedMonth, data);
+        const selectedDates = filteredData.map(d => `${d.year}-${d.month}-${d.day}`);
+        highlightMonth(selectedMonth, data, svg, xScale, yScale);
+
+        handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin);
+
+        // Ajustar la opacidad de los puntos
+        svg.selectAll('circle')
+            .attr('opacity', d => filteredData.includes(d) ? 1 : 0.3); // Establece opacidad a 0.3 para los puntos no seleccionados
+
+        updateFilterOpacity('month-filter');
+    });
+
+    // Función para manejar la actualización de gráficos
+    function handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin) {
+        if (selectedDates.length === 0) {
+            console.warn("No hay fechas válidas seleccionadas.");
+            return;
+        }
+
+        // console.log("Actualizando gráficos con fechas seleccionadas:", selectedDates);
+        const cityFile = filteredData.length > 0 ? filteredData[0].city : null;
+
+        updateTimeSeriesChart(cityFile, fechaInicio, fechaFin, selectedDates);
+        updateCorrelationMatrixnew(selectedDates);
+        drawThemeRiver(cityFile, selectedDates);
+        updateRadialChartWithSelection(filteredData, fechaInicio, fechaFin);
+    }
+
+    // Función para filtrar datos por estación
+    function filterDataBySeason(season, data) {
+        const seasonRanges = {
+            Primavera: { start: { month: 3, day: 20 }, end: { month: 6, day: 21 } },
+            Verano: { start: { month: 6, day: 21 }, end: { month: 9, day: 22 } },
+            Otoño: { start: { month: 9, day: 22 }, end: { month: 12, day: 21 } },
+            Invierno: { start: { month: 12, day: 21 }, end: { month: 3, day: 20 } }
+        };
+
+        const range = seasonRanges[season];
+        if (!range) return [];
+
+        return data.filter(d => {
+            const start = new Date(d.year, range.start.month - 1, range.start.day);
+            const end = new Date(d.year, range.end.month - 1, range.end.day);
+            const date = new Date(d.year, d.month - 1, d.day);
+
+            return season === 'Invierno'
+                ? (date >= start || date <= end)
+                : (date >= start && date <= end);
+        });
+    }
+
+    // Función para filtrar datos por mes
+    function filterDataByMonth(month, data) {
+        const monthMapping = {
+            Enero: 1, Febrero: 2, Marzo: 3, Abril: 4, Mayo: 5, Junio: 6,
+            Julio: 7, Agosto: 8, Septiembre: 9, Octubre: 10, Noviembre: 11, Diciembre: 12
+        };
+        const monthNumber = monthMapping[month];
+        return data.filter(d => d.month === monthNumber);
+    }
+
+    // Dimensiones del contenedor
+    const container = d3.select("#umap-plot-meteorologia");
+    const width = container.node().clientWidth || 800; // Default width
+    const height = container.node().clientHeight || 440; // Default height
+        
+    const svg = container.append("svg")
+        .attr("transform", "translate(20, -190)") // Desplazamiento hacia la derecha y abajo
+        .attr("width", "45%")
+        .attr("height", "45%")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .style("background", "none") // Fondo transparente
+        .style("position", "relative") // Asegura que el desplazamiento funcione correctamente
+        .style("border", "1px solid black") // Agrega un borde negro de 2px
+        .style("border-radius", "10px") // Bordes redondeados
+        .on("contextmenu", (event) => event.preventDefault());
+
+    // Grupo para aplicar zoom
+    const g = svg.append("g");
+
+    // Escalas
+    const xScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.UMAP1))
+        .range([0, width]);
+
+    const yScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.UMAP2))
+        .range([height, 0]);
+
+    // Colores según el nivel de AQI
+    const colorScale = d3.scaleOrdinal()
+        .domain([1, 2, 3, 4, 5, 6])
+        .range(['#00E400', '#FFFF00', '#FF7E00', '#FF0000', '#99004c', '#800000']);
+
+    // Tooltip
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("position", "absolute")
+        .style("visibility", "hidden")
+        .style("background", "rgba(0, 0, 0, 0.7)")
+        .style("color", "#fff")
+        .style("padding", "5px 10px")
+        .style("border-radius", "5px")
+        .style("font-size", "12px");
+
+    // Dibujar puntos
+    g.selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", d => xScale(d.UMAP1))
+        .attr("cy", d => yScale(d.UMAP2))
+        .attr("r", 6)
+        .attr("fill", d => colorScale(d.AQI))
+        .attr("opacity", 1)
+        .attr("stroke", "none")  // Sin borde inicialmente
+            // Agregar manejador para el filtro de estación
+
+        .on("mouseover", (event, d) => {
+            tooltip.style("visibility", "visible")
+                .html(`
+                    <strong>Ciudad:</strong> ${d.city.replace('Data_', '').replace('.csv', '')}<br>
+                    <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
+                    <strong>AQI:</strong> ${d.AQI}
+                `);
+            d3.select(event.target)
+                .attr("r", 10)  // Aumentar el radio del círculo
+                .attr("stroke", "blue")  // Establecer borde azul
+                .attr("stroke-width", 3);  // Definir el grosor del borde
+        })
+        .on("mousemove", (event) => {
+            tooltip.style("top", (event.pageY - 10) + "px")
+                .style("left", (event.pageX + 10) + "px");
+        })
+        .on("mouseout", (event) => {
+            tooltip.style("visibility", "hidden");
+            d3.select(event.target)
+                .attr("r", 6)  // Restaurar el radio original
+                .attr("stroke", "none");  // Quitar el borde
+        });
+        
+        function highlightSeason(season, data, svg, xScale, yScale) {
+            // Definir rangos de fechas para cada estación
+            const seasonRanges = {
+                Primavera: { start: { month: 3, day: 20 }, end: { month: 6, day: 21 } },
+                Verano: { start: { month: 6, day: 21 }, end: { month: 9, day: 22 } },
+                Otoño: { start: { month: 9, day: 22 }, end: { month: 12, day: 21 } },
+                Invierno: { start: { month: 12, day: 21 }, end: { month: 3, day: 20 } },
+            };
+        
+            const range = seasonRanges[season];
+            if (!range) return;
+        
+            function isInSeason(d) {
+                const start = new Date(d.year, range.start.month - 1, range.start.day);
+                const end = new Date(d.year, range.end.month - 1, range.end.day);
+                const date = new Date(d.year, d.month - 1, d.day);
+        
+                if (season === 'Invierno') {
+                    return (
+                        (date >= start && d.month >= 12) || 
+                        (d.month <= 3 && date <= end)
+                    );
+                }
+        
+                return date >= start && date <= end;
+            }
+        
+            svg.selectAll("circle")
+                .attr("stroke", "none")
+                .attr("r", 6);
+        
+            svg.selectAll("circle")
+                .filter(d => isInSeason(d))
+                .attr("stroke", "blue")
+                .attr("stroke-width", 2)
+                .attr("r", 8);
+        }
+        
+        function highlightYear(year, data, svg, xScale, yScale) {
+            svg.selectAll("circle")
+                .attr("stroke", "none")
+                .attr("r", 6);
+        
+            svg.selectAll("circle")
+                .filter(d => d.year === year)
+                .attr("stroke", "blue")
+                .attr("stroke-width", 2)
+                .attr("r", 8);
+        }
+        
+        function highlightMonth(month, data, svg, xScale, yScale) {
+            const months = {
+                Enero: 1, Febrero: 2, Marzo: 3, Abril: 4, Mayo: 5, Junio: 6,
+                Julio: 7, Agosto: 8, Septiembre: 9, Octubre: 10, Noviembre: 11, Diciembre: 12
+            };
+        
+            const monthNumber = months[month];
+            if (!monthNumber) return;
+        
+            svg.selectAll("circle")
+                .attr("stroke", "none")
+                .attr("r", 6);
+        
+            svg.selectAll("circle")
+                .filter(d => d.month === monthNumber)
+                .attr("stroke", "blue")
+                .attr("stroke-width", 2)
+                .attr("r", 8);
+        }
+    // Variables para la selección
+    let isDrawing = false;
+    let points = [];
+    let selectionLine; // Para almacenar la línea de selección
+
+    // Zoom
+    const zoom = d3.zoom()
+        .scaleExtent([0.5, 10])
+        .on("zoom", (event) => {
+            g.attr("transform", event.transform);
+        });
+
+    svg.call(zoom);
+    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 20).scale(0.79);
+    svg.call(zoom).call(zoom.transform, initialTransform);
+
+    svg.on("mousedown", (event) => {
+        if (event.button !== 2) return; // Solo activar con anticlick (botón derecho del mouse)
+
+        // Limpiar la selección anterior
+        if (selectionLine) {
+            selectionLine.remove();
+        }
+
+        isDrawing = true;
+        points = []; // Reiniciar puntos
+
+        const [startX, startY] = d3.pointer(event, g.node());
+        points.push([startX, startY]);
+
+        // Crear línea inicial
+        selectionLine = g.append("polyline")
+            .attr("fill", "rgba(100, 100, 255, 0.3)")
+            .attr("stroke", "blue")
+            .attr("stroke-width", 2)
+            .attr("points", points.join(" "));
+
+        svg.on("mousemove", (event) => {
+            if (!isDrawing) return;
+
+            const [currentX, currentY] = d3.pointer(event, g.node());
+            points.push([currentX, currentY]);
+            selectionLine.attr("points", points.join(" "));
+        });
+    });
+
+    svg.on("mouseup", () => {
+        if (!isDrawing) return;
+
+        isDrawing = false;
+
+        // Unir el último punto con el primero
+        points.push(points[0]); // Añadir el primer punto al final para cerrar el polígono
+        selectionLine.attr("points", points.join(" ")); // Actualizar la línea para incluir el cierre
+
+        // Filtrar los puntos seleccionados dentro del polígono
+        const selectionData = data.filter(d => {
+            const x = xScale(d.UMAP1);
+            const y = yScale(d.UMAP2);
+            return d3.polygonContains(points, [x, y]); // Verificar si el punto está dentro del polígono
+        });
+
+        // Verificar si hay datos seleccionados
+        if (selectionData.length === 0) {
+            console.warn("No se seleccionaron puntos dentro del área.");
+            return;
+        }
+
+        // Construir el arreglo de fechas seleccionadas
+        const selectedDates = selectionData.map(d => `${d.year}-${d.month}-${d.day}`);
+
+        // Verifica que haya fechas válidas en `selectedDates`
+        if (selectedDates.length === 0) {
+            console.warn("No hay fechas válidas en los datos seleccionados.");
+            return;
+        }
+
+        // Obtener el archivo de la ciudad seleccionada
+        const cityFile = selectionData[0].city;
+
+
+        // Llamar a las funciones con las fechas seleccionadas
+        updateTimeSeriesChart(cityFile, fechaInicio, fechaFin, selectedDates);
+        updateCorrelationMatrixnew(selectedDates);
+        drawThemeRiver(cityFile, selectedDates);
+        updateRadialChartWithSelection(selectionData, fechaInicio, fechaFin);
+
+        // Restaurar todos los puntos a su estado original antes de aplicar cambios a los puntos seleccionados
+        svg.selectAll("circle")
+            .attr("r", 6)  // Restaurar el radio original de los puntos (ajusta según el tamaño original)
+            .attr("stroke", "none");  // Eliminar el borde azul
+
+        // Hacer los puntos seleccionados más grandes y agregar un borde azul
+        selectionData.forEach(d => {
+            const x = xScale(d.UMAP1);
+            const y = yScale(d.UMAP2);
+            // Buscar el círculo correspondiente y cambiar su radio y agregar un borde
+            svg.selectAll("circle")
+                .filter(function() {
+                    const cx = parseFloat(this.getAttribute("cx"));
+                    const cy = parseFloat(this.getAttribute("cy"));
+                    return cx === x && cy === y;
+                })
+                .attr("r", 8)  // Cambiar el tamaño del radio
+                .attr("stroke", "blue")  // Agregar borde azul
+                .attr("stroke-width", 3);  // Establecer el grosor del borde
+        });
+    });
+
+
+}
+
+
+
+function plotUMAPcont(data, fechaInicio, fechaFin) {
+    // Limpiar el gráfico anterior
+    
+    d3.select("#umap-plot-contaminacion").selectAll("*").remove();
+    // console.log("Fechas de entrada:", fechaInicio, fechaFin);
+
+    // Función para actualizar la opacidad de los filtros
+    function updateFilterOpacity(activeFilterId) {
+        const filters = ["station-filter", "year-filter", "month-filter"];
+        filters.forEach((filterId) => {
+            const filterElement = document.getElementById(filterId);
+            if (filterId === activeFilterId) {
+                filterElement.classList.remove("dimmed");
+            } else {
+                filterElement.classList.add("dimmed");
+            }
+        });
+    }
+
+        // Evento para la estación del año
+    document.getElementById('station-filter').addEventListener('change', (event) => {
+        const selectedSeason = event.target.value;
+        const filteredData = filterDataBySeason(selectedSeason, data);
+        const selectedDates = filteredData.map(d => `${d.year}-${d.month}-${d.day}`);
+        highlightSeason(selectedSeason, data, svg, xScale, yScale);
+
+        handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin);
+
+        // Ajustar la opacidad de los puntos
+        svg.selectAll('circle')
+            .attr('opacity', d => filteredData.includes(d) ? 1 : 0.3); // Establece opacidad a 0.3 para los puntos no seleccionados
+        
+        updateFilterOpacity('station-filter');
+    });
+
+    // Evento para el año
+    document.getElementById('year-filter').addEventListener('change', (event) => {
+        const selectedYear = parseInt(event.target.value, 10);
+        const filteredData = data.filter(d => d.year === selectedYear);
+        const selectedDates = filteredData.map(d => `${d.year}-${d.month}-${d.day}`);
+        highlightYear(selectedYear, data, svg, xScale, yScale);
+
+        handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin);
+
+        // Ajustar la opacidad de los puntos
+        svg.selectAll('circle')
+            .attr('opacity', d => filteredData.includes(d) ? 1 : 0.3); // Establece opacidad a 0.3 para los puntos no seleccionados
+
+        updateFilterOpacity('year-filter');
+    });
+
+    // Evento para el mes
+    document.getElementById('month-filter').addEventListener('change', (event) => {
+        const selectedMonth = event.target.value;
+        const filteredData = filterDataByMonth(selectedMonth, data);
+        const selectedDates = filteredData.map(d => `${d.year}-${d.month}-${d.day}`);
+        highlightMonth(selectedMonth, data, svg, xScale, yScale);
+
+        handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin);
+
+        // Ajustar la opacidad de los puntos
+        svg.selectAll('circle')
+            .attr('opacity', d => filteredData.includes(d) ? 1 : 0.3); // Establece opacidad a 0.3 para los puntos no seleccionados
+
+        updateFilterOpacity('month-filter');
+    });
+
+    // Función para manejar la actualización de gráficos
+    function handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin) {
+        if (selectedDates.length === 0) {
+            console.warn("No hay fechas válidas seleccionadas.");
+            return;
+        }
+
+        // console.log("Actualizando gráficos con fechas seleccionadas:", selectedDates);
+        const cityFile = filteredData.length > 0 ? filteredData[0].city : null;
+
+        updateTimeSeriesChart(cityFile, fechaInicio, fechaFin, selectedDates);
+        updateCorrelationMatrixnew(selectedDates);
+        drawThemeRiver(cityFile, selectedDates);
+        updateRadialChartWithSelection(filteredData, fechaInicio, fechaFin);
+    }
+
+    // Función para filtrar datos por estación
+    function filterDataBySeason(season, data) {
+        const seasonRanges = {
+            Primavera: { start: { month: 3, day: 20 }, end: { month: 6, day: 21 } },
+            Verano: { start: { month: 6, day: 21 }, end: { month: 9, day: 22 } },
+            Otoño: { start: { month: 9, day: 22 }, end: { month: 12, day: 21 } },
+            Invierno: { start: { month: 12, day: 21 }, end: { month: 3, day: 20 } }
+        };
+
+        const range = seasonRanges[season];
+        if (!range) return [];
+
+        return data.filter(d => {
+            const start = new Date(d.year, range.start.month - 1, range.start.day);
+            const end = new Date(d.year, range.end.month - 1, range.end.day);
+            const date = new Date(d.year, d.month - 1, d.day);
+
+            return season === 'Invierno'
+                ? (date >= start || date <= end)
+                : (date >= start && date <= end);
+        });
+    }
+
+    // Función para filtrar datos por mes
+    function filterDataByMonth(month, data) {
+        const monthMapping = {
+            Enero: 1, Febrero: 2, Marzo: 3, Abril: 4, Mayo: 5, Junio: 6,
+            Julio: 7, Agosto: 8, Septiembre: 9, Octubre: 10, Noviembre: 11, Diciembre: 12
+        };
+        const monthNumber = monthMapping[month];
+        return data.filter(d => d.month === monthNumber);
+    }
+
+    // Dimensiones del contenedor
+    const container = d3.select("#umap-plot-contaminacion");
+    const width = container.node().clientWidth || 800; // Default width
+    const height = container.node().clientHeight || 440; // Default height
+        
+    const svg = container.append("svg")
+        .attr("transform", "translate(280, -200)") // Desplazamiento hacia la derecha y abajo
+        .attr("width", "45%")
+        .attr("height", "45%")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .style("background", "none") // Fondo transparente
+        .style("position", "relative") // Asegura que el desplazamiento funcione correctamente
+        .style("border", "1px solid black") // Agrega un borde negro de 2px
+        .style("border-radius", "10px") // Bordes redondeados
+        .on("contextmenu", (event) => event.preventDefault());
+
+    // Grupo para aplicar zoom
+    const g = svg.append("g");
+
+    // Escalas
+    const xScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.UMAP1))
+        .range([0, width]);
+
+    const yScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.UMAP2))
+        .range([height, 0]);
+
+    // Colores según el nivel de AQI
+    const colorScale = d3.scaleOrdinal()
+        .domain([1, 2, 3, 4, 5, 6])
+        .range(['#00E400', '#FFFF00', '#FF7E00', '#FF0000', '#99004c', '#800000']);
+
+    // Tooltip
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("position", "absolute")
+        .style("visibility", "hidden")
+        .style("background", "rgba(0, 0, 0, 0.7)")
+        .style("color", "#fff")
+        .style("padding", "5px 10px")
+        .style("border-radius", "5px")
+        .style("font-size", "12px");
+
+    // Dibujar puntos
+    g.selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", d => xScale(d.UMAP1))
+        .attr("cy", d => yScale(d.UMAP2))
+        .attr("r", 6)
+        .attr("fill", d => colorScale(d.AQI))
+        .attr("opacity", 1)
+        .attr("stroke", "none")  // Sin borde inicialmente
+            // Agregar manejador para el filtro de estación
+
+        .on("mouseover", (event, d) => {
+            tooltip.style("visibility", "visible")
+                .html(`
+                    <strong>Ciudad:</strong> ${d.city.replace('Data_', '').replace('.csv', '')}<br>
+                    <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
+                    <strong>AQI:</strong> ${d.AQI}
+                `);
+            d3.select(event.target)
+                .attr("r", 10)  // Aumentar el radio del círculo
+                .attr("stroke", "blue")  // Establecer borde azul
+                .attr("stroke-width", 3);  // Definir el grosor del borde
+        })
+        .on("mousemove", (event) => {
+            tooltip.style("top", (event.pageY - 10) + "px")
+                .style("left", (event.pageX + 10) + "px");
+        })
+        .on("mouseout", (event) => {
+            tooltip.style("visibility", "hidden");
+            d3.select(event.target)
+                .attr("r", 6)  // Restaurar el radio original
+                .attr("stroke", "none");  // Quitar el borde
+        });
+        
+        function highlightSeason(season, data, svg, xScale, yScale) {
+            // Definir rangos de fechas para cada estación
+            const seasonRanges = {
+                Primavera: { start: { month: 3, day: 20 }, end: { month: 6, day: 21 } },
+                Verano: { start: { month: 6, day: 21 }, end: { month: 9, day: 22 } },
+                Otoño: { start: { month: 9, day: 22 }, end: { month: 12, day: 21 } },
+                Invierno: { start: { month: 12, day: 21 }, end: { month: 3, day: 20 } },
+            };
+        
+            const range = seasonRanges[season];
+            if (!range) return;
+        
+            function isInSeason(d) {
+                const start = new Date(d.year, range.start.month - 1, range.start.day);
+                const end = new Date(d.year, range.end.month - 1, range.end.day);
+                const date = new Date(d.year, d.month - 1, d.day);
+        
+                if (season === 'Invierno') {
+                    return (
+                        (date >= start && d.month >= 12) || 
+                        (d.month <= 3 && date <= end)
+                    );
+                }
+        
+                return date >= start && date <= end;
+            }
+        
+            svg.selectAll("circle")
+                .attr("stroke", "none")
+                .attr("r", 6);
+        
+            svg.selectAll("circle")
+                .filter(d => isInSeason(d))
+                .attr("stroke", "blue")
+                .attr("stroke-width", 2)
+                .attr("r", 8);
+        }
+        
+        function highlightYear(year, data, svg, xScale, yScale) {
+            svg.selectAll("circle")
+                .attr("stroke", "none")
+                .attr("r", 6);
+        
+            svg.selectAll("circle")
+                .filter(d => d.year === year)
+                .attr("stroke", "blue")
+                .attr("stroke-width", 2)
+                .attr("r", 8);
+        }
+        
+        function highlightMonth(month, data, svg, xScale, yScale) {
+            const months = {
+                Enero: 1, Febrero: 2, Marzo: 3, Abril: 4, Mayo: 5, Junio: 6,
+                Julio: 7, Agosto: 8, Septiembre: 9, Octubre: 10, Noviembre: 11, Diciembre: 12
+            };
+        
+            const monthNumber = months[month];
+            if (!monthNumber) return;
+        
+            svg.selectAll("circle")
+                .attr("stroke", "none")
+                .attr("r", 6);
+        
+            svg.selectAll("circle")
+                .filter(d => d.month === monthNumber)
+                .attr("stroke", "blue")
+                .attr("stroke-width", 2)
+                .attr("r", 8);
+        }
+    // Variables para la selección
+    let isDrawing = false;
+    let points = [];
+    let selectionLine; // Para almacenar la línea de selección
+
+    // Zoom
+    const zoom = d3.zoom()
+        .scaleExtent([0.5, 10])
+        .on("zoom", (event) => {
+            g.attr("transform", event.transform);
+        });
+
+    svg.call(zoom);
+    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 20).scale(0.79);
+    svg.call(zoom).call(zoom.transform, initialTransform);
+
+    svg.on("mousedown", (event) => {
+        if (event.button !== 2) return; // Solo activar con anticlick (botón derecho del mouse)
+
+        // Limpiar la selección anterior
+        if (selectionLine) {
+            selectionLine.remove();
+        }
+
+        isDrawing = true;
+        points = []; // Reiniciar puntos
+
+        const [startX, startY] = d3.pointer(event, g.node());
+        points.push([startX, startY]);
+
+        // Crear línea inicial
+        selectionLine = g.append("polyline")
+            .attr("fill", "rgba(100, 100, 255, 0.3)")
+            .attr("stroke", "blue")
+            .attr("stroke-width", 2)
+            .attr("points", points.join(" "));
+
+        svg.on("mousemove", (event) => {
+            if (!isDrawing) return;
+
+            const [currentX, currentY] = d3.pointer(event, g.node());
+            points.push([currentX, currentY]);
+            selectionLine.attr("points", points.join(" "));
+        });
+    });
+
+    svg.on("mouseup", () => {
+        if (!isDrawing) return;
+
+        isDrawing = false;
+
+        // Unir el último punto con el primero
+        points.push(points[0]); // Añadir el primer punto al final para cerrar el polígono
+        selectionLine.attr("points", points.join(" ")); // Actualizar la línea para incluir el cierre
+
+        // Filtrar los puntos seleccionados dentro del polígono
+        const selectionData = data.filter(d => {
+            const x = xScale(d.UMAP1);
+            const y = yScale(d.UMAP2);
+            return d3.polygonContains(points, [x, y]); // Verificar si el punto está dentro del polígono
+        });
+
+        // Verificar si hay datos seleccionados
+        if (selectionData.length === 0) {
+            console.warn("No se seleccionaron puntos dentro del área.");
+            return;
+        }
+
+        // Construir el arreglo de fechas seleccionadas
+        const selectedDates = selectionData.map(d => `${d.year}-${d.month}-${d.day}`);
+
+        // Verifica que haya fechas válidas en `selectedDates`
+        if (selectedDates.length === 0) {
+            console.warn("No hay fechas válidas en los datos seleccionados.");
+            return;
+        }
+
+        // Obtener el archivo de la ciudad seleccionada
+        const cityFile = selectionData[0].city;
+
+        // Llamar a las funciones con las fechas seleccionadas
+        updateTimeSeriesChart(cityFile, fechaInicio, fechaFin, selectedDates);
+        updateCorrelationMatrixnew(selectedDates);
+        drawThemeRiver(cityFile, selectedDates);
+        updateRadialChartWithSelection(selectionData, fechaInicio, fechaFin);
+
+        // Restaurar todos los puntos a su estado original antes de aplicar cambios a los puntos seleccionados
+        svg.selectAll("circle")
+            .attr("r", 6)  // Restaurar el radio original de los puntos (ajusta según el tamaño original)
+            .attr("stroke", "none");  // Eliminar el borde azul
+
+        // Hacer los puntos seleccionados más grandes y agregar un borde azul
+        selectionData.forEach(d => {
+            const x = xScale(d.UMAP1);
+            const y = yScale(d.UMAP2);
+            // Buscar el círculo correspondiente y cambiar su radio y agregar un borde
+            svg.selectAll("circle")
+                .filter(function() {
+                    const cx = parseFloat(this.getAttribute("cx"));
+                    const cy = parseFloat(this.getAttribute("cy"));
+                    return cx === x && cy === y;
+                })
+                .attr("r", 8)  // Cambiar el tamaño del radio
+                .attr("stroke", "blue")  // Agregar borde azul
+                .attr("stroke-width", 3);  // Establecer el grosor del borde
+        });
+    });
+
+}
+
+
 
 function updateCorrelationMatrixnew(dates) {
     // console.log(dates);
