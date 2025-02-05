@@ -2525,9 +2525,24 @@ async function fetchData(selectedCity) {
         UMAP1: +d.UMAP1,
         UMAP2: +d.UMAP2,
         AQI: +d.AQI,
+        Kmeans_4: +d.Kmeans_4,
+        Kmeans_6: +d.Kmeans_6,
+        PM2_5: +d.PM2_5,
+        PM10: +d.PM10,
+        SO2: +d.SO2,
+        NO2: +d.NO2,
+        CO: +d.CO,
+        O3: +d.O3,
+        TEMP: +d.TEMP,
+        PRES: +d.PRES,
+        DEWP: +d.DEWP,
+        RAIN: +d.RAIN,
+        WSPM: +d.WSPM,
+        station: d.station, // No es numérico, se mantiene como string
         city: selectedCity
     }));
 }
+
 
 async function fetchDataCont(selectedCity) {
     const response = await fetch(`UMAP_CONT_NEW/${selectedCity}`);
@@ -2539,6 +2554,20 @@ async function fetchDataCont(selectedCity) {
         UMAP1: +d.UMAP1,
         UMAP2: +d.UMAP2,
         AQI: +d.AQI,
+        Kmeans_4: +d.Kmeans_4,
+        Kmeans_6: +d.Kmeans_6,
+        PM2_5: +d.PM2_5,
+        PM10: +d.PM10,
+        SO2: +d.SO2,
+        NO2: +d.NO2,
+        CO: +d.CO,
+        O3: +d.O3,
+        TEMP: +d.TEMP,
+        PRES: +d.PRES,
+        DEWP: +d.DEWP,
+        RAIN: +d.RAIN,
+        WSPM: +d.WSPM,
+        station: d.station, // No es numérico, se mantiene como string
         city: selectedCity
     }));
 }
@@ -2552,6 +2581,20 @@ async function fetchDataMet(selectedCity) {
         UMAP1: +d.UMAP1,
         UMAP2: +d.UMAP2,
         AQI: +d.AQI,
+        Kmeans_4: +d.Kmeans_4,
+        Kmeans_6: +d.Kmeans_6,
+        PM2_5: +d.PM2_5,
+        PM10: +d.PM10,
+        SO2: +d.SO2,
+        NO2: +d.NO2,
+        CO: +d.CO,
+        O3: +d.O3,
+        TEMP: +d.TEMP,
+        PRES: +d.PRES,
+        DEWP: +d.DEWP,
+        RAIN: +d.RAIN,
+        WSPM: +d.WSPM,
+        station: d.station, // No es numérico, se mantiene como string
         city: selectedCity
     }));
 }
@@ -2595,31 +2638,114 @@ async function updateUMAP() {
 }
 
 function plotUMAP(data, fechaInicio, fechaFin) {
-    // Limpiar el gráfico anterior
-    
+
+    d3.select("#umap-plot-fusion").selectAll("*").remove();
+
+    // Colores para Kmeans_4
+    const kmeans4Colors = {
+        0: '#66c2a5',
+        1: '#fc8d62',
+        2: '#8da0cb',
+        3: '#e78ac3',
+    };
+    const kmeans6Colors = {
+        0: '#fdae61',
+        1: '#fee08b',
+        2: '#d73027',
+        3: '#4575b4',
+        4: '#313695',
+        5: '#91bfdb',
+    };
+
+    // Colores para AQI
+    const aqiColors = {
+        1: '#00E400', // Bueno
+        2: '#FFFF00', // Moderado
+        3: '#FF7E00', // Insalubre
+        4: '#FF0000', // Muy Insalubre
+        5: '#99004c', // Malo
+        6: '#800000', // Severo
+    };
+
+    // Función para actualizar la opacidad de los puntos del cluster seleccionado y agregar borde
+    function updateClusterDisplay(clusterCount, selectedCluster, clusterColors) {
+        svg.selectAll("circle")
+            .attr("fill", d => clusterColors[d[`Kmeans_${clusterCount}`]]) // Relleno con el color del cluster
+            .attr("opacity", d => d[`Kmeans_${clusterCount}`] === selectedCluster ? 1 : 0.2) // Opacidad según selección
+            .attr("stroke", d => d[`Kmeans_${clusterCount}`] === selectedCluster ? "black" : "none") // Borde negro solo en el cluster seleccionado
+            .attr("stroke-width", d => d[`Kmeans_${clusterCount}`] === selectedCluster ? 1 : 0); // El borde negro tendrá grosor de 2 si está seleccionado, sino sin borde
+    }
+
+    // Función para actualizar los puntos según AQI
+    function updateAQIDisplay(selectedAQI) {
+        svg.selectAll("circle")
+            .attr("fill", d => aqiColors[d.AQI] === undefined ? '#000000' : aqiColors[d.AQI]) // Relleno según el color del AQI
+            .attr("opacity", 1); // Asegura que todos los puntos sean visibles
+    }
+
+    // Evento para el botón de cluster-4
     document.getElementById("cluster-4-btn").addEventListener("click", function () {
         document.getElementById("cluster-4-btn").classList.remove("dimmed");
         document.getElementById("cluster-4-select").classList.remove("dimmed");
-    
+        document.getElementById("aqi-btn").classList.add("dimmed");
         document.getElementById("cluster-6-btn").classList.add("dimmed");
         document.getElementById("cluster-6-select").classList.add("dimmed");
+
+        svg.selectAll("circle")
+            .attr("fill", d => kmeans4Colors[d.Kmeans_4])
+            .attr("opacity", 1);
+
+        document.getElementById("cluster-4-select").disabled = false;
+        document.getElementById("cluster-6-select").disabled = true;
+        document.getElementById("cluster-4-select").value = "";
     });
-    
+
+    // Evento para el botón de cluster-6
     document.getElementById("cluster-6-btn").addEventListener("click", function () {
         document.getElementById("cluster-6-btn").classList.remove("dimmed");
         document.getElementById("cluster-6-select").classList.remove("dimmed");
-    
+        document.getElementById("aqi-btn").classList.add("dimmed");
+
         document.getElementById("cluster-4-btn").classList.add("dimmed");
         document.getElementById("cluster-4-select").classList.add("dimmed");
+
+        svg.selectAll("circle")
+            .attr("fill", d => kmeans6Colors[d.Kmeans_6])
+            .attr("opacity", 1);
+
+        document.getElementById("cluster-6-select").disabled = false;
+        document.getElementById("cluster-4-select").disabled = true;
+        document.getElementById("cluster-6-select").value = "";
     });
-    
-    
-    d3.select("#umap-plot-fusion").selectAll("*").remove();
-    // console.log("Fechas de entrada:", fechaInicio, fechaFin);
+
+    // Evento para el selector de cluster-4
+    document.getElementById("cluster-4-select").addEventListener("change", function () {
+        const selectedCluster = parseInt(this.value.replace('Cluster ', '')) - 1;
+        updateClusterDisplay(4, selectedCluster, kmeans4Colors);
+    });
+
+    // Evento para el selector de cluster-6
+    document.getElementById("cluster-6-select").addEventListener("change", function () {
+        const selectedCluster = parseInt(this.value.replace('Cluster ', '')) - 1;
+        updateClusterDisplay(6, selectedCluster, kmeans6Colors);
+    });
+
+    // Evento para el botón AQI
+    document.getElementById("aqi-btn").addEventListener("click", function () {
+        document.getElementById("aqi-btn").classList.remove("dimmed");
+        document.getElementById("cluster-6-btn").classList.add("dimmed");
+        document.getElementById("cluster-6-select").classList.add("dimmed");
+
+        document.getElementById("cluster-4-btn").classList.add("dimmed");
+        document.getElementById("cluster-4-select").classList.add("dimmed");
+        updateAQIDisplay(); // Actualiza la visualización de AQI
+        updateButtonOpacity("aqi-btn");
+
+    });
 
     // Función para actualizar la opacidad de los filtros
     function updateFilterOpacity(activeFilterId) {
-        const filters = ["station-filter", "year-filter", "month-filter"];
+        const filters = ["station-filter", "year-filter", "month-filter", "aqi-filter"];
         filters.forEach((filterId) => {
             const filterElement = document.getElementById(filterId);
             if (filterId === activeFilterId) {
@@ -2733,7 +2859,7 @@ function plotUMAP(data, fechaInicio, fechaFin) {
     const height = container.node().clientHeight || 440; // Default height
         
     const svg = container.append("svg")
-        .attr("transform", "translate(275, -370)") // Desplazamiento hacia la derecha y abajo
+        .attr("transform", "translate(275, -380)") // Desplazamiento hacia la derecha y abajo
         .attr("width", "45%")
         .attr("height", "45%")
         .attr("viewBox", `0 0 ${width} ${height}`)
@@ -2742,7 +2868,14 @@ function plotUMAP(data, fechaInicio, fechaFin) {
         .style("border", "1px solid black") // Agrega un borde negro de 2px
         .style("border-radius", "10px") // Bordes redondeados
         .on("contextmenu", (event) => event.preventDefault());
-
+    // Agregar título en la parte superior izquierda
+    svg.append("text")
+        .attr("x", 25) // Posición horizontal (izquierda)
+        .attr("y", 30) // Posición vertical (arriba)
+        .attr("font-size", "30px") // Tamaño de la fuente
+        .attr("font-weight", "bold") // Negrita
+        .attr("fill", "black") // Color del texto
+        .text("Fusion de datos"); // Texto del título
     // Grupo para aplicar zoom
     const g = svg.append("g");
 
@@ -2853,7 +2986,7 @@ function plotUMAP(data, fechaInicio, fechaFin) {
             svg.selectAll("circle")
                 .filter(d => d.year === year)
                 .attr("stroke", "blue")
-                .attr("stroke-width", 2)
+                .attr("stroke-width", 1)
                 .attr("r", 8);
         }
         
@@ -2873,7 +3006,7 @@ function plotUMAP(data, fechaInicio, fechaFin) {
             svg.selectAll("circle")
                 .filter(d => d.month === monthNumber)
                 .attr("stroke", "blue")
-                .attr("stroke-width", 2)
+                .attr("stroke-width", 1)
                 .attr("r", 8);
         }
     // Variables para la selección
@@ -2889,7 +3022,7 @@ function plotUMAP(data, fechaInicio, fechaFin) {
         });
 
     svg.call(zoom);
-    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 20).scale(0.79);
+    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 9).scale(0.79);
     svg.call(zoom).call(zoom.transform, initialTransform);
 
     svg.on("mousedown", (event) => {
@@ -3118,13 +3251,113 @@ function plotUMAP(data, fechaInicio, fechaFin) {
 }
 
 
-
 function plotUMAPmet(data, fechaInicio, fechaFin) {
     // Limpiar el gráfico anterior
-    
     d3.select("#umap-plot-meteorologia").selectAll("*").remove();
     // console.log("Fechas de entrada:", fechaInicio, fechaFin);
+    // Colores para Kmeans_4
+    const kmeans4Colors = {
+        0: '#66c2a5',
+        1: '#fc8d62',
+        2: '#8da0cb',
+        3: '#e78ac3',
+    };
+    const kmeans6Colors = {
+        0: '#fdae61',
+        1: '#fee08b',
+        2: '#d73027',
+        3: '#4575b4',
+        4: '#313695',
+        5: '#91bfdb',
+    };
 
+    // Colores para AQI
+    const aqiColors = {
+        1: '#D3D3D3', // Bueno
+        2: '#D3D3D3', // Moderado
+        3: '#D3D3D3', // Insalubre
+        4: '#D3D3D3', // Muy Insalubre
+        5: '#D3D3D3', // Malo
+        6: '#D3D3D3', // Severo
+    };
+
+    // Función para actualizar la opacidad de los puntos del cluster seleccionado y agregar borde
+    function updateClusterDisplay(clusterCount, selectedCluster, clusterColors) {
+        svg.selectAll("circle")
+            .attr("fill", d => clusterColors[d[`Kmeans_${clusterCount}`]]) // Relleno con el color del cluster
+            .attr("opacity", d => d[`Kmeans_${clusterCount}`] === selectedCluster ? 1 : 0.2) // Opacidad según selección
+            .attr("stroke", d => d[`Kmeans_${clusterCount}`] === selectedCluster ? "black" : "none") // Borde negro solo en el cluster seleccionado
+            .attr("stroke-width", d => d[`Kmeans_${clusterCount}`] === selectedCluster ? 1 : 0); // El borde negro tendrá grosor de 2 si está seleccionado, sino sin borde
+    }
+
+    // Función para actualizar los puntos según AQI
+    function updateAQIDisplay(selectedAQI) {
+        svg.selectAll("circle")
+            .attr("fill", d => aqiColors[d.AQI] === undefined ? '#000000' : aqiColors[d.AQI]) // Relleno según el color del AQI
+            .attr("opacity", 1); // Asegura que todos los puntos sean visibles
+    }
+
+    // Evento para el botón de cluster-4
+    document.getElementById("cluster-4-btn").addEventListener("click", function () {
+        document.getElementById("cluster-4-btn").classList.remove("dimmed");
+        document.getElementById("cluster-4-select").classList.remove("dimmed");
+        document.getElementById("aqi-btn").classList.add("dimmed");
+        document.getElementById("cluster-6-btn").classList.add("dimmed");
+        document.getElementById("cluster-6-select").classList.add("dimmed");
+
+        svg.selectAll("circle")
+            .attr("fill", d => kmeans4Colors[d.Kmeans_4])
+            .attr("opacity", 1);
+
+        document.getElementById("cluster-4-select").disabled = false;
+        document.getElementById("cluster-6-select").disabled = true;
+        document.getElementById("cluster-4-select").value = "";
+    });
+
+    // Evento para el botón de cluster-6
+    document.getElementById("cluster-6-btn").addEventListener("click", function () {
+        document.getElementById("cluster-6-btn").classList.remove("dimmed");
+        document.getElementById("cluster-6-select").classList.remove("dimmed");
+        document.getElementById("aqi-btn").classList.add("dimmed");
+
+        document.getElementById("cluster-4-btn").classList.add("dimmed");
+        document.getElementById("cluster-4-select").classList.add("dimmed");
+
+        svg.selectAll("circle")
+            .attr("fill", d => kmeans6Colors[d.Kmeans_6])
+            .attr("opacity", 1);
+
+        document.getElementById("cluster-6-select").disabled = false;
+        document.getElementById("cluster-4-select").disabled = true;
+        document.getElementById("cluster-6-select").value = "";
+    });
+
+    // Evento para el selector de cluster-4
+    document.getElementById("cluster-4-select").addEventListener("change", function () {
+        const selectedCluster = parseInt(this.value.replace('Cluster ', '')) - 1;
+        updateClusterDisplay(4, selectedCluster, kmeans4Colors);
+    });
+
+    // Evento para el selector de cluster-6
+    document.getElementById("cluster-6-select").addEventListener("change", function () {
+        const selectedCluster = parseInt(this.value.replace('Cluster ', '')) - 1;
+        updateClusterDisplay(6, selectedCluster, kmeans6Colors);
+    });
+
+    // Evento para el botón AQI
+    document.getElementById("aqi-btn").addEventListener("click", function () {
+        document.getElementById("aqi-btn").classList.remove("dimmed");
+        document.getElementById("cluster-6-btn").classList.add("dimmed");
+        document.getElementById("cluster-6-select").classList.add("dimmed");
+
+        document.getElementById("cluster-4-btn").classList.add("dimmed");
+        document.getElementById("cluster-4-select").classList.add("dimmed");
+        updateAQIDisplay(); // Actualiza la visualización de AQI
+        updateButtonOpacity("aqi-btn");
+
+    });
+
+    
     // Función para actualizar la opacidad de los filtros
     function updateFilterOpacity(activeFilterId) {
         const filters = ["station-filter", "year-filter", "month-filter"];
@@ -3241,7 +3474,7 @@ function plotUMAPmet(data, fechaInicio, fechaFin) {
     const height = container.node().clientHeight || 440; // Default height
         
     const svg = container.append("svg")
-        .attr("transform", "translate(27, -165)") // Desplazamiento hacia la derecha y abajo
+        .attr("transform", "translate(27, -175)") // Desplazamiento hacia la derecha y abajo
         .attr("width", "45%")
         .attr("height", "45%")
         .attr("viewBox", `0 0 ${width} ${height}`)
@@ -3250,7 +3483,14 @@ function plotUMAPmet(data, fechaInicio, fechaFin) {
         .style("border", "1px solid black") // Agrega un borde negro de 2px
         .style("border-radius", "10px") // Bordes redondeados
         .on("contextmenu", (event) => event.preventDefault());
-
+    // Agregar título en la parte superior izquierda
+    svg.append("text")
+        .attr("x", 25) // Posición horizontal (izquierda)
+        .attr("y", 30) // Posición vertical (arriba)
+        .attr("font-size", "30px") // Tamaño de la fuente
+        .attr("font-weight", "bold") // Negrita
+        .attr("fill", "black") // Color del texto
+        .text("Meteorologicos"); // Texto del título
     // Grupo para aplicar zoom
     const g = svg.append("g");
 
@@ -3266,7 +3506,7 @@ function plotUMAPmet(data, fechaInicio, fechaFin) {
     // Colores según el nivel de AQI
     const colorScale = d3.scaleOrdinal()
         .domain([1, 2, 3, 4, 5, 6])
-        .range(['#00E400', '#FFFF00', '#FF7E00', '#FF0000', '#99004c', '#800000']);
+        .range(['#D3D3D3', '#D3D3D3', '#D3D3D3', '#D3D3D3', '#D3D3D3', '#D3D3D3']);
 
     // Tooltip
     const tooltip = d3.select("body").append("div")
@@ -3397,7 +3637,7 @@ function plotUMAPmet(data, fechaInicio, fechaFin) {
         });
 
     svg.call(zoom);
-    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 20).scale(0.79);
+    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 9).scale(0.79);
     svg.call(zoom).call(zoom.transform, initialTransform);
 
     svg.on("mousedown", (event) => {
@@ -3496,14 +3736,114 @@ function plotUMAPmet(data, fechaInicio, fechaFin) {
 
 }
 
-
-
 function plotUMAPcont(data, fechaInicio, fechaFin) {
     // Limpiar el gráfico anterior
-    
     d3.select("#umap-plot-contaminacion").selectAll("*").remove();
     // console.log("Fechas de entrada:", fechaInicio, fechaFin);
 
+    // Colores para Kmeans_4
+    const kmeans4Colors = {
+        0: '#66c2a5',
+        1: '#fc8d62',
+        2: '#8da0cb',
+        3: '#e78ac3',
+    };
+    const kmeans6Colors = {
+        0: '#fdae61',
+        1: '#fee08b',
+        2: '#d73027',
+        3: '#4575b4',
+        4: '#313695',
+        5: '#91bfdb',
+    };
+
+    // Colores para AQI
+    const aqiColors = {
+        1: '#00E400', // Bueno
+        2: '#FFFF00', // Moderado
+        3: '#FF7E00', // Insalubre
+        4: '#FF0000', // Muy Insalubre
+        5: '#99004c', // Malo
+        6: '#800000', // Severo
+    };
+
+    // Función para actualizar la opacidad de los puntos del cluster seleccionado y agregar borde
+    function updateClusterDisplay(clusterCount, selectedCluster, clusterColors) {
+        svg.selectAll("circle")
+            .attr("fill", d => clusterColors[d[`Kmeans_${clusterCount}`]]) // Relleno con el color del cluster
+            .attr("opacity", d => d[`Kmeans_${clusterCount}`] === selectedCluster ? 1 : 0.2) // Opacidad según selección
+            .attr("stroke", d => d[`Kmeans_${clusterCount}`] === selectedCluster ? "black" : "none") // Borde negro solo en el cluster seleccionado
+            .attr("stroke-width", d => d[`Kmeans_${clusterCount}`] === selectedCluster ? 1 : 0); // El borde negro tendrá grosor de 2 si está seleccionado, sino sin borde
+    }
+
+    // Función para actualizar los puntos según AQI
+    function updateAQIDisplay(selectedAQI) {
+        svg.selectAll("circle")
+            .attr("fill", d => aqiColors[d.AQI] === undefined ? '#000000' : aqiColors[d.AQI]) // Relleno según el color del AQI
+            .attr("opacity", 1); // Asegura que todos los puntos sean visibles
+    }
+
+    // Evento para el botón de cluster-4
+    document.getElementById("cluster-4-btn").addEventListener("click", function () {
+        document.getElementById("cluster-4-btn").classList.remove("dimmed");
+        document.getElementById("cluster-4-select").classList.remove("dimmed");
+        document.getElementById("aqi-btn").classList.add("dimmed");
+        document.getElementById("cluster-6-btn").classList.add("dimmed");
+        document.getElementById("cluster-6-select").classList.add("dimmed");
+
+        svg.selectAll("circle")
+            .attr("fill", d => kmeans4Colors[d.Kmeans_4])
+            .attr("opacity", 1);
+
+        document.getElementById("cluster-4-select").disabled = false;
+        document.getElementById("cluster-6-select").disabled = true;
+        document.getElementById("cluster-4-select").value = "";
+    });
+
+    // Evento para el botón de cluster-6
+    document.getElementById("cluster-6-btn").addEventListener("click", function () {
+        document.getElementById("cluster-6-btn").classList.remove("dimmed");
+        document.getElementById("cluster-6-select").classList.remove("dimmed");
+        document.getElementById("aqi-btn").classList.add("dimmed");
+
+        document.getElementById("cluster-4-btn").classList.add("dimmed");
+        document.getElementById("cluster-4-select").classList.add("dimmed");
+
+        svg.selectAll("circle")
+            .attr("fill", d => kmeans6Colors[d.Kmeans_6])
+            .attr("opacity", 1);
+
+        document.getElementById("cluster-6-select").disabled = false;
+        document.getElementById("cluster-4-select").disabled = true;
+        document.getElementById("cluster-6-select").value = "";
+    });
+
+    // Evento para el selector de cluster-4
+    document.getElementById("cluster-4-select").addEventListener("change", function () {
+        const selectedCluster = parseInt(this.value.replace('Cluster ', '')) - 1;
+        updateClusterDisplay(4, selectedCluster, kmeans4Colors);
+    });
+
+    // Evento para el selector de cluster-6
+    document.getElementById("cluster-6-select").addEventListener("change", function () {
+        const selectedCluster = parseInt(this.value.replace('Cluster ', '')) - 1;
+        updateClusterDisplay(6, selectedCluster, kmeans6Colors);
+    });
+
+    // Evento para el botón AQI
+    document.getElementById("aqi-btn").addEventListener("click", function () {
+        document.getElementById("aqi-btn").classList.remove("dimmed");
+        document.getElementById("cluster-6-btn").classList.add("dimmed");
+        document.getElementById("cluster-6-select").classList.add("dimmed");
+
+        document.getElementById("cluster-4-btn").classList.add("dimmed");
+        document.getElementById("cluster-4-select").classList.add("dimmed");
+        updateAQIDisplay(); // Actualiza la visualización de AQI
+        updateButtonOpacity("aqi-btn");
+
+    });
+
+    
     // Función para actualizar la opacidad de los filtros
     function updateFilterOpacity(activeFilterId) {
         const filters = ["station-filter", "year-filter", "month-filter"];
@@ -3620,7 +3960,7 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
     const height = container.node().clientHeight || 440; // Default height
         
     const svg = container.append("svg")
-        .attr("transform", "translate(275, -170)") // Desplazamiento hacia la derecha y abajo
+        .attr("transform", "translate(275, -180)") // Desplazamiento hacia la derecha y abajo
         .attr("width", "45%")
         .attr("height", "45%")
         .attr("viewBox", `0 0 ${width} ${height}`)
@@ -3629,6 +3969,14 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
         .style("border", "1px solid black") // Agrega un borde negro de 2px
         .style("border-radius", "10px") // Bordes redondeados
         .on("contextmenu", (event) => event.preventDefault());
+    // Agregar título en la parte superior izquierda
+    svg.append("text")
+        .attr("x", 25) // Posición horizontal (izquierda)
+        .attr("y", 30) // Posición vertical (arriba)
+        .attr("font-size", "30px") // Tamaño de la fuente
+        .attr("font-weight", "bold") // Negrita
+        .attr("fill", "black") // Color del texto
+        .text("Contaminantes"); // Texto del título
 
     // Grupo para aplicar zoom
     const g = svg.append("g");
@@ -3776,7 +4124,7 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
         });
 
     svg.call(zoom);
-    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 20).scale(0.79);
+    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 9).scale(0.79);
     svg.call(zoom).call(zoom.transform, initialTransform);
 
     svg.on("mousedown", (event) => {
