@@ -2,7 +2,7 @@ import pandas as pd
 
 # Cargar los archivos de datos
 data_file = 'data/Data_Wanshouxigong.csv'
-umap_file = 'UMAP_FUSION_NEW/Data_Wanshouxigong.csv'
+umap_file = 'UMAP_MET_UNION/Data_Wanshouxigong.csv'
 
 # Leer los archivos CSV
 data_df = pd.read_csv(data_file)
@@ -28,7 +28,7 @@ umap_df_filtered = umap_df_filtered[['year', 'month', 'day', 'UMAP1', 'UMAP2', '
 
 
 # Guardar el resultado en un nuevo archivo CSV
-output_file = 'UMAP_FUSION_NEW2/Data_Wanshouxigong.csv'
+output_file = 'UMAP_MET_NEW/Data_Wanshouxigong.csv'
 umap_df_filtered.to_csv(output_file, index=False)
 
 print(f"Archivo filtrado guardado como {output_file}")
