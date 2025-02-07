@@ -2918,7 +2918,9 @@ function plotUMAP(data, fechaInicio, fechaFin) {
         isGraphLocked_boton = false;
         d3.selectAll(".legend-item-pca, .reset-button-pca")
         .style("pointer-events", "all")
-        .style("opacity", "1"); // Habilitar botones
+        .style("opacity", "1") // Habilitar botones
+        .style("display", "block"); // Mostrar botones de nuevo
+
 
     } else {
         svg.style("border", "1px solid black"); // Borde normal cuando no está seleccionado
@@ -2927,7 +2929,15 @@ function plotUMAP(data, fechaInicio, fechaFin) {
         isGraphLocked_boton = true;
         d3.selectAll(".legend-item-pca, .reset-button-pca")
         .style("pointer-events", "none")
-        .style("opacity", "0.5"); // Deshabilitar botones
+        .style("opacity", "0.5")
+        .style("display", "none"); // Ocultar botones
+
+        d3.selectAll(".legend-item-pca2, .reset-button-pca2")
+        .style("pointer-events", "all")
+        .style("opacity", "1") // Habilitar botones
+        .style("display", "block"); // Mostrar botones de nuevo
+        
+        
 
     }
     });
@@ -3625,18 +3635,20 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
         enableClusterAndAQIControls2(); // Habilitar botones de clusters y AQI
         isGraphLocked2 = true; // Bloquear gráfica
         isGraphLocked_boton2 = false; // Desbloquear botones
-        d3.selectAll(".legend-item-pca, .reset-button-pca")
+        d3.selectAll(".legend-item-pca2, .reset-button-pca2")
         .style("pointer-events", "all")
-        .style("opacity", "1"); // Habilitar botones
+        .style("opacity", "1") // Habilitar botones
+        .style("display", "block"); // Mostrar botones de nuevo
+
 
     } else {
         svg.style("border", "1px solid black"); // Borde normal cuando no está seleccionado
         disableClusterAndAQIControls2(); // Deshabilitar botones de clusters y AQI
         isGraphLocked2 = false; // Desbloquear gráfica
         isGraphLocked_boton2 = true;
-        d3.selectAll(".legend-item-pca, .reset-button-pca")
+        d3.selectAll(".legend-item-pca2, .reset-button-pca2")
         .style("pointer-events", "none")
-        .style("opacity", "0.5"); // Deshabilitar botones
+        .style("opacity", "0.5")
 
     }
     });
@@ -3940,7 +3952,7 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
 
         legendData.forEach((item, index) => {
             const legendButton = legend.append('button')
-                .attr('class', 'legend-item-pca')
+                .attr('class', 'legend-item-pca2')
                 .style('background-color', item.color)
                 .style('padding', '3px 10px')
                 .style('margin', '0 4px')
@@ -4002,7 +4014,7 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
 
         // Agregar un botón para resetear el filtro
         legend.append('button')
-            .attr('class', 'reset-button-pca')
+            .attr('class', 'reset-button-pca2')
             .style('background-color', '#ccc')
             .style('padding', '5px 15px')
             .style('margin', '0 5px')
