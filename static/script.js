@@ -2776,87 +2776,87 @@ function plotUMAP(data, fechaInicio, fechaFin) {
         });
     }
 
-    
-// Función para determinar qué cluster está activo
-function getActiveClusterVisualizationFunction() {
-    if (!document.getElementById("cluster-6-select").disabled) {
-        return updateVisualization2; // Si cluster-6 está habilitado, usa updateVisualization2
+        
+    // Función para determinar qué cluster está activo
+    function getActiveClusterVisualizationFunction() {
+        if (!document.getElementById("cluster-6-select").disabled) {
+            return updateVisualization2; // Si cluster-6 está habilitado, usa updateVisualization2
+        }
+        return updateVisualization; // Por defecto, usa updateVisualization (para cluster-4 o AQI)
     }
-    return updateVisualization; // Por defecto, usa updateVisualization (para cluster-4 o AQI)
-}
 
-// Evento para el filtro de estación del año
-document.getElementById('station-filter').addEventListener('change', (event) => {
-    if (isGraphLocked2 || isGraphLocked3) return;
+    // Evento para el filtro de estación del año
+    document.getElementById('station-filter').addEventListener('change', (event) => {
+        if (isGraphLocked2 || isGraphLocked3) return;
 
-    const selectedSeason = event.target.value;
-    activeFilterData = filterDataBySeason(selectedSeason, data); // Actualiza el único filtro activo
-    activeFilterData2 = filterDataBySeason(selectedSeason, data); // Actualiza el único filtro activo
+        const selectedSeason = event.target.value;
+        activeFilterData = filterDataBySeason(selectedSeason, data); // Actualiza el único filtro activo
+        activeFilterData2 = filterDataBySeason(selectedSeason, data); // Actualiza el único filtro activo
 
-    highlightSeason(selectedSeason, data, svg, xScale, yScale);
+        highlightSeason(selectedSeason, data, svg, xScale, yScale);
 
-    // Llama a la función de visualización correspondiente
-    getActiveClusterVisualizationFunction()();
-    updateFilterOpacity('station-filter');
-});
+        // Llama a la función de visualización correspondiente
+        getActiveClusterVisualizationFunction()();
+        updateFilterOpacity('station-filter');
+    });
 
-// Evento para el filtro de año
-document.getElementById('year-filter').addEventListener('change', (event) => {
-    if (isGraphLocked2 || isGraphLocked3) return;
+    // Evento para el filtro de año
+    document.getElementById('year-filter').addEventListener('change', (event) => {
+        if (isGraphLocked2 || isGraphLocked3) return;
 
-    const selectedYear = parseInt(event.target.value, 10);
-    activeFilterData = data.filter(d => d.year === selectedYear); // Solo un filtro activo a la vez
-    activeFilterData2 = data.filter(d => d.year === selectedYear); // Solo un filtro activo a la vez
+        const selectedYear = parseInt(event.target.value, 10);
+        activeFilterData = data.filter(d => d.year === selectedYear); // Solo un filtro activo a la vez
+        activeFilterData2 = data.filter(d => d.year === selectedYear); // Solo un filtro activo a la vez
 
-    highlightYear(selectedYear, data, svg, xScale, yScale);
+        highlightYear(selectedYear, data, svg, xScale, yScale);
 
-    // Llama a la función de visualización correspondiente
-    getActiveClusterVisualizationFunction()();
-    updateFilterOpacity('year-filter');
-});
+        // Llama a la función de visualización correspondiente
+        getActiveClusterVisualizationFunction()();
+        updateFilterOpacity('year-filter');
+    });
 
-// Evento para el filtro de mes
-document.getElementById('month-filter').addEventListener('change', (event) => {
-    if (isGraphLocked2 || isGraphLocked3) return;
+    // Evento para el filtro de mes
+    document.getElementById('month-filter').addEventListener('change', (event) => {
+        if (isGraphLocked2 || isGraphLocked3) return;
 
-    const selectedMonth = event.target.value;
-    activeFilterData = filterDataByMonth(selectedMonth, data); // Solo un filtro activo a la vez
-    activeFilterData2 = filterDataByMonth(selectedMonth, data); // Solo un filtro activo a la vez
+        const selectedMonth = event.target.value;
+        activeFilterData = filterDataByMonth(selectedMonth, data); // Solo un filtro activo a la vez
+        activeFilterData2 = filterDataByMonth(selectedMonth, data); // Solo un filtro activo a la vez
 
-    highlightMonth(selectedMonth, data, svg, xScale, yScale);
+        highlightMonth(selectedMonth, data, svg, xScale, yScale);
 
-    // Llama a la función de visualización correspondiente
-    getActiveClusterVisualizationFunction()();
-    updateFilterOpacity('month-filter');
-});
+        // Llama a la función de visualización correspondiente
+        getActiveClusterVisualizationFunction()();
+        updateFilterOpacity('month-filter');
+    });
 
-// Función para actualizar la visualización considerando solo cluster + un filtro activo
-// Función para actualizar la visualización considerando solo cluster + un filtro activo
-function updateVisualization() {
-    const clusterDates = new Set(filteredClusterData.map(d => `${d.year}-${d.month}-${d.day}`));
-    const activeFilterDates = new Set(activeFilterData.map(d => `${d.year}-${d.month}-${d.day}`));
+    // Función para actualizar la visualización considerando solo cluster + un filtro activo
+    // Función para actualizar la visualización considerando solo cluster + un filtro activo
+    function updateVisualization() {
+        const clusterDates = new Set(filteredClusterData.map(d => `${d.year}-${d.month}-${d.day}`));
+        const activeFilterDates = new Set(activeFilterData.map(d => `${d.year}-${d.month}-${d.day}`));
 
-    // Intersección de fechas entre cluster y el filtro activo
-    const intersectionDates = new Set([...clusterDates].filter(date => activeFilterDates.has(date)));
+        // Intersección de fechas entre cluster y el filtro activo
+        const intersectionDates = new Set([...clusterDates].filter(date => activeFilterDates.has(date)));
 
-    // Filtrar los datos que cumplen con la intersección de ambos filtros
-    const intersectionData = filteredClusterData.filter(d => activeFilterDates.has(`${d.year}-${d.month}-${d.day}`));
+        // Filtrar los datos que cumplen con la intersección de ambos filtros
+        const intersectionData = filteredClusterData.filter(d => activeFilterDates.has(`${d.year}-${d.month}-${d.day}`));
 
-    svg.selectAll("circle")
-        .attr("fill", d => kmeans4Colors[d.Kmeans_4])  // Mantiene el color original del cluster
-        .attr("opacity", d => (clusterDates.has(`${d.year}-${d.month}-${d.day}`) || 
-                               activeFilterDates.has(`${d.year}-${d.month}-${d.day}`)) ? 1 : 0.3) // Los que no están en ningún filtro se atenúan
-        .attr("stroke", d => intersectionDates.has(`${d.year}-${d.month}-${d.day}`) ? "black" : "none") // Borde rojo si está en ambos filtros
-        .attr("stroke-width", d => intersectionDates.has(`${d.year}-${d.month}-${d.day}`) ? 2 : 0);
+        svg.selectAll("circle")
+            .attr("fill", d => kmeans4Colors[d.Kmeans_4])  // Mantiene el color original del cluster
+            .attr("opacity", d => (clusterDates.has(`${d.year}-${d.month}-${d.day}`) || 
+                                activeFilterDates.has(`${d.year}-${d.month}-${d.day}`)) ? 1 : 0.3) // Los que no están en ningún filtro se atenúan
+            .attr("stroke", d => intersectionDates.has(`${d.year}-${d.month}-${d.day}`) ? "black" : "none") // Borde rojo si está en ambos filtros
+            .attr("stroke-width", d => intersectionDates.has(`${d.year}-${d.month}-${d.day}`) ? 2 : 0);
 
-    // **Actualizar gráficos con los datos de la intersección**
-    if (intersectionData.length > 0) {
-        const selectedDates = intersectionData.map(d => `${d.year}-${d.month}-${d.day}`);
-        const cityFile = intersectionData.length > 0 ? intersectionData[0].city : null;
+        // **Actualizar gráficos con los datos de la intersección**
+        if (intersectionData.length > 0) {
+            const selectedDates = intersectionData.map(d => `${d.year}-${d.month}-${d.day}`);
+            const cityFile = intersectionData.length > 0 ? intersectionData[0].city : null;
 
-        handleSelectionUpdate(intersectionData, selectedDates, fechaInicio, fechaFin);
+            handleSelectionUpdate(intersectionData, selectedDates, fechaInicio, fechaFin);
+        }
     }
-}
 
     // Función para actualizar la visualización considerando solo cluster + un filtro activo
     function updateVisualization2() {
@@ -3442,12 +3442,15 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
             .attr("stroke-width", d => d[`Kmeans_${clusterCount}`] === selectedCluster ? 1 : 0); // El borde negro tendrá grosor de 2 si está seleccionado, sino sin borde
     }
 
-    // Función para actualizar los puntos según AQI
-    function updateAQIDisplay(selectedAQI) {
+    function updateAQIDisplay() {
+        // Obtener las fechas seleccionadas en los filtros activos
+        const activeFilterDates = new Set(activeFilterData.map(d => `${d.year}-${d.month}-${d.day}`));
+    
         svg.selectAll("circle")
-            .attr("fill", d => aqiColors[d.AQI] === undefined ? '#000000' : aqiColors[d.AQI]) // Relleno según el color del AQI
-            .attr("opacity", 1); // Asegura que todos los puntos sean visibles
+            .attr("fill", d => aqiColors[d.AQI] === undefined ? '#000000' : aqiColors[d.AQI]) // Color por AQI
+            .attr("opacity", d => activeFilterDates.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0.1); // Opacar los no seleccionados
     }
+    
 
     document.getElementById("cluster-4-btn").addEventListener("click", function () {
         if (isGraphLocked) return; // Si la gráfica está bloqueada, salir de la función.
@@ -3491,16 +3494,23 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
         document.getElementById("cluster-4-select").disabled = true;
         document.getElementById("cluster-6-select").value = "";
     });
-
+    let filteredClusterData = data;
+    let activeFilterData = data;  // Solo un filtro activo a la vez (estación, año o mes)
+    
     // Evento para el selector de cluster-4
     document.getElementById("cluster-4-select").addEventListener("change", function () {
         if (isGraphLocked) return; // Si la gráfica está bloqueada, salir de la función.
         if (isGraphLocked3) return; // Si la gráfica está bloqueada, salir de la función.
 
-
+    
         const selectedCluster = parseInt(this.value.replace('Cluster ', '')) - 1;
+        filteredClusterData = data.filter(d => d.Kmeans_4 === selectedCluster);
+    
+        updateVisualization();
         updateClusterDisplay(4, selectedCluster, kmeans4Colors);
     });
+    let filteredClusterData2 = data;
+    let activeFilterData2 = data;  // Solo un filtro activo a la vez (estación, año o mes)
 
     // Evento para el selector de cluster-6
     document.getElementById("cluster-6-select").addEventListener("change", function () {
@@ -3509,6 +3519,9 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
 
 
         const selectedCluster = parseInt(this.value.replace('Cluster ', '')) - 1;
+        filteredClusterData2 = data.filter(d => d.Kmeans_6 === selectedCluster);
+
+        updateVisualization2();
         updateClusterDisplay(6, selectedCluster, kmeans6Colors);
     });
 
@@ -3532,7 +3545,7 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
     
     // Función para actualizar la opacidad de los filtros
     function updateFilterOpacity(activeFilterId) {
-        const filters = ["station-filter", "year-filter", "month-filter"];
+        const filters = ["station-filter", "year-filter", "month-filter", "aqi-filter"];
         filters.forEach((filterId) => {
             const filterElement = document.getElementById(filterId);
             if (filterId === activeFilterId) {
@@ -3542,67 +3555,113 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
             }
         });
     }
-
-        // Evento para la estación del año
+    // Función para determinar qué cluster está activo
+    function getActiveClusterVisualizationFunction() {
+        if (!document.getElementById("cluster-6-select").disabled) {
+            return updateVisualization2; // Si cluster-6 está habilitado, usa updateVisualization2
+        }
+        return updateVisualization; // Por defecto, usa updateVisualization (para cluster-4 o AQI)
+    }
+     
+    // Evento para el filtro de estación del año
     document.getElementById('station-filter').addEventListener('change', (event) => {
-        if (isGraphLocked) return; // Si la gráfica está bloqueada, salir de la función.
-        if (isGraphLocked3) return; // Si la gráfica está bloqueada, salir de la función.
-
+        if (isGraphLocked || isGraphLocked3) return;
 
         const selectedSeason = event.target.value;
-        const filteredData = filterDataBySeason(selectedSeason, data);
-        const selectedDates = filteredData.map(d => `${d.year}-${d.month}-${d.day}`);
+        activeFilterData = filterDataBySeason(selectedSeason, data); // Actualiza el único filtro activo
+        activeFilterData2 = filterDataBySeason(selectedSeason, data); // Actualiza el único filtro activo
+
         highlightSeason(selectedSeason, data, svg, xScale, yScale);
 
-        handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin);
-
-        // Ajustar la opacidad de los puntos
-        svg.selectAll('circle')
-            .attr('opacity', d => filteredData.includes(d) ? 1 : 0.3); // Establece opacidad a 0.3 para los puntos no seleccionados
-        
+        // Llama a la función de visualización correspondiente
+        getActiveClusterVisualizationFunction()();
         updateFilterOpacity('station-filter');
     });
 
-    // Evento para el año
+    // Evento para el filtro de año
     document.getElementById('year-filter').addEventListener('change', (event) => {
-        if (isGraphLocked) return; // Si la gráfica está bloqueada, salir de la función.
-        if (isGraphLocked3) return; // Si la gráfica está bloqueada, salir de la función.
-
+        if (isGraphLocked || isGraphLocked3) return;
 
         const selectedYear = parseInt(event.target.value, 10);
-        const filteredData = data.filter(d => d.year === selectedYear);
-        const selectedDates = filteredData.map(d => `${d.year}-${d.month}-${d.day}`);
+        activeFilterData = data.filter(d => d.year === selectedYear); // Solo un filtro activo a la vez
+        activeFilterData2 = data.filter(d => d.year === selectedYear); // Solo un filtro activo a la vez
+
         highlightYear(selectedYear, data, svg, xScale, yScale);
 
-        handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin);
-
-        // Ajustar la opacidad de los puntos
-        svg.selectAll('circle')
-            .attr('opacity', d => filteredData.includes(d) ? 1 : 0.3); // Establece opacidad a 0.3 para los puntos no seleccionados
-
+        // Llama a la función de visualización correspondiente
+        getActiveClusterVisualizationFunction()();
         updateFilterOpacity('year-filter');
     });
 
-    // Evento para el mes
+    // Evento para el filtro de mes
     document.getElementById('month-filter').addEventListener('change', (event) => {
-        if (isGraphLocked) return; // Si la gráfica está bloqueada, salir de la función.
-        if (isGraphLocked3) return; // Si la gráfica está bloqueada, salir de la función.
-
+        if (isGraphLocked || isGraphLocked3) return;
 
         const selectedMonth = event.target.value;
-        const filteredData = filterDataByMonth(selectedMonth, data);
-        const selectedDates = filteredData.map(d => `${d.year}-${d.month}-${d.day}`);
+        activeFilterData = filterDataByMonth(selectedMonth, data); // Solo un filtro activo a la vez
+        activeFilterData2 = filterDataByMonth(selectedMonth, data); // Solo un filtro activo a la vez
+
         highlightMonth(selectedMonth, data, svg, xScale, yScale);
 
-        handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin);
-
-        // Ajustar la opacidad de los puntos
-        svg.selectAll('circle')
-            .attr('opacity', d => filteredData.includes(d) ? 1 : 0.3); // Establece opacidad a 0.3 para los puntos no seleccionados
-
+        // Llama a la función de visualización correspondiente
+        getActiveClusterVisualizationFunction()();
         updateFilterOpacity('month-filter');
     });
 
+    // Función para actualizar la visualización considerando solo cluster + un filtro activo
+    // Función para actualizar la visualización considerando solo cluster + un filtro activo
+    function updateVisualization() {
+        const clusterDates = new Set(filteredClusterData.map(d => `${d.year}-${d.month}-${d.day}`));
+        const activeFilterDates = new Set(activeFilterData.map(d => `${d.year}-${d.month}-${d.day}`));
+
+        // Intersección de fechas entre cluster y el filtro activo
+        const intersectionDates = new Set([...clusterDates].filter(date => activeFilterDates.has(date)));
+
+        // Filtrar los datos que cumplen con la intersección de ambos filtros
+        const intersectionData = filteredClusterData.filter(d => activeFilterDates.has(`${d.year}-${d.month}-${d.day}`));
+
+        svg.selectAll("circle")
+            .attr("fill", d => kmeans4Colors[d.Kmeans_4])  // Mantiene el color original del cluster
+            .attr("opacity", d => (clusterDates.has(`${d.year}-${d.month}-${d.day}`) || 
+                                activeFilterDates.has(`${d.year}-${d.month}-${d.day}`)) ? 1 : 0.3) // Los que no están en ningún filtro se atenúan
+            .attr("stroke", d => intersectionDates.has(`${d.year}-${d.month}-${d.day}`) ? "black" : "none") // Borde rojo si está en ambos filtros
+            .attr("stroke-width", d => intersectionDates.has(`${d.year}-${d.month}-${d.day}`) ? 2 : 0);
+
+        // **Actualizar gráficos con los datos de la intersección**
+        if (intersectionData.length > 0) {
+            const selectedDates = intersectionData.map(d => `${d.year}-${d.month}-${d.day}`);
+            const cityFile = intersectionData.length > 0 ? intersectionData[0].city : null;
+
+            handleSelectionUpdate(intersectionData, selectedDates, fechaInicio, fechaFin);
+        }
+    }
+
+    // Función para actualizar la visualización considerando solo cluster + un filtro activo
+    function updateVisualization2() {
+        const clusterDates = new Set(filteredClusterData2.map(d => `${d.year}-${d.month}-${d.day}`));
+        const activeFilterDates2 = new Set(activeFilterData2.map(d => `${d.year}-${d.month}-${d.day}`));
+
+        // Intersección de fechas entre cluster y el filtro activo
+        const intersectionDates = new Set([...clusterDates].filter(date => activeFilterDates2.has(date)));
+
+        // Filtrar los datos que cumplen con la intersección de ambos filtros
+        const intersectionData = filteredClusterData2.filter(d => activeFilterDates2.has(`${d.year}-${d.month}-${d.day}`));
+
+        svg.selectAll("circle")
+            .attr("fill", d => kmeans6Colors[d.Kmeans_6])  // Mantiene el color original del cluster
+            .attr("opacity", d => (clusterDates.has(`${d.year}-${d.month}-${d.day}`) || 
+                                activeFilterDates2.has(`${d.year}-${d.month}-${d.day}`)) ? 1 : 0.3) // Los que no están en ningún filtro se atenúan
+            .attr("stroke", d => intersectionDates.has(`${d.year}-${d.month}-${d.day}`) ? "black" : "none") // Borde rojo si está en ambos filtros
+            .attr("stroke-width", d => intersectionDates.has(`${d.year}-${d.month}-${d.day}`) ? 2 : 0);
+
+        // **Actualizar gráficos con los datos de la intersección**
+        if (intersectionData.length > 0) {
+            const selectedDates = intersectionData.map(d => `${d.year}-${d.month}-${d.day}`);
+            const cityFile = intersectionData.length > 0 ? intersectionData[0].city : null;
+
+            handleSelectionUpdate(intersectionData, selectedDates, fechaInicio, fechaFin);
+        }
+    }
     // Función para manejar la actualización de gráficos
     function handleSelectionUpdate(filteredData, selectedDates, fechaInicio, fechaFin) {
         if (selectedDates.length === 0) {
@@ -3618,7 +3677,6 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
         drawThemeRiver(cityFile, selectedDates);
         updateRadialChartWithSelection(filteredData, fechaInicio, fechaFin);
     }
-
     // Función para filtrar datos por estación
     function filterDataBySeason(season, data) {
         const seasonRanges = {
