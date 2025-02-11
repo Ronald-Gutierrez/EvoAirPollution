@@ -2898,6 +2898,7 @@ function plotUMAP(data, fechaInicio, fechaFin) {
         updateCorrelationMatrixnew(selectedDates);
         drawThemeRiver(cityFile, selectedDates);
         updateRadialChartWithSelection(filteredData, fechaInicio, fechaFin);
+        
     }
 
     // Función para filtrar datos por estación
