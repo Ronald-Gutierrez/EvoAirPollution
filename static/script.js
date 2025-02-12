@@ -137,13 +137,11 @@ function updateWindDirectionAndMarkers(station, map, position, iconUrl, selected
 
 
 
-
-
 // Función para inicializar el mapa de Beijing con Google Maps
 function initMap() {
     // Establecer fechas aleatorias por defecto
-    const randomDate = new Date(2013, 0, 1);  // Fecha inicial
-    const endDate = new Date(2016, 2, 31);   // Fecha final
+    const randomDate = new Date(2013, 2, 1);  // Fecha inicial
+    const endDate = new Date(2017, 1, 28);   // Fecha final
     const timeRange = endDate.getTime() - randomDate.getTime();
     const randomTime = Math.random() * timeRange;
     const selectedDate = new Date(randomDate.getTime() + randomTime);
@@ -160,29 +158,27 @@ function initMap() {
     document.getElementById('fecha-inicio').value = formatDate(selectedDate);
     document.getElementById('fecha-fin').value = formatDate(new Date(selectedDate.getTime() + (300 * 24 * 60 * 60 * 1000))); // 7 días después
     
-
     const beijing = { lat: 40.3, lng: 116.5074 }; // Coordenadas de Beijing
     
     // Definir estilos personalizados para ocultar carreteras y otros elementos
     const mapStyles = [
-        { featureType: "road", elementType: "geometry", stylers: [{ visibility: "on" }] }, // Muestra la geometría de las carreteras (trazado de las mismas)
-        { featureType: "road", elementType: "labels", stylers: [{ visibility: "off" }] }, // Oculta las etiquetas (nombres) de las carreteras
-        { featureType: "transit", elementType: "geometry", stylers: [{ visibility: "on" }] }, // Muestra la geometría del transporte público (e.g., líneas de metro o tren)
-        { featureType: "poi", elementType: "all", stylers: [{ visibility: "on" }] }, // Muestra los puntos de interés (POI), como parques, museos, tiendas
-        { featureType: "landscape", elementType: "labels", stylers: [{ visibility: "on" }] }, // Muestra las etiquetas del paisaje, que incluyen nombres de parques, áreas naturales
-        { featureType: "administrative", elementType: "labels", stylers: [{ visibility: "on" }] }, // Muestra las etiquetas administrativas (nombres de ciudades, distritos, regiones)
-        { featureType: "water", elementType: "labels", stylers: [{ visibility: "on" }] } // Muestra las etiquetas de cuerpos de agua, como ríos, lagos, mares
+        { featureType: "road", elementType: "geometry", stylers: [{ visibility: "on" }] },
+        { featureType: "road", elementType: "labels", stylers: [{ visibility: "off" }] },
+        { featureType: "transit", elementType: "geometry", stylers: [{ visibility: "on" }] },
+        { featureType: "poi", elementType: "all", stylers: [{ visibility: "on" }] },
+        { featureType: "landscape", elementType: "labels", stylers: [{ visibility: "on" }] },
+        { featureType: "administrative", elementType: "labels", stylers: [{ visibility: "on" }] },
+        { featureType: "water", elementType: "labels", stylers: [{ visibility: "on" }] }
     ];
     
-
     const map = new google.maps.Map(document.getElementById("map"), {
         zoom: 8,
         center: beijing,
         styles: mapStyles,
         disableDefaultUI: false,
-        zoomControl: false, // Desactiva el control de zoom (+ y -)
-        mapTypeControl: false, // Desactiva el control para cambiar a vista de satélite
-        streetViewControl: false // Desactiva el muñequito de Street View
+        zoomControl: false,
+        mapTypeControl: false,
+        streetViewControl: false
     });
 
     const stationsByCity = {};
@@ -202,120 +198,140 @@ function initMap() {
                 });
                 district.setMap(map);
             });
-            
         })
         .catch(error => {
             console.error("Error al cargar el GeoJSON:", error);
         });
 
-    // Cargar el archivo CSV y agregar marcadores
     fetch('data/Data_Map_AQI_Day.csv')
         .then(response => response.text())
         .then(csvData => {
-            const stations = parseCSV(csvData);
-            stations.forEach(station => {
-                const position = { lat: parseFloat(station.latitude), lng: parseFloat(station.longitude) };
-                const iconUrl = createCustomIcon(station.Notes);
-                
-
-                // Función para actualizar los marcadores y datos de cada estación
-                const updateStationData = () => {
-                    updateWindDirectionAndMarkers(station, map, position, iconUrl);
+            const lines = csvData.split('\n');
+            const headers = lines[0].split(',');
+            const stationIdIndex = headers.indexOf('stationId');
+            const latitudeIndex = headers.indexOf('latitude');
+            const longitudeIndex = headers.indexOf('longitude');
+            const yearIndex = headers.indexOf('year');
+            const monthIndex = headers.indexOf('month');
+            const dayIndex = headers.indexOf('day');
+            const aqiIndex = headers.indexOf('AQI');
+            const notesIndex = headers.indexOf('Notes');
+            
+            const data = lines.slice(1).map(line => {
+                const values = line.split(',');
+                return {
+                    stationId: values[stationIdIndex],
+                    latitude: parseFloat(values[latitudeIndex]),
+                    longitude: parseFloat(values[longitudeIndex]),
+                    year: parseInt(values[yearIndex]),
+                    month: parseInt(values[monthIndex]),
+                    day: parseInt(values[dayIndex]),
+                    AQI: parseFloat(values[aqiIndex]),
+                    Notes: values[notesIndex]
                 };
-
-                // Escucha los cambios en las fechas y actualiza dinámicamente
-                document.getElementById('fecha-inicio').addEventListener('change', updateStationData);
-                document.getElementById('fecha-fin').addEventListener('change', updateStationData);
-                document.getElementById('visualizar-todo').addEventListener('change', updateStationData);
-
-                // Llama inicialmente para dibujar los datos
-                updateStationData();
-                // Crear un InfoWindow para mostrar información
-                const infoWindow = new google.maps.InfoWindow();
-                const marker = new google.maps.Marker({
-                    position: position,
-                    map: map,
-                    icon: {
-                        url: iconUrl,
-                        scaledSize: new google.maps.Size(25, 25)
+            }).filter(row => !isNaN(row.AQI));
+    
+            const calculateAverageAQI = () => {
+                let fechaInicio = new Date(2013, 2, 1);
+                let fechaFin = new Date(2017, 1, 28);
+    
+                if (document.getElementById('visualizar-todo').checked) {
+                    fechaInicio = new Date(2013, 2, 1);
+                    fechaFin = new Date(2017, 1, 28);
+                } else {
+                    const userFechaInicio = new Date(document.getElementById('fecha-inicio').value);
+                    const userFechaFin = new Date(document.getElementById('fecha-fin').value);
+                    userFechaInicio.setDate(userFechaInicio.getDate() + 1);
+    
+                    if (!isNaN(userFechaInicio) && !isNaN(userFechaFin)) {
+                        fechaInicio = userFechaInicio;
+                        fechaFin = userFechaFin;
                     }
-                });
-                // Agregar un evento de clic al marcador
-                marker.addListener("click", () => {
-                    updateInfoWindowContent(infoWindow, station, map, marker);
-                    // selectCityCheckbox(station.stationId);
-
-                });
-                // Crear un elemento div para el tooltip
-                const tooltipDiv = document.createElement('div');
-                tooltipDiv.style.position = 'absolute';
-                tooltipDiv.style.background = '#ffffff';
-                tooltipDiv.style.color = '#333';
-                tooltipDiv.style.border = '1px solid #ccc';
-                tooltipDiv.style.borderRadius = '5px';
-                tooltipDiv.style.padding = '5px 10px';
-                tooltipDiv.style.fontSize = '12px';
-                tooltipDiv.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-                tooltipDiv.style.display = 'none'; // Inicialmente oculto
-                document.body.appendChild(tooltipDiv);
-
-                // Evento de mouseover para mostrar el tooltip
-                marker.addListener("mouseover", (e) => {
-                    tooltipDiv.style.display = 'block';
-                    tooltipDiv.innerHTML = `<strong>${station.stationId.charAt(0).toUpperCase() + station.stationId.slice(1)}</strong>`;
-                    tooltipDiv.style.left = `${e.domEvent.pageX + 10}px`; // Posicionar cerca del mouse
-                    tooltipDiv.style.top = `${e.domEvent.pageY + 10}px`;
-                });
-
-                // Evento de mousemove para actualizar la posición del tooltip
-                marker.addListener("mousemove", (e) => {
-                    tooltipDiv.style.left = `${e.domEvent.pageX + 10}px`;
-                    tooltipDiv.style.top = `${e.domEvent.pageY + 10}px`;
-                });
-
-                // Evento de mouseout para ocultar el tooltip
-                marker.addListener("mouseout", () => {
-                    tooltipDiv.style.display = 'none';
-                });
-
-
-                // Asignar la estación al objeto de estaciones por ciudad
-                if (!stationsByCity[station.city]) {
-                    stationsByCity[station.city] = [];
                 }
-                stationsByCity[station.city].push({ marker, infoWindow });
+    
+                const filteredData = data.filter(row => {
+                    const rowDate = new Date(row.year, row.month - 1, row.day);
+                    return rowDate >= fechaInicio && rowDate <= fechaFin;
+                });
+    
+                const aqiByStation = {};
+                filteredData.forEach(row => {
+                    if (!aqiByStation[row.stationId]) {
+                        aqiByStation[row.stationId] = { sum: 0, count: 0 };
+                    }
+                    aqiByStation[row.stationId].sum += row.AQI;
+                    aqiByStation[row.stationId].count += 1;
+                });
+    
+                console.log("Promedio de AQI por estación:");
+                Object.entries(aqiByStation).forEach(([stationId, { sum, count }]) => {
+                    const avgAQI = count > 0 ? (sum / count).toFixed(2) : "Sin datos";
+                    console.log(`Estación: ${stationId} | Rango: ${fechaInicio.toDateString()} - ${fechaFin.toDateString()} | AQI Promedio: ${avgAQI}`);
+                });
+    
+                updateMarkers(aqiByStation);
+            };
+    
+            const updateMarkers = (aqiByStation) => {
+                stations.forEach(station => {
+                    const stationAQI = aqiByStation[station.stationId];
+                    const averageAQI = stationAQI && stationAQI.count > 0 ? (stationAQI.sum / stationAQI.count).toFixed(2) : 0;
+                    const iconUrl = createCustomIcon(station.Notes, parseFloat(averageAQI));
+                    updateWindDirectionAndMarkers(station, map, { lat: parseFloat(station.latitude), lng: parseFloat(station.longitude) }, iconUrl);
+                });
+            };
+    
+            document.getElementById('fecha-inicio').addEventListener('change', calculateAverageAQI);
+            document.getElementById('fecha-fin').addEventListener('change', calculateAverageAQI);
+            document.getElementById('visualizar-todo').addEventListener('change', calculateAverageAQI);
+    
+            const stations = parseCSV(csvData);
+            calculateAverageAQI();
+    
+            // Llenar stationsByCity con las estaciones correspondientes
+            stations.forEach(station => {
+                if (!stationsByCity[station.Notes]) {
+                    stationsByCity[station.Notes] = [];
+                }
+                stationsByCity[station.Notes].push(station);
             });
 
+            // Asignar stationsByCity al mapa
             map.stationsByCity = stationsByCity;
+
+            // Evento para seleccionar ciudad y actualizar la cámara del mapa
+            const cityCheckboxes = document.querySelectorAll('input[name="city"]');
+            cityCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    if (lastInfoWindow) {
+                        lastInfoWindow.close();
+                    }
+    
+                    const selectedCity = checkbox.value;
+                    const stations = map.stationsByCity[selectedCity];
+    
+                    if (stations) {
+                        const { marker, infoWindow } = stations[0];
+                        updateInfoWindowContent(infoWindow, stations[0], map, marker);
+                    }
+    
+                    const lat = parseFloat(checkbox.getAttribute('data-lat'));
+                    const lng = parseFloat(checkbox.getAttribute('data-lng'));
+    
+                    // Ajuste dinámico de la cámara
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        map.setCenter({ lat, lng });
+                        map.setZoom(12); // Ajustar nivel de zoom
+                    } else {
+                        console.error('No se pudo obtener la ubicación de la ciudad');
+                    }
+                });
+            });
         })
         .catch(error => {
             console.error("Error al cargar el archivo CSV:", error);
         });
-
-    // Agregar evento de cambio para los radio buttons de selección de ciudad
-    const cityCheckboxes = document.querySelectorAll('input[name="city"]');
-    cityCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', () => {
-            if (lastInfoWindow) {
-                lastInfoWindow.close();
-            }
-
-            const selectedCity = checkbox.value;
-            const stations = map.stationsByCity[selectedCity];
-
-            if (stations) {
-                const { marker, infoWindow } = stations[0];
-                updateInfoWindowContent(infoWindow, stations[0], map, marker);
-            }
-
-            const lat = parseFloat(checkbox.getAttribute('data-lat'));
-            const lng = parseFloat(checkbox.getAttribute('data-lng'));
-            map.setCenter({ lat, lng });
-            map.setZoom(12);
-        });
-    });
 }
-
 
 let  ColorAqiglobal = null;
 
@@ -392,13 +408,11 @@ function updateInfoWindowContent(infoWindow, station, map, marker) {
         <p style="margin: 3px 0;"><strong>Fecha Inicio:</strong> ${formatDate(fechaInicio)}</p>
         <p style="margin: 3px 0;"><strong>Fecha Fin:</strong> ${formatDate(fechaFin)}</p>
     </div>`;
-    
     ColorAqiglobal = averageAQI;
     selectCityCheckbox(station.stationId);
     infoWindow.setContent(content);
     openInfoWindow(map, marker, infoWindow);
 }
-
 
 
 function selectCityCheckbox(city) {
@@ -443,8 +457,14 @@ function calculateAverages(station, fechaInicio, fechaFin) {
         averageWD: totalWD || "N/A"
     };
 }
+function createCustomIcon(category, averageAQI) {
+    const color = averageAQI >= 0 && averageAQI <= 1.5 ? '#00e400' :
+                  averageAQI > 1.5 && averageAQI <= 2.5 ? '#ff0' :
+                  averageAQI > 2.5 && averageAQI <= 3.5 ? '#ff7e00' :
+                  averageAQI > 3.5 && averageAQI <= 4.5 ? '#f00' :
+                  averageAQI > 4.5 && averageAQI <= 5 ? '#99004c' :
+                  '#7e0023';
 
-function createCustomIcon(category) {
     const svg = d3.create("svg")
         .attr("xmlns", "http://www.w3.org/2000/svg")
         .attr("viewBox", "0 0 100 100")
@@ -452,37 +472,31 @@ function createCustomIcon(category) {
         .attr("height", "100");
 
     if (category === "Urban") {
-        // Triángulo más pequeño
         svg.append("polygon")
-        .attr("points", "50,20 75,80 25,80") // Coordenadas ajustadas para reducir el tamaño
-        .attr("fill", "#2D6A4F") // Color de relleno
-        .attr("stroke", "black") // Color del borde
-        .attr("stroke-width", 3); // Grosor del borde
-    
-        
+            .attr("points", "50,20 75,80 25,80")
+            .attr("fill", color)
+            .attr("stroke", "black")
+            .attr("stroke-width", 3);
     } else if (category === "Rural") {
-        // Cuadrado
         svg.append("rect")
             .attr("x", "20")
             .attr("y", "20")
             .attr("width", "40")
             .attr("height", "40")
-            .attr("fill", "blue")
-            .attr("stroke", "black") // Color del borde
-            .attr("stroke-width", 3); // Grosor del borde
+            .attr("fill", color)
+            .attr("stroke", "black")
+            .attr("stroke-width", 3);
     } else if (category === "Cross Reference") {
-        // Estrella
         svg.append("polygon")
             .attr("points", "50,15 61,40 87,40 67,60 74,85 50,70 26,85 33,60 13,40 39,40")
-            .attr("fill", "#FFB347")            
-            .attr("stroke", "black") // Color del borde
-            .attr("stroke-width", 3); // Grosor del borde
-            
+            .attr("fill", color)
+            .attr("stroke", "black")
+            .attr("stroke-width", 3);
     }
 
-    // Convertir SVG a data URL
     return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg.node().outerHTML);
 }
+
 // Escuchar cambios en el rango de fechas
 document.getElementById('fecha-inicio').addEventListener('change', updateStationInfoWindows);
 document.getElementById('fecha-fin').addEventListener('change', updateStationInfoWindows);
@@ -2756,12 +2770,23 @@ function plotUMAP(data, fechaInicio, fechaFin) {
         if (isGraphLocked2) return; // Si la gráfica está bloqueada, salir de la función.
         if (isGraphLocked3) return; // Si la gráfica está bloqueada, salir de la función.
 
-
         const selectedCluster = parseInt(this.value.replace('Cluster ', '')) - 1;
         filteredClusterData2 = data.filter(d => d.Kmeans_6 === selectedCluster);
+        
+        // Obtener las fechas únicas del cluster seleccionado
+        const clusterDates = [...new Set(filteredClusterData2.map(d => `${d.year}-${d.month}-${d.day}`))];
+
+        // Obtener el color correspondiente al cluster seleccionado
+        const clusterColor = kmeans6Colors[selectedCluster];
+
+        // Imprimir en consola las fechas y el color del cluster seleccionado
+        console.log("Fechas del Cluster seleccionado:", clusterDates);
+        console.log("Color del Cluster seleccionado:", clusterColor);
 
         updateVisualization2();
         updateClusterDisplay(6, selectedCluster, kmeans6Colors);
+        plotUMAPcontCluster(filteredDataCont, fechaInicio, fechaFin, clusterDates, clusterColor);
+        plotUMAPmetCluster(filterDataMet, fechaInicio, fechaFin, clusterDates, clusterColor);
     });
 
     // Evento para el botón AQI
@@ -3658,8 +3683,6 @@ d3.select("#toggle-umap-contaminacion").on("change", function () {
     document.getElementById("cluster-6-btn").classList.add("dimmed");
     }
 
-    // Inicializar en el estado deshabilitado
-    disableClusterAndAQIControls2();
 }
 
 
