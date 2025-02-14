@@ -154,9 +154,9 @@ function initMap() {
         return `${year}-${month}-${day}`;
     };
 
-    // Establecer fechas por defecto en los inputs
-    document.getElementById('fecha-inicio').value = formatDate(selectedDate);
-    document.getElementById('fecha-fin').value = formatDate(new Date(selectedDate.getTime() + (300 * 24 * 60 * 60 * 1000))); // 7 días después
+    // // Establecer fechas por defecto en los inputs
+    // document.getElementById('fecha-inicio').value = formatDate(selectedDate);
+    // document.getElementById('fecha-fin').value = formatDate(new Date(selectedDate.getTime() + (300 * 24 * 60 * 60 * 1000))); // 7 días después
     
     const beijing = { lat: 40.3, lng: 116.5074 }; // Coordenadas de Beijing
     
@@ -263,11 +263,11 @@ function initMap() {
                     aqiByStation[row.stationId].count += 1;
                 });
     
-                console.log("Promedio de AQI por estación:");
-                Object.entries(aqiByStation).forEach(([stationId, { sum, count }]) => {
-                    const avgAQI = count > 0 ? (sum / count).toFixed(2) : "Sin datos";
-                    console.log(`Estación: ${stationId} | Rango: ${fechaInicio.toDateString()} - ${fechaFin.toDateString()} | AQI Promedio: ${avgAQI}`);
-                });
+                // console.log("Promedio de AQI por estación:");
+                // Object.entries(aqiByStation).forEach(([stationId, { sum, count }]) => {
+                //     const avgAQI = count > 0 ? (sum / count).toFixed(2) : "Sin datos";
+                //     console.log(`Estación: ${stationId} | Rango: ${fechaInicio.toDateString()} - ${fechaFin.toDateString()} | AQI Promedio: ${avgAQI}`);
+                // });
     
                 updateMarkers(aqiByStation);
             };
@@ -2627,6 +2627,7 @@ async function updateUMAP() {
     const filteredData = filterData(data, fechaInicio, fechaFin);
     filteredDataCont = filterData(data_cont, fechaInicio, fechaFin); // Asignación a la variable global
     filterDataMet = filterData(data_met, fechaInicio, fechaFin);
+    filterDataFusion = filterData(data, fechaInicio, fechaFin);
     const filteredDataMet = filterData(data_met, fechaInicio, fechaFin);
 
     // Crear el gráfico
@@ -2637,6 +2638,7 @@ async function updateUMAP() {
 
 let filteredDataCont = null; // Declaración global
 let filterDataMet = null; // Declaración global
+let filterDataFusion = null; // Declaración global
 
 let isGraphLocked = false; // Inicialmente, la gráfica está desbloqueada.
 let isGraphLocked2 = false; // Inicialmente, la gráfica está desbloqueada.
@@ -2750,9 +2752,9 @@ function plotUMAP(data, fechaInicio, fechaFin) {
         // Obtener el color correspondiente al cluster seleccionado
         const clusterColor = kmeans4Colors[selectedCluster];
 
-        // Imprimir en consola las fechas y el color del cluster seleccionado
-        console.log("Fechas del Cluster seleccionado:", clusterDates);
-        console.log("Color del Cluster seleccionado:", clusterColor);
+        // // Imprimir en consola las fechas y el color del cluster seleccionado
+        // console.log("Fechas del Cluster seleccionado:", clusterDates);
+        // console.log("Color del Cluster seleccionado:", clusterColor);
 
         updateVisualization();
         updateClusterDisplay(4, selectedCluster, kmeans4Colors);
@@ -2779,9 +2781,9 @@ function plotUMAP(data, fechaInicio, fechaFin) {
         // Obtener el color correspondiente al cluster seleccionado
         const clusterColor = kmeans6Colors[selectedCluster];
 
-        // Imprimir en consola las fechas y el color del cluster seleccionado
-        console.log("Fechas del Cluster seleccionado:", clusterDates);
-        console.log("Color del Cluster seleccionado:", clusterColor);
+        // // Imprimir en consola las fechas y el color del cluster seleccionado
+        // console.log("Fechas del Cluster seleccionado:", clusterDates);
+        // console.log("Color del Cluster seleccionado:", clusterColor);
 
         updateVisualization2();
         updateClusterDisplay(6, selectedCluster, kmeans6Colors);
@@ -3293,7 +3295,8 @@ function plotUMAP(data, fechaInicio, fechaFin) {
         updateCorrelationMatrixnew(selectedDates);
         drawThemeRiver(cityFile, selectedDates);
         updateRadialChartWithSelection(selectionData, fechaInicio, fechaFin);
-        
+        plotUMAPcontCluster(filteredDataCont, fechaInicio, fechaFin, selectedDates, "blue");
+        plotUMAPmetCluster(filterDataMet, fechaInicio, fechaFin, selectedDates, "blue");
         // Restaurar todos los puntos a su estado original antes de aplicar cambios a los puntos seleccionados
         svg.selectAll("circle")
             .attr("r", 6)  // Restaurar el radio original de los puntos (ajusta según el tamaño original)
@@ -3449,9 +3452,9 @@ function plotUMAP(data, fechaInicio, fechaFin) {
 function plotUMAPmetCluster(data, fechaInicio, fechaFin, clusterDates, clusterColor) {
     // Limpiar el gráfico anterior
     d3.select("#umap-plot-meteorologia").selectAll("*").remove();
-    console.log("Datos de entrada del cluster seleccionado - Fechas:", clusterDates);
-    console.log("Color del Cluster seleccionado:", clusterColor);
-
+    // console.log("Datos de entrada del cluster seleccionado - Fechas:", clusterDates);
+    // console.log("Color del Cluster seleccionado:", clusterColor);
+    
     // Dimensiones del contenedor
     const container = d3.select("#umap-plot-meteorologia");
     const width = container.node().clientWidth || 800; // Default width
@@ -3556,6 +3559,132 @@ function plotUMAPmetCluster(data, fechaInicio, fechaFin, clusterDates, clusterCo
         document.getElementById("cluster-4-btn").classList.add("dimmed");
         document.getElementById("cluster-6-btn").classList.add("dimmed");
         }
+}
+
+
+function plotUMAPfusionCluster(data, fechaInicio, fechaFin, clusterDates, clusterColor) {
+    // Limpiar el gráfico anterior
+    d3.select("#umap-plot-fusion").selectAll("*").remove();
+    console.log("DGAAAAAAAAAAAAAAAAAAAA:")
+
+    // Dimensiones del contenedor
+    const container = d3.select("#umap-plot-fusion");
+    const width = container.node().clientWidth || 800; // Default width
+    const height = container.node().clientHeight || 440; // Default height
+
+    const svg = container.append("svg")
+        .attr("transform", "translate(275, -380)") // Desplazamiento hacia la derecha y abajo
+        .attr("width", "45%")
+        .attr("height", "45%")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .style("background", "none") // Fondo transparente
+        .style("position", "relative") // Asegura que el desplazamiento funcione correctamente
+        .style("border", "1px solid black") // Agrega un borde negro
+        .style("border-radius", "10px") // Bordes redondeados
+        .on("contextmenu", (event) => event.preventDefault());
+
+    // Agregar título en la parte superior izquierda
+    svg.append("text")
+        .attr("x", 53) // Posición horizontal (izquierda)
+        .attr("y", 30) // Posición vertical (arriba)
+        .attr("font-size", "30px") // Tamaño de la fuente
+        .attr("font-weight", "bold") // Negrita
+        .attr("fill", "black") // Color del texto
+        .text("Fusion de Datos");
+
+    // Agregar un checkbox al lado del título
+    d3.select("#umap-plot-fusion")
+        .append("input")
+        .attr("type", "checkbox")
+        .attr("id", "toggle-umap-fusion")
+        .style("position", "absolute")
+        .style("left", "295px") // Ajusta la posición respecto al contenedor
+        .style("top", "220px") // Ajusta la posición respecto al contenedor
+        .property("checked", false); // Inicia desmarcado
+
+    // Escalas para los ejes
+    const xScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.UMAP1))
+        .range([50, width - 50]);
+
+    const yScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.UMAP2))
+        .range([height - 50, 50]);
+
+    // Crear el conjunto de fechas destacadas
+    const clusterDateSet = new Set(clusterDates);
+
+    // Dibujar los puntos
+    svg.selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", d => xScale(d.UMAP1))
+        .attr("cy", d => yScale(d.UMAP2))
+        .attr("r", 5)
+        .attr("fill", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? clusterColor : "steelblue") // Usar el color del cluster
+        .attr("opacity", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0.2) // Opacidad baja si no está en clusterDates
+        .attr("stroke", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? "black" : "none") // Borde negro si está en clusterDates
+        .attr("stroke-width", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 2 : 0);
+    // Evento del checkbox
+    d3.select("#toggle-umap-fusion").on("change", function () {
+        const isChecked = d3.select(this).property("checked");
+
+        // Limpiar el gráfico actual
+        d3.select("#umap-plot-fusion").selectAll("*").remove();
+
+        if (isChecked) {
+            svg.style("border", "1px solid #ff6347"); // Borde resaltado con color
+            enableClusterAndAQIControls(); // Habilitar botones
+            isGraphLocked = true;
+            isGraphLocked_boton = false;
+            d3.selectAll(".legend-item-pca2, .reset-button-pca2")
+                .style("pointer-events", "all")
+                .style("opacity", "1")
+                .style("display", "block");
+
+            // Llamar a la nueva función cuando el checkbox está activado
+            plotUMAP(data, fechaInicio, fechaFin);
+
+        } else {
+            svg.style("border", "1px solid black"); // Borde normal
+            disableClusterAndAQIControls(); // Deshabilitar botones
+            isGraphLocked = false;
+            isGraphLocked_boton = true;
+            d3.selectAll(".legend-item-pca2, .reset-button-pca2")
+                .style("pointer-events", "none")
+                .style("opacity", "0.5");
+
+            // Volver a la función original cuando el checkbox está desactivado
+            plotUMAPfusionCluster(data, fechaInicio, fechaFin, clusterDates, clusterColor);
+        }
+});
+
+
+    // Función para habilitar los controles de clusters y AQI
+    function enableClusterAndAQIControls() {
+    document.getElementById("cluster-4-btn").disabled = false;
+    document.getElementById("cluster-6-btn").disabled = false;
+    document.getElementById("aqi-btn").disabled = false;
+    document.getElementById("cluster-4-select").disabled = false;
+    document.getElementById("cluster-6-select").disabled = false;
+    document.getElementById("aqi-btn").classList.remove("dimmed");
+    document.getElementById("cluster-4-btn").classList.remove("dimmed");
+    document.getElementById("cluster-6-btn").classList.remove("dimmed");
+    }
+
+    // Función para deshabilitar los controles de clusters y AQI
+    function disableClusterAndAQIControls() {
+    document.getElementById("cluster-4-btn").disabled = true;
+    document.getElementById("cluster-6-btn").disabled = true;
+    document.getElementById("aqi-btn").disabled = true;
+    document.getElementById("cluster-4-select").disabled = true;
+    document.getElementById("cluster-6-select").disabled = true;
+    document.getElementById("aqi-btn").classList.add("dimmed");
+    document.getElementById("cluster-4-btn").classList.add("dimmed");
+    document.getElementById("cluster-6-btn").classList.add("dimmed");
+    }
+
 }
 
 
@@ -3788,10 +3917,24 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
     
         const selectedCluster = parseInt(this.value.replace('Cluster ', '')) - 1;
         filteredClusterData = data.filter(d => d.Kmeans_4 === selectedCluster);
-    
+
+        // Obtener las fechas únicas del cluster seleccionado
+        const clusterDates = [...new Set(filteredClusterData.map(d => `${d.year}-${d.month}-${d.day}`))];
+
+        // Obtener el color correspondiente al cluster seleccionado
+        const clusterColor = kmeans4Colors[selectedCluster];
+
+        // // Imprimir en consola las fechas y el color del cluster seleccionado
+        // console.log("Fechas del Cluster seleccionado:", clusterDates);
+        // console.log("Color del Cluster seleccionado:", clusterColor);
+
         updateVisualization();
         updateClusterDisplay(4, selectedCluster, kmeans4Colors);
+        plotUMAPfusionCluster(filterDataFusion, fechaInicio, fechaFin, clusterDates, clusterColor);
+        plotUMAPmetCluster(filterDataMet, fechaInicio, fechaFin, clusterDates, clusterColor);
     });
+
+    
     let filteredClusterData2 = data;
     let activeFilterData2 = data;  // Solo un filtro activo a la vez (estación, año o mes)
 
@@ -3799,13 +3942,23 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
     document.getElementById("cluster-6-select").addEventListener("change", function () {
         if (isGraphLocked) return; // Si la gráfica está bloqueada, salir de la función.
         if (isGraphLocked3) return; // Si la gráfica está bloqueada, salir de la función.
-
-
         const selectedCluster = parseInt(this.value.replace('Cluster ', '')) - 1;
         filteredClusterData2 = data.filter(d => d.Kmeans_6 === selectedCluster);
+        
+        // Obtener las fechas únicas del cluster seleccionado
+        const clusterDates = [...new Set(filteredClusterData2.map(d => `${d.year}-${d.month}-${d.day}`))];
+
+        // Obtener el color correspondiente al cluster seleccionado
+        const clusterColor = kmeans6Colors[selectedCluster];
+
+        // // Imprimir en consola las fechas y el color del cluster seleccionado
+        // console.log("Fechas del Cluster seleccionado:", clusterDates);
+        // console.log("Color del Cluster seleccionado:", clusterColor);
 
         updateVisualization2();
         updateClusterDisplay(6, selectedCluster, kmeans6Colors);
+        plotUMAPfusionCluster(filterDataFusion, fechaInicio, fechaFin, clusterDates, clusterColor);
+        plotUMAPmetCluster(filterDataMet, fechaInicio, fechaFin, clusterDates, clusterColor);
     });
 
     // Evento para el botón AQI
@@ -4300,7 +4453,8 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
         updateCorrelationMatrixnew(selectedDates);
         drawThemeRiver(cityFile, selectedDates);
         updateRadialChartWithSelection(selectionData, fechaInicio, fechaFin);
-
+        plotUMAPfusionCluster(filterDataFusion, fechaInicio, fechaFin, selectedDates, "blue");
+        plotUMAPmetCluster(filterDataMet, fechaInicio, fechaFin, selectedDates, "blue");
         // Restaurar todos los puntos a su estado original antes de aplicar cambios a los puntos seleccionados
         svg.selectAll("circle")
             .attr("r", 6)  // Restaurar el radio original de los puntos (ajusta según el tamaño original)
@@ -4546,9 +4700,20 @@ function plotUMAPmet(data, fechaInicio, fechaFin) {
         if (isGraphLocked) return; // Si la gráfica está bloqueada, salir de la función.
         const selectedCluster = parseInt(this.value.replace('Cluster ', '')) - 1;
         filteredClusterData = data.filter(d => d.Kmeans_4 === selectedCluster);
+            // Obtener las fechas únicas del cluster seleccionado
+            const clusterDates = [...new Set(filteredClusterData.map(d => `${d.year}-${d.month}-${d.day}`))];
+
+            // Obtener el color correspondiente al cluster seleccionado
+            const clusterColor = kmeans4Colors[selectedCluster];
+    
+            // // Imprimir en consola las fechas y el color del cluster seleccionado
+            // console.log("Fechas del Cluster seleccionado:", clusterDates);
+            // console.log("Color del Cluster seleccionado:", clusterColor);
     
         updateVisualization();
         updateClusterDisplay(4, selectedCluster, kmeans4Colors);
+        plotUMAPfusionCluster(filterDataFusion, fechaInicio, fechaFin, clusterDates, clusterColor);
+        plotUMAPcontCluster(filteredDataCont, fechaInicio, fechaFin, clusterDates, clusterColor);
     });
     
     let filteredClusterData2 = data;
@@ -4561,8 +4726,19 @@ function plotUMAPmet(data, fechaInicio, fechaFin) {
         const selectedCluster = parseInt(this.value.replace('Cluster ', '')) - 1;
         filteredClusterData2 = data.filter(d => d.Kmeans_6 === selectedCluster);
 
+        // Obtener las fechas únicas del cluster seleccionado
+        const clusterDates = [...new Set(filteredClusterData2.map(d => `${d.year}-${d.month}-${d.day}`))];
+
+        // Obtener el color correspondiente al cluster seleccionado
+        const clusterColor = kmeans6Colors[selectedCluster];
+
+        // // Imprimir en consola las fechas y el color del cluster seleccionado
+        // console.log("Fechas del Cluster seleccionado:", clusterDates);
+        // console.log("Color del Cluster seleccionado:", clusterColor);
         updateVisualization2();
         updateClusterDisplay(6, selectedCluster, kmeans6Colors);
+        plotUMAPfusionCluster(filterDataFusion, fechaInicio, fechaFin, clusterDates, clusterColor);
+        plotUMAPcontCluster(filteredDataCont, fechaInicio, fechaFin, clusterDates, clusterColor);
     });
 
     document.getElementById("aqi-btn").disabled = true;
@@ -5036,8 +5212,8 @@ function plotUMAPmet(data, fechaInicio, fechaFin) {
         updateCorrelationMatrixnew(selectedDates);
         drawThemeRiver(cityFile, selectedDates);
         updateRadialChartWithSelection(selectionData, fechaInicio, fechaFin);
-
-        // Restaurar todos los puntos a su estado original antes de aplicar cambios a los puntos seleccionados
+        plotUMAPfusionCluster(filterDataFusion, fechaInicio, fechaFin, selectedDates, "blue");
+        plotUMAPcontCluster(filteredDataCont, fechaInicio, fechaFin, selectedDates, "blue");
         svg.selectAll("circle")
             .attr("r", 6)  // Restaurar el radio original de los puntos (ajusta según el tamaño original)
             .attr("stroke", "none");  // Eliminar el borde azul
