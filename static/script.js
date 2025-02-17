@@ -3118,27 +3118,28 @@ function plotUMAP(data, fechaInicio, fechaFin) {
         .attr("stroke", "none")  // Sin borde inicialmente
             // Agregar manejador para el filtro de estación
 
-        .on("mouseover", (event, d) => {
+          .on("mouseover", function (event, d) {
             tooltip.style("visibility", "visible")
                 .html(`
                     <strong>Ciudad:</strong> ${d.city.replace('Data_', '').replace('.csv', '')}<br>
                     <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
                     <strong>AQI:</strong> ${d.AQI}
                 `);
-            d3.select(event.target)
-                .attr("r", 10)  // Aumentar el radio del círculo
-                .attr("stroke", "blue")  // Establecer borde azul
-                .attr("stroke-width", 3);  // Definir el grosor del borde
+
+            d3.select(this)
+                .attr("r", 10)
+                .attr("stroke-width", 1);
         })
         .on("mousemove", (event) => {
             tooltip.style("top", (event.pageY - 10) + "px")
                 .style("left", (event.pageX + 10) + "px");
         })
-        .on("mouseout", (event) => {
+        .on("mouseout", function (event, d) {
             tooltip.style("visibility", "hidden");
-            d3.select(event.target)
-                .attr("r", 6)  // Restaurar el radio original
-                .attr("stroke", "none");  // Quitar el borde
+
+            d3.select(this)
+                .attr("r", 6)
+                .attr("stroke-width", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0); 
         });
         
         function highlightSeason(season, data, svg, xScale, yScale) {
@@ -3499,6 +3500,16 @@ function plotUMAPmetCluster(data, fechaInicio, fechaFin, clusterDates, clusterCo
 
     // Crear el conjunto de fechas destacadas
     const clusterDateSet = new Set(clusterDates);
+    // Crear tooltip
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("position", "absolute")
+        .style("visibility", "hidden")
+        .style("background", "rgba(0, 0, 0, 0.7)")
+        .style("color", "#fff")
+        .style("padding", "5px 10px")
+        .style("border-radius", "5px")
+        .style("font-size", "12px");
 
     // Dibujar los puntos
     svg.selectAll("circle")
@@ -3511,7 +3522,42 @@ function plotUMAPmetCluster(data, fechaInicio, fechaFin, clusterDates, clusterCo
         .attr("fill", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? clusterColor : "steelblue") // Usar el color del cluster
         .attr("opacity", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0.2) // Opacidad baja si no está en clusterDates
         .attr("stroke", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? "black" : "none") // Borde negro si está en clusterDates
-        .attr("stroke-width", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 2 : 0);
+        .attr("stroke-width", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0)
+        .on("mouseover", function (event, d) {
+            tooltip.style("visibility", "visible")
+                .html(`
+                    <strong>Ciudad:</strong> ${d.city.replace('Data_', '').replace('.csv', '')}<br>
+                    <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
+                    <strong>AQI:</strong> ${d.AQI}
+                `);
+
+            d3.select(this)
+                .attr("r", 10)
+                .attr("stroke-width", 3);
+        })
+        .on("mousemove", (event) => {
+            tooltip.style("top", (event.pageY - 10) + "px")
+                .style("left", (event.pageX + 10) + "px");
+        })
+        .on("mouseout", function (event, d) {
+            tooltip.style("visibility", "hidden");
+
+            d3.select(this)
+                .attr("r", 6)
+                .attr("stroke-width", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0); 
+        });
+        
+    // Agregar zoom
+    const zoom = d3.zoom()
+    .scaleExtent([0.5, 10])
+    .on("zoom", (event) => {
+        svg.selectAll("circle").attr("transform", event.transform);
+    });
+
+    svg.call(zoom);
+    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 9).scale(0.79);
+    svg.call(zoom).call(zoom.transform, initialTransform);
+
     // Evento del checkbox
     d3.select("#toggle-umap-meteorologia").on("change", function () {
         const isChecked = d3.select(this).property("checked");
@@ -3565,7 +3611,7 @@ function plotUMAPmetCluster(data, fechaInicio, fechaFin, clusterDates, clusterCo
 function plotUMAPfusionCluster(data, fechaInicio, fechaFin, clusterDates, clusterColor) {
     // Limpiar el gráfico anterior
     d3.select("#umap-plot-fusion").selectAll("*").remove();
-    console.log("DGAAAAAAAAAAAAAAAAAAAA:")
+    // console.log("DGAAAAAAAAAAAAAAAAAAAA:")
 
     // Dimensiones del contenedor
     const container = d3.select("#umap-plot-fusion");
@@ -3613,6 +3659,16 @@ function plotUMAPfusionCluster(data, fechaInicio, fechaFin, clusterDates, cluste
 
     // Crear el conjunto de fechas destacadas
     const clusterDateSet = new Set(clusterDates);
+    // Crear tooltip
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("position", "absolute")
+        .style("visibility", "hidden")
+        .style("background", "rgba(0, 0, 0, 0.7)")
+        .style("color", "#fff")
+        .style("padding", "5px 10px")
+        .style("border-radius", "5px")
+        .style("font-size", "12px");
 
     // Dibujar los puntos
     svg.selectAll("circle")
@@ -3625,8 +3681,42 @@ function plotUMAPfusionCluster(data, fechaInicio, fechaFin, clusterDates, cluste
         .attr("fill", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? clusterColor : "steelblue") // Usar el color del cluster
         .attr("opacity", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0.2) // Opacidad baja si no está en clusterDates
         .attr("stroke", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? "black" : "none") // Borde negro si está en clusterDates
-        .attr("stroke-width", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 2 : 0);
-    // Evento del checkbox
+        .attr("stroke-width", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0)
+        .on("mouseover", function (event, d) {
+            tooltip.style("visibility", "visible")
+                .html(`
+                    <strong>Ciudad:</strong> ${d.city.replace('Data_', '').replace('.csv', '')}<br>
+                    <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
+                    <strong>AQI:</strong> ${d.AQI}
+                `);
+
+            d3.select(this)
+                .attr("r", 10)
+                .attr("stroke-width", 3);
+        })
+        .on("mousemove", (event) => {
+            tooltip.style("top", (event.pageY - 10) + "px")
+                .style("left", (event.pageX + 10) + "px");
+        })
+        .on("mouseout", function (event, d) {
+            tooltip.style("visibility", "hidden");
+
+            d3.select(this)
+                .attr("r", 6)
+                .attr("stroke-width", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0); 
+        });
+
+    // Agregar zoom
+    const zoom = d3.zoom()
+        .scaleExtent([0.5, 10])
+        .on("zoom", (event) => {
+            svg.selectAll("circle").attr("transform", event.transform);
+        });
+
+    svg.call(zoom);
+    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 9).scale(0.79);
+    svg.call(zoom).call(zoom.transform, initialTransform);
+       // Evento del checkbox
     d3.select("#toggle-umap-fusion").on("change", function () {
         const isChecked = d3.select(this).property("checked");
 
@@ -3687,7 +3777,6 @@ function plotUMAPfusionCluster(data, fechaInicio, fechaFin, clusterDates, cluste
 
 }
 
-
 function plotUMAPcontCluster(data, fechaInicio, fechaFin, clusterDates, clusterColor) {
     // Limpiar el gráfico anterior
     d3.select("#umap-plot-contaminacion").selectAll("*").remove();
@@ -3705,29 +3794,29 @@ function plotUMAPcontCluster(data, fechaInicio, fechaFin, clusterDates, clusterC
         .attr("height", "45%")
         .attr("viewBox", `0 0 ${width} ${height}`)
         .style("background", "none") // Fondo transparente
-        .style("position", "relative") // Asegura que el desplazamiento funcione correctamente
+        .style("position", "relative")
         .style("border", "1px solid black") // Agrega un borde negro
-        .style("border-radius", "10px") // Bordes redondeados
+        .style("border-radius", "10px")
         .on("contextmenu", (event) => event.preventDefault());
 
-    // Agregar título en la parte superior izquierda
+    // Agregar título
     svg.append("text")
-        .attr("x", 53) // Posición horizontal (izquierda)
-        .attr("y", 30) // Posición vertical (arriba)
-        .attr("font-size", "30px") // Tamaño de la fuente
-        .attr("font-weight", "bold") // Negrita
-        .attr("fill", "black") // Color del texto
+        .attr("x", 53)
+        .attr("y", 30)
+        .attr("font-size", "30px")
+        .attr("font-weight", "bold")
+        .attr("fill", "black")
         .text("Contaminantes");
 
-    // Agregar un checkbox al lado del título
+    // Agregar checkbox
     d3.select("#umap-plot-contaminacion")
         .append("input")
         .attr("type", "checkbox")
         .attr("id", "toggle-umap-contaminacion")
         .style("position", "absolute")
-        .style("left", "295px") // Ajusta la posición respecto al contenedor
-        .style("top", "11px") // Ajusta la posición respecto al contenedor
-        .property("checked", false); // Inicia desmarcado
+        .style("left", "295px")
+        .style("top", "11px")
+        .property("checked", false);
 
     // Escalas para los ejes
     const xScale = d3.scaleLinear()
@@ -3738,8 +3827,19 @@ function plotUMAPcontCluster(data, fechaInicio, fechaFin, clusterDates, clusterC
         .domain(d3.extent(data, d => d.UMAP2))
         .range([height - 50, 50]);
 
-    // Crear el conjunto de fechas destacadas
+    // Conjunto de fechas destacadas
     const clusterDateSet = new Set(clusterDates);
+
+    // Crear tooltip
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("position", "absolute")
+        .style("visibility", "hidden")
+        .style("background", "rgba(0, 0, 0, 0.7)")
+        .style("color", "#fff")
+        .style("padding", "5px 10px")
+        .style("border-radius", "5px")
+        .style("font-size", "12px");
 
     // Dibujar los puntos
     svg.selectAll("circle")
@@ -3748,70 +3848,100 @@ function plotUMAPcontCluster(data, fechaInicio, fechaFin, clusterDates, clusterC
         .append("circle")
         .attr("cx", d => xScale(d.UMAP1))
         .attr("cy", d => yScale(d.UMAP2))
-        .attr("r", 5)
-        .attr("fill", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? clusterColor : "steelblue") // Usar el color del cluster
-        .attr("opacity", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0.2) // Opacidad baja si no está en clusterDates
-        .attr("stroke", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? "black" : "none") // Borde negro si está en clusterDates
-        .attr("stroke-width", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 2 : 0);
-// Evento del checkbox
-d3.select("#toggle-umap-contaminacion").on("change", function () {
-    const isChecked = d3.select(this).property("checked");
+        .attr("r", 6)
+        .attr("fill", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? clusterColor : "steelblue")
+        .attr("opacity", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0.2)
+        .attr("stroke", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? "black" : "none")
+        .attr("stroke-width", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0)
+        .on("mouseover", function (event, d) {
+            tooltip.style("visibility", "visible")
+                .html(`
+                    <strong>Ciudad:</strong> ${d.city.replace('Data_', '').replace('.csv', '')}<br>
+                    <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
+                    <strong>AQI:</strong> ${d.AQI}
+                `);
 
-    // Limpiar el gráfico actual
-    d3.select("#umap-plot-contaminacion").selectAll("*").remove();
+            d3.select(this)
+                .attr("r", 10)
+                .attr("stroke-width", 3);
+        })
+        .on("mousemove", (event) => {
+            tooltip.style("top", (event.pageY - 10) + "px")
+                .style("left", (event.pageX + 10) + "px");
+        })
+        .on("mouseout", function (event, d) {
+            tooltip.style("visibility", "hidden");
 
-    if (isChecked) {
-        svg.style("border", "1px solid #ff6347"); // Borde resaltado con color
-        enableClusterAndAQIControls2(); // Habilitar botones
-        isGraphLocked2 = true;
-        isGraphLocked_boton2 = false;
-        d3.selectAll(".legend-item-pca2, .reset-button-pca2")
-            .style("pointer-events", "all")
-            .style("opacity", "1")
-            .style("display", "block");
+            d3.select(this)
+                .attr("r", 6)
+                .attr("stroke-width", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0); 
+        });
 
-        // Llamar a la nueva función cuando el checkbox está activado
-        plotUMAPcont(data, fechaInicio, fechaFin);
+    // Agregar zoom
+    const zoom = d3.zoom()
+        .scaleExtent([0.5, 10])
+        .on("zoom", (event) => {
+            svg.selectAll("circle").attr("transform", event.transform);
+        });
 
-    } else {
-        svg.style("border", "1px solid black"); // Borde normal
-        disableClusterAndAQIControls2(); // Deshabilitar botones
-        isGraphLocked2 = false;
-        isGraphLocked_boton2 = true;
-        d3.selectAll(".legend-item-pca2, .reset-button-pca2")
-            .style("pointer-events", "none")
-            .style("opacity", "0.5");
+    svg.call(zoom);
+    const initialTransform = d3.zoomIdentity.translate(width / 9.5, height / 9).scale(0.79);
+    svg.call(zoom).call(zoom.transform, initialTransform);
 
-        // Volver a la función original cuando el checkbox está desactivado
-        plotUMAPcontCluster(data, fechaInicio, fechaFin, clusterDates, clusterColor);
-    }
-});
+    // Evento del checkbox
+    d3.select("#toggle-umap-contaminacion").on("change", function () {
+        const isChecked = d3.select(this).property("checked");
 
+        // Limpiar el gráfico actual
+        d3.select("#umap-plot-contaminacion").selectAll("*").remove();
 
-    // Función para habilitar los controles de clusters y AQI
+        if (isChecked) {
+            svg.style("border", "1px solid #ff6347");
+            enableClusterAndAQIControls2();
+            isGraphLocked2 = true;
+            isGraphLocked_boton2 = false;
+            d3.selectAll(".legend-item-pca2, .reset-button-pca2")
+                .style("pointer-events", "all")
+                .style("opacity", "1")
+                .style("display", "block");
+
+            plotUMAPcont(data, fechaInicio, fechaFin);
+        } else {
+            svg.style("border", "1px solid black");
+            disableClusterAndAQIControls2();
+            isGraphLocked2 = false;
+            isGraphLocked_boton2 = true;
+            d3.selectAll(".legend-item-pca2, .reset-button-pca2")
+                .style("pointer-events", "none")
+                .style("opacity", "0.5");
+
+            plotUMAPcontCluster(data, fechaInicio, fechaFin, clusterDates, clusterColor);
+        }
+    });
+
+    // Función para habilitar controles
     function enableClusterAndAQIControls2() {
-    document.getElementById("cluster-4-btn").disabled = false;
-    document.getElementById("cluster-6-btn").disabled = false;
-    document.getElementById("aqi-btn").disabled = false;
-    document.getElementById("cluster-4-select").disabled = false;
-    document.getElementById("cluster-6-select").disabled = false;
-    document.getElementById("aqi-btn").classList.remove("dimmed");
-    document.getElementById("cluster-4-btn").classList.remove("dimmed");
-    document.getElementById("cluster-6-btn").classList.remove("dimmed");
+        document.getElementById("cluster-4-btn").disabled = false;
+        document.getElementById("cluster-6-btn").disabled = false;
+        document.getElementById("aqi-btn").disabled = false;
+        document.getElementById("cluster-4-select").disabled = false;
+        document.getElementById("cluster-6-select").disabled = false;
+        document.getElementById("aqi-btn").classList.remove("dimmed");
+        document.getElementById("cluster-4-btn").classList.remove("dimmed");
+        document.getElementById("cluster-6-btn").classList.remove("dimmed");
     }
 
-    // Función para deshabilitar los controles de clusters y AQI
+    // Función para deshabilitar controles
     function disableClusterAndAQIControls2() {
-    document.getElementById("cluster-4-btn").disabled = true;
-    document.getElementById("cluster-6-btn").disabled = true;
-    document.getElementById("aqi-btn").disabled = true;
-    document.getElementById("cluster-4-select").disabled = true;
-    document.getElementById("cluster-6-select").disabled = true;
-    document.getElementById("aqi-btn").classList.add("dimmed");
-    document.getElementById("cluster-4-btn").classList.add("dimmed");
-    document.getElementById("cluster-6-btn").classList.add("dimmed");
+        document.getElementById("cluster-4-btn").disabled = true;
+        document.getElementById("cluster-6-btn").disabled = true;
+        document.getElementById("aqi-btn").disabled = true;
+        document.getElementById("cluster-4-select").disabled = true;
+        document.getElementById("cluster-6-select").disabled = true;
+        document.getElementById("aqi-btn").classList.add("dimmed");
+        document.getElementById("cluster-4-btn").classList.add("dimmed");
+        document.getElementById("cluster-6-btn").classList.add("dimmed");
     }
-
 }
 
 
@@ -4276,27 +4406,28 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
         .attr("stroke", "none")  // Sin borde inicialmente
             // Agregar manejador para el filtro de estación
 
-        .on("mouseover", (event, d) => {
-            tooltip.style("visibility", "visible")
-                .html(`
-                    <strong>Ciudad:</strong> ${d.city.replace('Data_', '').replace('.csv', '')}<br>
-                    <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
-                    <strong>AQI:</strong> ${d.AQI}
-                `);
-            d3.select(event.target)
-                .attr("r", 10)  // Aumentar el radio del círculo
-                .attr("stroke", "blue")  // Establecer borde azul
-                .attr("stroke-width", 3);  // Definir el grosor del borde
+        .on("mouseover", function (event, d) {
+        tooltip.style("visibility", "visible")
+            .html(`
+                <strong>Ciudad:</strong> ${d.city.replace('Data_', '').replace('.csv', '')}<br>
+                <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
+                <strong>AQI:</strong> ${d.AQI}
+            `);
+
+        d3.select(this)
+            .attr("r", 10)
+            .attr("stroke-width", 1);
         })
         .on("mousemove", (event) => {
             tooltip.style("top", (event.pageY - 10) + "px")
                 .style("left", (event.pageX + 10) + "px");
         })
-        .on("mouseout", (event) => {
+        .on("mouseout", function (event, d) {
             tooltip.style("visibility", "hidden");
-            d3.select(event.target)
-                .attr("r", 6)  // Restaurar el radio original
-                .attr("stroke", "none");  // Quitar el borde
+
+            d3.select(this)
+                .attr("r", 6)
+                .attr("stroke-width", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0); 
         });
         
         function highlightSeason(season, data, svg, xScale, yScale) {
@@ -5034,27 +5165,28 @@ function plotUMAPmet(data, fechaInicio, fechaFin) {
         .attr("stroke", "none")  // Sin borde inicialmente
             // Agregar manejador para el filtro de estación
 
-        .on("mouseover", (event, d) => {
+        .on("mouseover", function (event, d) {
             tooltip.style("visibility", "visible")
                 .html(`
                     <strong>Ciudad:</strong> ${d.city.replace('Data_', '').replace('.csv', '')}<br>
                     <strong>Fecha:</strong> ${d.day}/${d.month}/${d.year}<br>
                     <strong>AQI:</strong> ${d.AQI}
                 `);
-            d3.select(event.target)
-                .attr("r", 10)  // Aumentar el radio del círculo
-                .attr("stroke", "blue")  // Establecer borde azul
-                .attr("stroke-width", 3);  // Definir el grosor del borde
+
+            d3.select(this)
+                .attr("r", 10)
+                .attr("stroke-width", 1);
         })
         .on("mousemove", (event) => {
             tooltip.style("top", (event.pageY - 10) + "px")
                 .style("left", (event.pageX + 10) + "px");
         })
-        .on("mouseout", (event) => {
+        .on("mouseout", function (event, d) {
             tooltip.style("visibility", "hidden");
-            d3.select(event.target)
-                .attr("r", 6)  // Restaurar el radio original
-                .attr("stroke", "none");  // Quitar el borde
+
+            d3.select(this)
+                .attr("r", 6)
+                .attr("stroke-width", d => clusterDateSet.has(`${d.year}-${d.month}-${d.day}`) ? 1 : 0); 
         });
         
         function highlightSeason(season, data, svg, xScale, yScale) {
