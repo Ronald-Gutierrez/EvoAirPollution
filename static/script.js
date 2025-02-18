@@ -154,9 +154,9 @@ function initMap() {
         return `${year}-${month}-${day}`;
     };
 
-    // // Establecer fechas por defecto en los inputs
-    // document.getElementById('fecha-inicio').value = formatDate(selectedDate);
-    // document.getElementById('fecha-fin').value = formatDate(new Date(selectedDate.getTime() + (300 * 24 * 60 * 60 * 1000))); // 7 días después
+    // Establecer fechas por defecto en los inputs
+    document.getElementById('fecha-inicio').value = formatDate(selectedDate);
+    document.getElementById('fecha-fin').value = formatDate(new Date(selectedDate.getTime() + (300 * 24 * 60 * 60 * 1000))); // 7 días después
     
     const beijing = { lat: 40.3, lng: 116.5074 }; // Coordenadas de Beijing
     
@@ -1227,7 +1227,7 @@ function updateCorrelationMatrix() {
                 });
             }
 
-            const parsedData = d3.groups(data, d => `${d.year}-${d.month}-${d.day}`).map(([date, entries]) => {
+            const parsedData = d3.groups(data, d => `${d.year}-${d.month}-${d.day} ${d.hour}`).map(([datetime, entries]) => {
                 const avg = {};
                 selectedAttributes.forEach(attr => {
                     const values = entries.map(d => +d[attr.replace('.', '_')]).filter(v => !isNaN(v));
@@ -1235,6 +1235,8 @@ function updateCorrelationMatrix() {
                 });
                 return avg;
             });
+
+            console.log("DATOS DE LPARCER AL INICIAR", parsedData);
 
             const correlationMatrix = calculateCorrelationMatrix(parsedData, selectedAttributes);
             const matrizdistancia = calculateDistanceMatrix(correlationMatrix);
@@ -4607,6 +4609,7 @@ function plotUMAPcont(data, fechaInicio, fechaFin) {
                 .attr("stroke-width", 3);  // Establecer el grosor del borde
         });
     });
+
     // Agregar la leyenda como botones
     const legendData = [
         { color: '#00E400', label: 'Bueno', AQI: 1 },
@@ -5373,8 +5376,9 @@ function plotUMAPmet(data, fechaInicio, fechaFin) {
 
 
 
+
 function updateCorrelationMatrixnew(dates) {
-    // console.log(dates);
+    console.log("FECHAS DE LA MATRIZ NEW", dates);
     const selectedAttributes = Array.from(document.querySelectorAll('.options-chek-correlation input[type="checkbox"]:checked'))
                                     .map(cb => cb.value);
 
@@ -5396,25 +5400,28 @@ function updateCorrelationMatrixnew(dates) {
                 });
             }
 
-            const parsedData = d3.groups(data, d => `${d.year}-${d.month}-${d.day}`).map(([date, entries]) => {
-                const avg = {};
-                selectedAttributes.forEach(attr => {
-                    const values = entries.map(d => +d[attr.replace('.', '_')]).filter(v => !isNaN(v));
-                    avg[attr] = values.length > 0 ? d3.mean(values) : 0;
+            // Agrupar por fecha y hora
+            const parsedData = d3.groups(data, d => `${d.year}-${d.month}-${d.day} ${d.hour}`)
+                .map(([datetime, entries]) => {
+                    const avg = {};
+                    selectedAttributes.forEach(attr => {
+                        const values = entries.map(d => +d[attr.replace('.', '_')]).filter(v => !isNaN(v));
+                        avg[attr] = values.length > 0 ? d3.mean(values) : 0;
+                    });
+                    return avg;
                 });
-                return avg;
-            });
-            // console.log(parsedData);
+
+            console.log("Datos de Update Matrix NEW por hora", parsedData);
             const correlationMatrix = calculateCorrelationMatrix(parsedData, selectedAttributes);
             const matrizdistancia = calculateDistanceMatrix(correlationMatrix);
             const hierarchyData = buildHierarchy(selectedAttributes, matrizdistancia);
-            // console.log(correlationMatrix);
             
             // Crear o actualizar el dendrograma radial
             createRadialDendrogram(hierarchyData, selectedAttributes, matrizdistancia, selectedCity, dates.join(', '));
         });
     });
 }
+
 
 async function drawThemeRiver(cityFile, dates) {
     const lastDate = new Date(dates[dates.length - 1]);

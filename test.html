@@ -3,315 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualización AQI con D3.js</title>
-    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <title>Matriz de Correlación</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
-            display: flex;
-            justify-content: center;
-        }
-        .aqi-filter {
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin: 8px;
-            padding: 10px 15px;
-            border-radius: 10px;
-            text-align: center;
-            transition: 0.3s;
-            color: white;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-            display: block;
-        }
-
-        .aqi-filter:hover {
-            transform: scale(1.1);
+            margin: 20px;
         }
 
         .container {
             display: flex;
-            flex-direction: row;
+            justify-content: space-between;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
         }
-        .chart-container {
-            margin-right: 50px;
-            position: relative;
+
+        .left-column {
+            flex: 1;
+            margin-right: 20px;
         }
-        .legend, .season-filter, .reset-button, .kmeans-filter {
+
+        .right-column {
+            flex: 0.4;
+            border-left: 2px solid #ccc;
+            padding-left: 20px;
+        }
+
+        select, input {
+            margin: 10px 0;
+            padding: 8px;
             font-size: 16px;
-            font-weight: bold;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
             cursor: pointer;
-            margin: 8px;
-            padding: 10px 15px;
-            border-radius: 10px;
-            text-align: center;
-            transition: 0.3s;
+            background-color: #4CAF50;
             color: white;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-            display: block;
-        }
-        .legend:hover, .season-filter:hover, .reset-button:hover, .kmeans-filter:hover {
-            transform: scale(1.1);
-        }
-        .selected {
-            border: 3px solid black;
-        }
-        .reset-button {
-            background-color: #333;
-            color: white;
-        }
-        .tooltip {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 6px;
+            border: none;
             border-radius: 5px;
-            font-size: 14px;
-            pointer-events: none;
-            display: none;
-            transform: translate(-50%, -100%);
         }
+
+        canvas {
+            max-width: 100%;
+            height: 400px;
+        }
+
+        #averages {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        #correlation-matrix, #distance-matrix {
+            margin-top: 20px;
+            font-size: 16px;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-group label {
+            margin-right: 10px;
+        }
+
     </style>
 </head>
 <body>
 
     <div class="container">
-        <div class="chart-container">
-            <h2>Distribución de Puntos AQI</h2>
-            <svg id="chart" width="800" height="600"></svg>
-            <div class="tooltip" id="tooltip"></div>
+        <!-- Columna izquierda -->
+        <div class="left-column">
+            <h2>Gráfico de Serie Temporal</h2>
+
+            <!-- Selección de tipo de filtro: Rango de fechas o un solo día -->
+            <label for="dateFilterType">Tipo de Filtro:</label>
+            <select id="dateFilterType">
+                <option value="range">Rango de Fechas</option>
+                <option value="single">Día Específico</option>
+            </select>
+
+            <!-- Formulario para seleccionar rango de fechas -->
+            <div id="dateRange" style="display: block;">
+                <label for="startDate">Fecha Inicio:</label>
+                <input type="date" id="startDate">
+
+                <label for="endDate">Fecha Fin:</label>
+                <input type="date" id="endDate">
+            </div>
+
+            <!-- Formulario para seleccionar un día específico -->
+            <div id="singleDate" style="display: none;">
+                <label for="singleDateInput">Fecha:</label>
+                <input type="date" id="singleDateInput">
+            </div>
+
+            <label for="attributes">Selecciona Atributos:</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" value="PM2_5" checked> PM2.5</label>
+                <label><input type="checkbox" value="PM10" checked> PM10</label>
+                <label><input type="checkbox" value="SO2" checked> SO2</label>
+                <label><input type="checkbox" value="NO2" checked> NO2</label>
+                <label><input type="checkbox" value="CO" checked> CO</label>
+                <label><input type="checkbox" value="O3" checked> O3</label>
+                <label><input type="checkbox" value="TEMP" checked> TEMP</label>
+                <label><input type="checkbox" value="PRES" checked> PRES</label>
+                <label><input type="checkbox" value="DEWP" checked> DEWP</label>
+                <label><input type="checkbox" value="RAIN" checked> RAIN</label>
+                <label><input type="checkbox" value="wd" checked> wd</label>
+                <label><input type="checkbox" value="WSPM" checked> WSPM</label>
+            </div>
+
+            <button onclick="generateCorrelationMatrix()">Generar Matriz de Correlación</button>
+
+            <!-- Contenedor para el gráfico -->
+            <canvas id="chart"></canvas>
         </div>
 
-        <div>
-            <h3>Filtros</h3>
-            <h4>Calidad del Aire</h4>
-            <div id="aqi-legend"></div>
-            <h4>Estaciones del Año</h4>
-            <div id="season-legend"></div>
-            <h4>K-Means</h4>
-            <div id="kmeans-legend"></div>
-            <h4>K-Means 5</h4>
-            <div id="kmeans5-legend"></div>
-            <h4>Opciones</h4>
-            <div id="reset-button" class="reset-button">🔄 Reiniciar Filtros</div>
+        <!-- Columna derecha -->
+        <div class="right-column">
+            <h3>Promedios de los Atributos</h3>
+            <div id="averages"></div>
+
+            <h3>Matriz de Correlación</h3>
+            <div id="correlation-matrix"></div>
+
+            <h3>Matriz de Distancia</h3>
+            <div id="distance-matrix"></div>
         </div>
     </div>
 
+    <!-- Carga Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
-        const width = 800, height = 600, margin = 50;
+        let rawData = null;
 
-        const legendData = [
-            { color: '#00E400', label: 'Bueno', AQI: 1 },
-            { color: '#FFFF00', label: 'Moderado', AQI: 2 },
-            { color: '#FF7E00', label: 'Insalubre', AQI: 3 },
-            { color: '#FF0000', label: 'Muy Insalubre', AQI: 4 },
-            { color: '#99004c', label: 'Malo', AQI: 5 },
-            { color: '#800000', label: 'Severo', AQI: 6 },
-        ];
-
-        const seasonColors = {
-            'Primavera': '#2ca25f',
-            'Verano': '#d95f0e',
-            'Otoño': '#7570b3',
-            'Invierno': '#1f78b4',
-        };
-
-        const kmeans4Colors = {
-            0: '#66c2a5',
-            1: '#fc8d62',
-            2: '#8da0cb',
-            3: '#e78ac3',
-        };
-
-        const kmeans6Colors = {
-            0: '#fdae61',
-            1: '#fee08b',
-            2: '#d73027',
-            3: '#4575b4',
-            4: '#313695',
-            5: '#91bfdb',
-        };
-        const kmeans5Colors = {
-            0: '#fdae61',
-            1: '#fee08b',
-            2: '#d73027',
-            3: '#4575b4',
-            4: '#313695',
-            5: '#2ca25f',
-        };
-        // const kmeans5Colors = {
-        //     0: '#f1a340',  // Color for K-means 5 group 1
-        //     1: '#80b1d3',  // Color for K-means 5 group 2
-        //     2: '#df9e2f',  // Color for K-means 5 group 3
-        //     3: '#1b9e77',  // Color for K-means 5 group 4
-        //     4: '#9e4e9b',  // Color for K-means 5 group 5
-        // };
-
-        function getSeason(month, day) {
-            if ((month === 3 && day >= 20) || (month > 3 && month < 6) || (month === 6 && day <= 21)) {
-                return 'Primavera';
-            } else if ((month === 6 && day >= 21) || (month > 6 && month < 9) || (month === 9 && day <= 22)) {
-                return 'Verano';
-            } else if ((month === 9 && day >= 22) || (month > 9 && month < 12) || (month === 12 && day <= 21)) {
-                return 'Otoño';
-            } else {
-                return 'Invierno';
-            }
+        // Función para cargar los datos del CSV
+        function loadCSV() {
+            fetch('data_normalizada/Data_Aotizhongxin.csv')
+                .then(response => response.text())
+                .then(csv => {
+                    rawData = parseCSV(csv);
+                    updateChart();  // Al cargar los datos, actualizamos el gráfico
+                })
+                .catch(error => {
+                    console.error('Error al cargar los datos:', error);
+                });
         }
 
-        const svg = d3.select("#chart")
-            .attr("width", width)
-            .attr("height", height);
-
-        const g = svg.append("g");
-
-        const tooltip = d3.select("#tooltip");
-
-        d3.csv("horas_data.csv").then(data => {
-            data.forEach(d => {
-                d.UMAP1 = +d.UMAP1;
-                d.UMAP2 = +d.UMAP2;
-                d.AQI = +d.AQI;
-                d.Season = getSeason(+d.month, +d.day);
-                d.Kmeans_4 = +d.Kmeans_4;
-                d.Kmeans_5 = +d.Kmeans_5;
-                d.Kmeans_6 = +d.Kmeans_6;
-            });
-
-            const xScale = d3.scaleLinear()
-                .domain(d3.extent(data, d => d.UMAP1))
-                .range([margin, width - margin]);
-
-            const yScale = d3.scaleLinear()
-                .domain(d3.extent(data, d => d.UMAP2))
-                .range([height - margin, margin]);
-
-            const circles = g.selectAll("circle")
-                .data(data)
-                .enter()
-                .append("circle")
-                .attr("cx", d => xScale(d.UMAP1))
-                .attr("cy", d => yScale(d.UMAP2))
-                .attr("r", 5)
-                .attr("fill", d => {
-                    const item = legendData.find(l => l.AQI === d.AQI);
-                    return item ? item.color : "#ccc";
-                })
-                .attr("stroke-width", 2)
-                .attr("opacity", 0.8)
-                .on("mouseover", function(event, d) {
-                    tooltip.style("display", "block")
-                        .html(`Fecha: ${d.year}-${d.month}-${d.day}<br>AQI: ${d.AQI}<br>Estación: ${d.Season}<br>K-Means 4: ${d.Kmeans_4}<br>K-Means 5: ${d.Kmeans_5}<br>K-Means 6: ${d.Kmeans_6}`)
-                        .style("left", `${xScale(d.UMAP1) + margin}px`)
-                        .style("top", `${yScale(d.UMAP2) + margin - 10}px`);
-                })
-                .on("mouseout", () => {
-                    tooltip.style("display", "none");
+        // Función para convertir el CSV en JSON
+        function parseCSV(csv) {
+            const rows = csv.split('\n').map(row => row.split(','));
+            const headers = rows[0];
+            return rows.slice(1).map(row => {
+                const obj = {};
+                headers.forEach((header, index) => {
+                    obj[header] = row[index];
                 });
-
-                function applyFilter(aqiFilter = null, seasonFilter = null, kmeansFilter = null) {
-                    circles
-                        .attr("opacity", d => 
-                            (aqiFilter === null || d.AQI === aqiFilter) && 
-                            (seasonFilter === null || d.Season === seasonFilter) && 
-                            (kmeansFilter === null || (kmeansFilter === 4 ? kmeans4Colors[d.Kmeans_4] : 
-                                                     kmeansFilter === 5 ? kmeans5Colors[d.Kmeans_5] : 
-                                                     kmeans6Colors[d.Kmeans_6])) ? 1 : 0.2
-                        )
-                        .attr("fill", d => {
-                            if (kmeansFilter === 4) {
-                                return kmeans4Colors[d.Kmeans_4] || "#ccc";
-                            } else if (kmeansFilter === 5) {
-                                return kmeans5Colors[d.Kmeans_5] || "#ccc";
-                            } else if (kmeansFilter === 6) {
-                                return kmeans6Colors[d.Kmeans_6] || "#ccc";
-                            } else {
-                                const item = legendData.find(l => l.AQI === d.AQI);
-                                return item ? item.color : "#ccc";
-                            }
-                        })
-                        .attr("stroke", d => 
-                            (aqiFilter === null || d.AQI === aqiFilter) &&
-                            (seasonFilter === null || d.Season === seasonFilter) &&
-                            (kmeansFilter === null || (kmeansFilter === 4 ? kmeans4Colors[d.Kmeans_4] : 
-                                                     kmeansFilter === 5 ? kmeans5Colors[d.Kmeans_5] : 
-                                                     kmeansFilter === 6 ? kmeans6Colors[d.Kmeans_6] : false))
-                            ? "black" : "none"
-                        )
-                        .attr("stroke-width", d => 
-                            (aqiFilter === null || d.AQI === aqiFilter) &&
-                            (seasonFilter === null || d.Season === seasonFilter) &&
-                            (kmeansFilter === null || (kmeansFilter === 4 ? kmeans4Colors[d.Kmeans_4] : 
-                                                     kmeansFilter === 5 ? kmeans5Colors[d.Kmeans_5] : 
-                                                     kmeansFilter === 6 ? kmeans6Colors[d.Kmeans_6] : false))
-                            ? 1.5 : 0
-                        );
-                }
-
-            // Filtro de AQI
-            d3.select("#aqi-legend")
-                .selectAll(".aqi-filter")
-                .data(legendData)
-                .enter()
-                .append("div")
-                .attr("class", "aqi-filter")
-                .style("background", d => d.color)
-                .text(d => d.label)
-                .on("click", (event, d) => applyFilter(d.AQI));
-
-
-            // Filtro de estaciones
-            d3.select("#season-legend")
-                .selectAll(".season-filter")
-                .data(Object.keys(seasonColors))
-                .enter()
-                .append("div")
-                .attr("class", "season-filter")
-                .style("background", d => seasonColors[d])
-                .text(d => d)
-                .on("click", (event, d) => applyFilter(null, d));
-
-            // Filtro de K-means
-            d3.select("#kmeans-legend")
-                .selectAll(".kmeans-filter")
-                .data([4, 6])
-                .enter()
-                .append("div")
-                .attr("class", "kmeans-filter")
-                .style("background", d => d === 4 ? '#66c2a5' : '#fdae61')
-                .text(d => `K-Means ${d}`)
-                .on("click", (event, d) => applyFilter(null, null, d));
-
-            // Filtro de K-means 5
-            d3.select("#kmeans5-legend")
-                .selectAll(".kmeans5-filter")
-                .data([5])
-                .enter()
-                .append("div")
-                .attr("class", "kmeans-filter")
-                .style("background", d => '#f1a340')
-                .text(d => `K-Means 5`)
-                .on("click", (event, d) => applyFilter(null, null, 5));
-
-            // Reiniciar filtros
-            d3.select("#reset-button").on("click", () => {
-                applyFilter();
-                svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+                return obj;
             });
+        }
 
-            function zoomed({ transform }) {
-                g.attr("transform", transform);
-                circles.attr("r", 5 / transform.k);
-                circles.attr("stroke-width", 2 / transform.k);
+        // Función para calcular la correlación entre dos arrays de números
+        function calculateCorrelation(x, y) {
+            const n = x.length;
+            const sumX = x.reduce((sum, val) => sum + val, 0);
+            const sumY = y.reduce((sum, val) => sum + val, 0);
+            const sumXy = x.reduce((sum, val, index) => sum + val * y[index], 0);
+            const sumX2 = x.reduce((sum, val) => sum + val * val, 0);
+            const sumY2 = y.reduce((sum, val) => sum + val * val, 0);
+            const numerator = n * sumXy - sumX * sumY;
+            const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+            return numerator / denominator;
+        }
+
+        // Filtrar los datos por el rango de fechas
+        function filterDataByDateRange(startDate, endDate) {
+            return rawData.filter(row => {
+                const rowDate = new Date(row.year, row.month - 1, row.day);
+                return rowDate >= new Date(startDate) && rowDate <= new Date(endDate);
+            });
+        }
+
+        // Filtrar los datos por un solo día
+        function filterDataBySingleDate(singleDate) {
+            return rawData.filter(row => {
+                const rowDate = new Date(row.year, row.month - 1, row.day);
+                return rowDate.toDateString() === new Date(singleDate).toDateString();
+            });
+        }
+
+        // Función para generar la matriz de correlación
+        function generateCorrelationMatrix() {
+            const dateFilterType = document.getElementById('dateFilterType').value;
+            const selectedAttributes = Array.from(document.querySelectorAll('.checkbox-group input[type="checkbox"]:checked')).map(checkbox => checkbox.value);
+
+            if (selectedAttributes.length === 0) {
+                alert('Por favor, selecciona al menos un atributo.');
+                return;
             }
 
-            const zoom = d3.zoom()
-                .scaleExtent([0.5, 10])
-                .on("zoom", zoomed);
+            let filteredData = [];
 
-            svg.call(zoom);
+            if (dateFilterType === 'range') {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+
+                if (!startDate || !endDate) {
+                    alert('Por favor, selecciona un rango de fechas.');
+                    return;
+                }
+
+                filteredData = filterDataByDateRange(startDate, endDate);
+            } else if (dateFilterType === 'single') {
+                const singleDate = document.getElementById('singleDateInput').value;
+
+                if (!singleDate) {
+                    alert('Por favor, selecciona un día específico.');
+                    return;
+                }
+
+                filteredData = filterDataBySingleDate(singleDate);
+            }
+
+            // Crear una matriz con los valores de los atributos seleccionados
+            const attributeValues = selectedAttributes.reduce((acc, attribute) => {
+                acc[attribute] = filteredData.map(row => parseFloat(row[attribute])).filter(value => !isNaN(value));
+                return acc;
+            }, {});
+
+            // Calcular la correlación entre los atributos seleccionados
+            const matrix = {};
+            selectedAttributes.forEach(attributeX => {
+                matrix[attributeX] = {};
+                selectedAttributes.forEach(attributeY => {
+                    const xValues = attributeValues[attributeX];
+                    const yValues = attributeValues[attributeY];
+                    const correlation = calculateCorrelation(xValues, yValues);
+                    matrix[attributeX][attributeY] = correlation.toFixed(2);
+                });
+            });
+
+            // Mostrar la matriz de correlación
+            displayCorrelationMatrix(matrix);
+
+            // Calcular la matriz de distancia
+            const distanceMatrix = calculateDistanceMatrix(matrix, selectedAttributes);
+
+            // Mostrar la matriz de distancia
+            displayDistanceMatrix(distanceMatrix);
+
+            // Calcular y mostrar los promedios
+            displayAverages(attributeValues);
+        }
+
+        // Función para calcular la matriz de distancias (de acuerdo a la correlación)
+        function calculateDistanceMatrix(correlationMatrix, selectedAttributes) {
+            const numAttributes = selectedAttributes.length;
+            const distanceMatrix = Array.from({ length: numAttributes }, () => Array(numAttributes).fill(0));
+
+            for (let i = 0; i < numAttributes; i++) {
+                for (let j = 0; j < numAttributes; j++) {
+                    // Convertir correlación a distancia usando la fórmula (1 - correlación)
+                    distanceMatrix[i][j] = Math.sqrt(2 * (1 - correlationMatrix[selectedAttributes[i]][selectedAttributes[j]]));
+                }
+            }
+
+            return distanceMatrix;
+        }
+
+        // Función para mostrar la matriz de correlación
+        function displayCorrelationMatrix(matrix) {
+            const correlationContainer = document.getElementById('correlation-matrix');
+            let matrixHTML = '<table border="1" cellpadding="5" cellspacing="0"><tr><th></th>';
+            Object.keys(matrix).forEach(attribute => {
+                matrixHTML += `<th>${attribute}</th>`;
+            });
+            matrixHTML += '</tr>';
+
+            Object.keys(matrix).forEach(attributeX => {
+                matrixHTML += `<tr><th>${attributeX}</th>`;
+                Object.keys(matrix[attributeX]).forEach(attributeY => {
+                    matrixHTML += `<td>${matrix[attributeX][attributeY]}</td>`;
+                });
+                matrixHTML += '</tr>';
+            });
+
+            matrixHTML += '</table>';
+            correlationContainer.innerHTML = matrixHTML;
+        }
+
+        // Función para mostrar la matriz de distancia
+        function displayDistanceMatrix(distanceMatrix) {
+            const distanceContainer = document.getElementById('distance-matrix');
+            let distanceHTML = '<table border="1" cellpadding="5" cellspacing="0"><tr><th></th>';
+
+            const attributes = Object.keys(distanceMatrix);
+            attributes.forEach(attribute => {
+                distanceHTML += `<th>${attribute}</th>`;
+            });
+            distanceHTML += '</tr>';
+
+            for (let i = 0; i < attributes.length; i++) {
+                distanceHTML += `<tr><th>${attributes[i]}</th>`;
+                for (let j = 0; j < attributes.length; j++) {
+                    distanceHTML += `<td>${distanceMatrix[i][j].toFixed(2)}</td>`;
+                }
+                distanceHTML += '</tr>';
+            }
+
+            distanceHTML += '</table>';
+            distanceContainer.innerHTML = distanceHTML;
+        }
+
+        // Función para calcular y mostrar los promedios de los atributos
+        function displayAverages(attributeValues) {
+            const averagesContainer = document.getElementById('averages');
+            let averagesHTML = '';
+
+            Object.keys(attributeValues).forEach(attribute => {
+                const avg = attributeValues[attribute].reduce((sum, val) => sum + val, 0) / attributeValues[attribute].length;
+                averagesHTML += `${attribute}: ${avg.toFixed(2)}<br>`;
+            });
+
+            averagesContainer.innerHTML = averagesHTML;
+        }
+
+        // Cambiar el formulario según el tipo de filtro seleccionado
+        document.getElementById('dateFilterType').addEventListener('change', function() {
+            if (this.value === 'range') {
+                document.getElementById('dateRange').style.display = 'block';
+                document.getElementById('singleDate').style.display = 'none';
+            } else {
+                document.getElementById('dateRange').style.display = 'none';
+                document.getElementById('singleDate').style.display = 'block';
+            }
         });
+
+        // Cargar los datos al iniciar
+        loadCSV();
     </script>
 
 </body>
